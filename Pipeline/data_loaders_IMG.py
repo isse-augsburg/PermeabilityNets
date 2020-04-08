@@ -202,7 +202,7 @@ class DataloaderImageSequences(DataloaderImages):
             logger.error(f"ERROR at {filename}, available states: {all_states},"
                          f"wanted indices: {indices}")
             raise
-        ffgen = self._get_flowfront(f, states=wanted_states)
+        ffgen = self._get_flowfront(f, states=wanted_states, meta_f=None)
         if ffgen is None:
             return None
         images = list(ffgen)
