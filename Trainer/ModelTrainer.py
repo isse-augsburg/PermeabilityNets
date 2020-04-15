@@ -98,7 +98,10 @@ class ModelTrainer:
         dont_care_num_samples=False,
         use_mixed_precision=False,
         sampler=None,
-        caching_torch=True
+        caching_torch=True,
+        demo_path=None,
+        resize_label_to=(0, 0),
+        load_test_set_in_training_mode=False
     ):
         initial_timestamp = str(datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
         self.save_path = save_path / initial_timestamp
@@ -126,6 +129,9 @@ class ModelTrainer:
         self.logger = logging.getLogger(__name__)
         self.best_loss = np.finfo(float).max
         self.sampler = sampler
+        self.demo_path = demo_path
+        if demo_path is not None:
+            caching_torch = False
 
         if caching_torch:
             load_and_save_path, data_loader_hash = handle_torch_caching(
@@ -138,7 +144,10 @@ class ModelTrainer:
             self.load_torch_dataset_path = None
             self.save_torch_dataset_path = None
 
-        print(f"HASH: {self.data_loader_hash}")
+        if self.demo_path is not None:
+            self.data_loader_hash = "DEMO_MODE"
+            self.load_torch_dataset_path = Path(self.demo_path)
+            self.save_torch_dataset_path = Path(self.demo_path)
 
         self.optimizer_function = optimizer_function
         self.lr_scheduler_function = lr_scheduler_function
@@ -156,6 +165,8 @@ class ModelTrainer:
         self.dont_care_num_samples = dont_care_num_samples
 
         self.use_mixed_precision = use_mixed_precision
+        self.resize_label = resize_label_to
+        self.load_test_set_in_training_mode = load_test_set_in_training_mode
 
     def __create_datagenerator(self, test_mode=False):
         try:
@@ -176,7 +187,8 @@ class ModelTrainer:
                 load_torch_dataset_path=self.load_torch_dataset_path,
                 dont_care_num_samples=self.dont_care_num_samples,
                 test_mode=test_mode,
-                sampler=self.sampler
+                sampler=self.sampler,
+                load_test_set_in_training_mode=self.load_test_set_in_training_mode,
             )
         except Exception:
             logger = logging.getLogger(__name__)
@@ -276,6 +288,8 @@ class ModelTrainer:
         """ Sets up training and logging and starts train loop
         """
         # self.save_path.mkdir(parents=True, exist_ok=True)
+        if self.demo_path is not None:
+            print(f"Running in demo mode. Please refer to {self.save_path} for logs et al.")
         logging_cfg.apply_logging_config(self.save_path)
         self.writer = SummaryWriter(log_dir=self.save_path)
         self.classification_evaluator = self.classification_evaluator_function(summary_writer=self.writer)
@@ -327,7 +341,7 @@ class ModelTrainer:
 
                 self.optimizer.zero_grad()
                 outputs = self.model(inputs)
-
+                label = self.resize_label_if_necessary(label)
                 loss = self.loss_criterion(outputs, label)
                 self.writer.add_scalar("Training/Loss", loss.item(), step_count)
                 if not self.use_mixed_precision:
@@ -381,6 +395,7 @@ class ModelTrainer:
                 # data = torch.unsqueeze(data, 0)
                 # label = torch.unsqueeze(label, 0)
                 output = self.model(data)
+                label = self.resize_label_if_necessary(label)
                 current_loss = self.loss_criterion(output, label).item()
                 loss = loss + current_loss
                 count += 1
@@ -406,6 +421,19 @@ class ModelTrainer:
                     self.__save_checkpoint(eval_step, loss, fn=f"checkpoint_{eval_step}.pth")
 
             return loss
+
+    def resize_label_if_necessary(self, label):
+        """
+        Resize the label: saves online storage by making it possible to use the bigger image labels of 1140 sensors
+        also for 80 and 20 sensors
+        :param label:
+        :return:
+        """
+        if self.resize_label != (0, 0):
+            label = torch.nn.functional.interpolate(label.reshape(-1, 1, label.shape[1], label.shape[2]),
+                                                    self.resize_label)
+            label = label.squeeze()
+        return label
 
     def __save_checkpoint(self, eval_step, loss, fn=r.chkp):
         torch.save(
@@ -466,6 +494,9 @@ class ModelTrainer:
             save_path.mkdir(parents=True, exist_ok=True)
         else:
             save_path = self.save_path
+
+        if self.demo_path is not None:
+            print(f"Eval - running in demo mode. Please refer to {save_path.absolute()} for log / results.")
 
         logging_cfg.apply_logging_config(save_path, eval=True)
 

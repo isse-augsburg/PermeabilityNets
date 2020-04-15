@@ -6,6 +6,7 @@ from torch import nn
 from torch.nn import Conv2d, ConvTranspose2d, Linear
 
 from Models.model_utils import load_model_layers_from_path
+from Utils.data_utils import reshape_to_indeces
 from Utils.training_utils import count_parameters
 
 
@@ -383,7 +384,8 @@ class S80DeconvToDrySpotEff(nn.Module):
 class S80Deconv2ToDrySpotEff(nn.Module):
     def __init__(self, pretrained="", checkpoint_path=None,
                  freeze_nlayers=0,  # Could be 9
-                 round_at: float = None):
+                 round_at: float = None,
+                 demo_mode=False):
         super(S80Deconv2ToDrySpotEff, self).__init__()
         self.ct1 = ConvTranspose2d(1, 128, 3, stride=2, padding=0)
         self.ct3 = ConvTranspose2d(128, 64, 7, stride=2, padding=0)
@@ -408,6 +410,8 @@ class S80Deconv2ToDrySpotEff(nn.Module):
         self.lin3 = nn.Linear(512, 1)
 
         self.round_at = round_at
+
+        self.demo_mode = demo_mode
 
         if pretrained == "deconv_weights":
             logger = logging.getLogger(__name__)
@@ -441,6 +445,8 @@ class S80Deconv2ToDrySpotEff(nn.Module):
                 break
 
     def forward(self, inputs):
+        if self.demo_mode:
+            inputs = reshape_to_indeces(inputs, ((1, 4), (1, 4)), 80).contiguous()
         inputs = inputs.reshape((-1, 1, 10, 8))
         x = F.relu(self.ct1(inputs))
         x = F.relu(self.ct3(x))
@@ -536,7 +542,8 @@ class S20DeconvToDrySpotEff(nn.Module):
 
 
 class S20DeconvToDrySpotEff2(nn.Module):
-    def __init__(self, pretrained="", checkpoint_path=None, freeze_nlayers=0, round_at: float = None):
+    def __init__(self, pretrained="", checkpoint_path=None, freeze_nlayers=0, round_at: float = None,
+                 demo_mode=False):
         super(S20DeconvToDrySpotEff2, self).__init__()
         self.ct1 = ConvTranspose2d(1, 256, 3, stride=2)
         self.ct2 = ConvTranspose2d(256, 128, 5, stride=2)
@@ -560,6 +567,8 @@ class S20DeconvToDrySpotEff2(nn.Module):
         # self.bn8 = nn.BatchNorm2d(8)
         # self.bn512 = nn.BatchNorm2d(512)
         self.round_at = round_at
+
+        self.demo_mode = demo_mode
 
         if pretrained == "deconv_weights":
             logger = logging.getLogger(__name__)
@@ -592,6 +601,8 @@ class S20DeconvToDrySpotEff2(nn.Module):
                 break
 
     def forward(self, inputs):
+        if self.demo_mode:
+            inputs = reshape_to_indeces(inputs, ((1, 8), (1, 8)), 20).contiguous()
         frs = inputs.reshape((-1, 1, 5, 4))
 
         x = F.relu(self.ct1(frs))

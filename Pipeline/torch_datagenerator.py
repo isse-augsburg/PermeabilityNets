@@ -57,7 +57,8 @@ class LoopingDataGenerator:
                  load_torch_dataset_path=None,
                  dont_care_num_samples=False,
                  test_mode=False,
-                 sampler=None
+                 sampler=None,
+                 load_test_set_in_training_mode=False
                  ):
         self.logger = logging.getLogger(__name__)
 
@@ -88,6 +89,8 @@ class LoopingDataGenerator:
             looping_strategy = DataLoaderListLoopingStrategy(batch_size, sampler=sampler)
         self.looping_strategy = looping_strategy
         self.first = True
+        if len(self.looping_strategy) > 0:
+            self.first = False
         self.val_set_generator = None
         self.test_set_generator = None
         self.file_iterable = None
@@ -98,7 +101,7 @@ class LoopingDataGenerator:
 
         self.dont_care_num_samples = dont_care_num_samples
 
-        self.try_loading_torch_datasets()
+        self.try_loading_torch_datasets(load_test_set_in_training_mode)
 
         if self.test_mode and self.loaded_test_set:
             self.logger.info(f"Running in test mode and loaded test data set.")
@@ -109,20 +112,22 @@ class LoopingDataGenerator:
         else:
             self.load_datasets()
 
-    def try_loading_torch_datasets(self):
+    def try_loading_torch_datasets(self, load_test_set_in_training_mode):
         if self.load_torch_dataset_path is None:
             return
-        if (self.load_torch_dataset_path / "test_set_torch.p").is_file():
-            self.logger.info(f"Loading test set - torch - from {self.load_torch_dataset_path}.")
-            self.saved_test_samples = torch.load(self.load_torch_dataset_path / "test_set_torch.p")
-            self.loaded_test_set = True
-            with open(self.split_save_path / "test_set.p", "wb") as f:
-                pickle.dump(sorted(list(set([x[2]["sourcefile"] for x in self.saved_test_samples]))), f)
-        if self.test_mode:
-            return
+        if self.test_mode or load_test_set_in_training_mode:
+            if (self.load_torch_dataset_path / "test_set_torch.p").is_file():
+                self.logger.info(f"Loading test set - torch - from {self.load_torch_dataset_path}.")
+                self.saved_test_samples = torch.load(self.load_torch_dataset_path / "test_set_torch.p")
+                self.loaded_test_set = True
+                self.logger.info(f"Done.")
+                with open(self.split_save_path / "test_set.p", "wb") as f:
+                    pickle.dump(sorted(list(set([x[2]["sourcefile"] for x in self.saved_test_samples]))), f)
+            if not load_test_set_in_training_mode:
+                return
         if (self.load_torch_dataset_path / "train_set_torch.p").is_file():
             self.logger.info(f"Loading training set - torch - from {self.load_torch_dataset_path}.")
-            self.looping_strategy = torch.load(self.load_torch_dataset_path / "train_set_torch.p")
+            self.looping_strategy.load_content(self.load_torch_dataset_path / "train_set_torch.p")
             self.loaded_train_set = True
             self.logger.info(f"Done.")
             with open(self.split_save_path / "training_set.p", "wb") as f:
@@ -131,6 +136,7 @@ class LoopingDataGenerator:
             self.logger.info(f"Loading validation set - torch - from {self.load_torch_dataset_path}.")
             self.saved_val_samples = torch.load(self.load_torch_dataset_path / "val_set_torch.p")
             self.loaded_val_set = True
+            self.logger.info(f"Done.")
             with open(self.split_save_path / "validation_set.p", "wb") as f:
                 pickle.dump(sorted(list(set([x[2]["sourcefile"] for x in self.saved_val_samples]))), f)
 
@@ -185,7 +191,7 @@ class LoopingDataGenerator:
         else:
             if not self.saved and self.save_torch_dataset_path is not None:
                 if not (self.save_torch_dataset_path / "train_set_torch.p").is_file():
-                    torch.save(self.looping_strategy, self.save_torch_dataset_path / "train_set_torch.p")
+                    self.looping_strategy.dump_content(self.save_torch_dataset_path / "train_set_torch.p")
                 self.saved = True
 
             iterator = self.looping_strategy.get_new_iterator()
