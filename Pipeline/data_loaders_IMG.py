@@ -165,7 +165,7 @@ class DataloaderImages:
 
         return sensordata_gen()
 
-    def get_sensordata_and_flowfront_v2(self, file: Path):
+    def plot_times(self, file: Path, name):
         try:
             result_f = h5py.File(file, "r")
             p_out_f = open(str(file).replace("_RESULT.erfh5", "p.out"), 'r')
@@ -179,21 +179,31 @@ class DataloaderImages:
             return None
 
         time_steps = self._get_timesteps(p_out_f)
-        fillings = self._get_flowfront(result_f, meta_f)
-        if not fillings:
-            return None
+        states = list(result_f["post"]["singlestate"])
+        states = [int(r.replace("state", "0")) - 1  for r in states]
+        import matplotlib.pyplot as plt
+        k = len(states)
+        cut = int(0.20*k)
+        plt.clf()
+        plt.plot(time_steps[states[:-cut],1])
+        plt.ylabel("huii")
+        plt.savefig("figs/"+ name +".png")
 
-        sensor_data = self._get_sensordata(result_f)
-        if not sensor_data:
-            return None
+        # fillings = self._get_flowfront(result_f, meta_f)
+        # if not fillings:
+        #     return None
+
+        # sensor_data = self._get_sensordata(result_f)
+        # if not sensor_data:
+        #     return None
 
         # Return only tuples without None values and if we get no data at all, return None
         # `if not None in t` does not work here because numpy does some weird stuff on
         # such comparisons
-        return (list((sens_data, filling, {"state": state}) for sens_data, filling, state in
-                     zip(sensor_data, fillings, result_f["post"]["singlestate"])
-                     if sens_data is not None and filling is not None)
-                or None)
+        # return (list((sens_data, filling, {"state": state}) for sens_data, filling, state in
+        #              zip(sensor_data, fillings, result_f["post"]["singlestate"])
+        #              if sens_data is not None and filling is not None)
+        #         or None)
 
     def get_sensordata_and_flowfront(self, file: Path):
         try:
@@ -275,5 +285,7 @@ if __name__ == "__main__":
              "40/2019-07-23_15-38-08_40_RESULT.erfh5"),
 
     ]
-    for p in paths:
-        res = dl.get_sensordata_and_flowfront_v2(p)
+    for num in range(100):
+        p = Path("/cfs/share/data/RTM/Leoben/sim_output/2019-07-23_15-38-08_5000p/"
+             + str(num) +"/2019-07-23_15-38-08_"+str(num)+"_RESULT.erfh5")
+        dl.plot_times(p, str(num))
