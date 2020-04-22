@@ -7,6 +7,7 @@ import h5py
 import matplotlib.pyplot as plt
 import matplotlib.tri as tri
 import numpy as np
+import re
 
 import Resources.training as tr_resources
 from Pipeline.resampling import get_fixed_number_of_indices
@@ -115,6 +116,19 @@ class DataloaderImages:
 
         return perm_map
 
+    def _get_timesteps(self, outfile):
+        content = outfile.readlines()
+        finder = re.compile("STEP NO.")
+        sci_num = re.compile("-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?")
+        lis = []
+        for line in content:
+            find = finder.search(line)
+            if find is not None:
+                t = sci_num.findall(line)
+                print(t)
+                lis.append(np.array([float(i) for i in t]))
+        return np.stack(lis)
+
     def _get_sensordata(self, f):
         try:
             data = f["post"]["multistate"]["TIMESERIES1"][
@@ -126,6 +140,7 @@ class DataloaderImages:
             return None
 
         states = list(states)[self.skip_indizes[0]:self.skip_indizes[1]:self.skip_indizes[2]]
+        print(states)
 
         def sensordata_gen():
             for state in states:
@@ -149,6 +164,36 @@ class DataloaderImages:
                     yield None
 
         return sensordata_gen()
+
+    def get_sensordata_and_flowfront_v2(self, file: Path):
+        try:
+            result_f = h5py.File(file, "r")
+            p_out_f = open(str(file).replace("_RESULT.erfh5", "p.out"), 'r')
+            if self.ignore_useless_states:
+                meta_f = h5py.File(str(file).replace("RESULT.erfh5", "meta_data.hdf5"), 'r')
+            else:
+                meta_f = None
+        except OSError:
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error: File not found: {file} (or meta_data.hdf5)")
+            return None
+
+        time_steps = self._get_timesteps(p_out_f)
+        fillings = self._get_flowfront(result_f, meta_f)
+        if not fillings:
+            return None
+
+        sensor_data = self._get_sensordata(result_f)
+        if not sensor_data:
+            return None
+
+        # Return only tuples without None values and if we get no data at all, return None
+        # `if not None in t` does not work here because numpy does some weird stuff on
+        # such comparisons
+        return (list((sens_data, filling, {"state": state}) for sens_data, filling, state in
+                     zip(sensor_data, fillings, result_f["post"]["singlestate"])
+                     if sens_data is not None and filling is not None)
+                or None)
 
     def get_sensordata_and_flowfront(self, file: Path):
         try:
@@ -223,15 +268,12 @@ class DataloaderImageSequences(DataloaderImages):
 
 
 if __name__ == "__main__":
-    dl = DataloaderImages()
+    dl = DataloaderImages(ignore_useless_states=False)
 
     paths = [
-        Path("/cfs/home/s/t/stiebesi/data/RTM/Leoben/output/with_shapes/2019-07-23_15-38-08_5000p/"
+        Path("/cfs/share/data/RTM/Leoben/sim_output/2019-07-23_15-38-08_5000p/"
              "40/2019-07-23_15-38-08_40_RESULT.erfh5"),
 
     ]
     for p in paths:
-        res = dl.get_sensordata_and_flowfront(p)
-        for thing in res:
-            plt.imshow(thing[1])
-            plt.imshow(flip_array_diag(thing[1]))
+        res = dl.get_sensordata_and_flowfront_v2(p)
