@@ -180,14 +180,42 @@ class DataloaderImages:
 
         time_steps = self._get_timesteps(p_out_f)
         states = list(result_f["post"]["singlestate"])
-        states = [int(r.replace("state", "0")) - 1  for r in states]
+        states_int = [int(r.replace("state", "0")) - 1  for r in states]
+        fillings = []
+        for state in states:
+            try:
+                fillings.append(result_f["post"][
+                                    "singlestate"][state]["entityresults"]["NODE"][
+                                    "FILLING_FACTOR"][
+                                    "ZONE1_set1"][
+                                    "erfblock"]["res"][()])
+            except KeyError:
+                return
+        ones = np.ones_like(fillings[0])
+        u = np.sum(ones)
+        percentages = [(np.sum(k)/u) for k in fillings]
+
+       
         import matplotlib.pyplot as plt
-        k = len(states)
+        k = len(states_int)
         cut = int(0.20*k)
-        plt.clf()
-        plt.plot(time_steps[states[:-cut],1])
-        plt.ylabel("huii")
+
+        fig, ax1 = plt.subplots()
+        color = 'tab:blue'
+        ax1.set_xlabel('steps')
+        ax1.set_ylabel('huuis', color=color)
+        ax1.plot(time_steps[states_int[:-cut],1], color=color)
+        ax1.tick_params(axis='y', labelcolor=color)
+
+        ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
+
+        color = 'tab:red'
+        ax2.set_ylabel('filling_perc', color=color)  # we already handled the x-label with ax1
+        ax2.plot(percentages[:-cut], color=color)
+        ax2.tick_params(axis='y', labelcolor=color)
+        fig.tight_layout()
         plt.savefig("figs/"+ name +".png")
+        plt.close()
 
         # fillings = self._get_flowfront(result_f, meta_f)
         # if not fillings:
