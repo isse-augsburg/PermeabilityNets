@@ -1,5 +1,6 @@
 import io
 import logging
+import re
 from pathlib import Path
 
 import cv2
@@ -7,7 +8,6 @@ import h5py
 import matplotlib.pyplot as plt
 import matplotlib.tri as tri
 import numpy as np
-import re
 
 import Resources.training as tr_resources
 from Pipeline.resampling import get_fixed_number_of_indices
@@ -17,7 +17,6 @@ from Utils.data_utils import extract_coords_of_mesh_nodes, load_mean_std
 from Utils.img_utils import (
     create_np_image,
 )
-from Utils.img_utils import flip_array_diag
 
 
 # This class provides all original functions but tries to improve the performance of consecutive calls
@@ -125,7 +124,6 @@ class DataloaderImages:
             find = finder.search(line)
             if find is not None:
                 t = sci_num.findall(line)
-                print(t)
                 lis.append(np.array([float(i) for i in t]))
         return np.stack(lis)
 
@@ -140,7 +138,6 @@ class DataloaderImages:
             return None
 
         states = list(states)[self.skip_indizes[0]:self.skip_indizes[1]:self.skip_indizes[2]]
-        print(states)
 
         def sensordata_gen():
             for state in states:
@@ -165,7 +162,7 @@ class DataloaderImages:
 
         return sensordata_gen()
 
-    def plot_times(self, file: Path, name):
+    def get_data(self, file):
         try:
             result_f = h5py.File(file, "r")
             p_out_f = open(str(file).replace("_RESULT.erfh5", "p.out"), 'r')
@@ -180,7 +177,7 @@ class DataloaderImages:
 
         time_steps = self._get_timesteps(p_out_f)
         states = list(result_f["post"]["singlestate"])
-        states_int = [int(r.replace("state", "0")) - 1  for r in states]
+        states_int = [int(r.replace("state", "0")) - 1 for r in states]
         fillings = []
         for state in states:
             try:
@@ -194,8 +191,18 @@ class DataloaderImages:
         ones = np.ones_like(fillings[0])
         u = np.sum(ones)
         percentages = [(np.sum(k)/u) for k in fillings]
+        multi_state_pressure = result_f["/post/multistate/TIMESERIES1/multientityresults/SENSOR" \
+                                        "/PRESSURE/ZONE1_set1/erfblock/res"][()]
+        # Assuming that hitting all sensors = 100 %
+        all_states_int = list(range(len(time_steps)))
+        m = multi_state_pressure.squeeze()
+        activated_sensors = np.count_nonzero(m, axis=1)
+        percentage_of_all_sensors = activated_sensors / 1140  # Number of sensors
+        y_label = "filling_perc"
+        return states_int, time_steps, all_states_int, y_label, percentages, percentage_of_all_sensors
 
-       
+    def plot_times_more_detailed(self, file: Path, name, save_to_file=True):
+        states_int, time_steps, all_states_int, y_label, percentages, percentage_of_all_sensors = self.get_data(file)
         import matplotlib.pyplot as plt
         k = len(states_int)
         cut = int(0.20*k)
@@ -204,7 +211,66 @@ class DataloaderImages:
         color = 'tab:blue'
         ax1.set_xlabel('steps')
         ax1.set_ylabel('huuis', color=color)
-        ax1.plot(time_steps[states_int[:-cut],1], color=color)
+        ax1.plot(time_steps[all_states_int[:-cut], 1], color=color)
+        ax1.tick_params(axis='y', labelcolor=color)
+
+        ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
+
+        color = 'tab:red'
+        ax2.set_ylabel(y_label, color=color)  # we already handled the x-label with ax1
+        ax2.scatter(states_int[:-cut], percentages[:-cut], color=color, label="Filling perc / Single states", s=2)
+        ax2.plot(percentage_of_all_sensors[:-cut], color="green", label="Sensor hit %")
+        ax2.tick_params(axis='y', labelcolor=color)
+        fig.tight_layout()
+        plt.title(p.stem)
+        if save_to_file:
+            plt.savefig(f"figs/{name}.png")
+        else:
+            plt.show()
+        plt.close()
+
+    def plot_times_thresholded(self, file: Path, name, save_to_file=True):
+        states_int, time_steps, all_states_int, y_label, percentages, percentage_of_all_sensors = self.get_data(file)
+        import matplotlib.pyplot as plt
+        # k = len(states_int)
+        # cut = int(0.20*k)
+        threshold = .97
+        cut = np.count_nonzero(np.where(percentage_of_all_sensors < threshold, 0, 1))
+        fig, ax1 = plt.subplots()
+        color = 'tab:blue'
+        ax1.set_xlabel('Time')
+        ax1.set_ylabel('Sensor hit %', color="green")
+        ax1.tick_params(axis='y', labelcolor=color)
+        if len(time_steps[1:, 1]) != len(percentage_of_all_sensors):
+            print("NON matching lenghts.")
+            plt.close()
+            return
+        if cut == 0:  # Filling never reaches the threshold -> No need to cut off
+            _t = time_steps[:, 1][1:]
+            _p = percentage_of_all_sensors
+        else:
+            _t = time_steps[:, 1][1:-cut]
+            _p = percentage_of_all_sensors[:-cut]
+        ax1.plot(_t, _p, color="green")
+
+        plt.title(p.stem)
+        if save_to_file:
+            plt.savefig(f"figs/{name}_sensor_hit_only_20perc_cut.png")
+        else:
+            plt.show()
+        plt.close()
+
+    def plot_times(self, file: Path, name, save_to_file=True):
+        states_int, time_steps, all_states_int, y_label, percentages, percentage_of_all_sensors = self.get_data(file)
+        import matplotlib.pyplot as plt
+        k = len(states_int)
+        cut = int(0.20 * k)
+
+        fig, ax1 = plt.subplots()
+        color = 'tab:blue'
+        ax1.set_xlabel('steps')
+        ax1.set_ylabel('huuis', color=color)
+        ax1.plot(time_steps[states_int[:-cut], 1], color=color)
         ax1.tick_params(axis='y', labelcolor=color)
 
         ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
@@ -214,24 +280,11 @@ class DataloaderImages:
         ax2.plot(percentages[:-cut], color=color)
         ax2.tick_params(axis='y', labelcolor=color)
         fig.tight_layout()
-        plt.savefig("figs/"+ name +".png")
+        if save_to_file:
+            plt.savefig("figs/" + name + ".png")
+        else:
+            plt.show()
         plt.close()
-
-        # fillings = self._get_flowfront(result_f, meta_f)
-        # if not fillings:
-        #     return None
-
-        # sensor_data = self._get_sensordata(result_f)
-        # if not sensor_data:
-        #     return None
-
-        # Return only tuples without None values and if we get no data at all, return None
-        # `if not None in t` does not work here because numpy does some weird stuff on
-        # such comparisons
-        # return (list((sens_data, filling, {"state": state}) for sens_data, filling, state in
-        #              zip(sensor_data, fillings, result_f["post"]["singlestate"])
-        #              if sens_data is not None and filling is not None)
-        #         or None)
 
     def get_sensordata_and_flowfront(self, file: Path):
         try:
@@ -307,13 +360,10 @@ class DataloaderImageSequences(DataloaderImages):
 
 if __name__ == "__main__":
     dl = DataloaderImages(ignore_useless_states=False)
-
-    paths = [
-        Path("/cfs/share/data/RTM/Leoben/sim_output/2019-07-23_15-38-08_5000p/"
-             "40/2019-07-23_15-38-08_40_RESULT.erfh5"),
-
-    ]
-    for num in range(100):
-        p = Path("/cfs/share/data/RTM/Leoben/sim_output/2019-07-23_15-38-08_5000p/"
-             + str(num) +"/2019-07-23_15-38-08_"+str(num)+"_RESULT.erfh5")
-        dl.plot_times(p, str(num))
+    root = tr_resources.data_root / "2019-07-23_15-38-08_5000p"
+    for num in range(1):
+        p = Path(root / f"{num}/2019-07-23_15-38-08_{num}_RESULT.erfh5")
+        dl.plot_times(p, num, save_to_file=False)
+        dl.plot_times_thresholded(p, num, save_to_file=False)
+        dl.plot_times_more_detailed(p, num, save_to_file=False)
+        # dl.plot_times(p, use_single_states=True)
