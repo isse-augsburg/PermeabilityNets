@@ -331,6 +331,30 @@ class DataloaderImageSequences(DataloaderImages):
         super().__init__(image_size=image_size)
         self.wanted_frames = wanted_frames
 
+    def get_sensor_to_perm_map(self, filename):
+        try:
+            per_step = 0.01
+            logger = logging.getLogger(__name__)
+            logger.debug("Loading flow front and premeability maps from {}".format(filename))
+            f = h5py.File(filename, "r")
+            perm_map = self._get_fiber_fraction(f)
+            perm_map = perm_map.astype(np.float) / 255
+            multi_state_pressure =  f["/post/multistate/TIMESERIES1/multientityresults/SENSOR" \
+                                            "/PRESSURE/ZONE1_set1/erfblock/res"][()]
+            m = multi_state_pressure.squeeze()
+            activated_sensors = np.count_nonzero(m, axis=1)
+            percentage_of_all_sensors = activated_sensors / 1140  # Number of sensors
+            sequence = np.zeros((100,1140))
+            current = 0
+            for i, sample in enumerate(percentage_of_all_sensors):
+                if sample >= current:
+                    sequence[int(current*100),:] = m[i,:]
+                    current += per_step
+            return [(sequence, perm_map)]
+        except Exception:
+            return None
+
+
     def get_images_of_flow_front_and_permeability_map(self, filename):
         logger = logging.getLogger(__name__)
         logger.debug("Loading flow front and premeability maps from {}".format(filename))
@@ -359,11 +383,13 @@ class DataloaderImageSequences(DataloaderImages):
 
 
 if __name__ == "__main__":
-    dl = DataloaderImages(ignore_useless_states=False)
+    dl = DataloaderImageSequences()
     root = tr_resources.data_root / "2019-07-23_15-38-08_5000p"
-    for num in range(1):
+    for num in range(10):
+        num = 31
         p = Path(root / f"{num}/2019-07-23_15-38-08_{num}_RESULT.erfh5")
-        dl.plot_times(p, num, save_to_file=False)
-        dl.plot_times_thresholded(p, num, save_to_file=False)
-        dl.plot_times_more_detailed(p, num, save_to_file=False)
+        dl.get_sensor_to_perm_map(p)
+        #dl.plot_times(p, num, save_to_file=False)
+        #dl.plot_times_thresholded(p, num, save_to_file=False)
+        #dl.plot_times_more_detailed(p, num, save_to_file=False)
         # dl.plot_times(p, use_single_states=True)
