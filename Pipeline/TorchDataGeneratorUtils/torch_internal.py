@@ -296,7 +296,15 @@ class SubSetGenerator:
         if self.load_file is not None and self.load_file.is_file():
             with open(self.load_file, 'rb') as f:
                 self.logger.info(f"Loading {self.subset_name} from stored file {self.load_file}")
-                self.used_filenames = [Path(fn) for fn in pickle.load(f)]
+                used_filenames_str = [fn for fn in pickle.load(f)]
+                unix_abs = all(fn.startswith('/') for fn in used_filenames_str)
+                self.used_filenames = [Path(fn) for fn in used_filenames_str]
+                if os.name == 'nt' and unix_abs:
+                    # If the paths were already saved as Windows paths, as in the tests, do nothing
+                    # Explicitly not using type() and WindowsPath here, since this Class is not implemented on Linux
+                    # -> Check would not work
+                    if str(self.used_filenames[0])[0] != 'Y' and str(self.used_filenames[0])[0] != 'X':
+                        self.used_filenames = [Path('Y:/') / '/'.join(x.parts[3:]) for x in self.used_filenames]
                 all_abs = all(p.is_absolute() for p in self.used_filenames)
                 # If we got a data_root and have non relative paths, apply the data_root
                 # This assumes that we never get mixed relative and absolute paths which should be reasonable
@@ -304,12 +312,7 @@ class SubSetGenerator:
                     self.used_filenames = [self.data_root / p for p in self.used_filenames]
                 elif not all_abs:
                     raise ValueError("Got relative paths in stored split but data_root was not set!")
-                if os.name == 'nt':
-                    # If the paths were already saved as Windows paths, as in the tests, do nothing
-                    # Explicitly not using type() and WindowsPath here, since this Class is not implemented on Linux
-                    # -> Check would not work
-                    if str(self.used_filenames[0])[0] != 'Y' and str(self.used_filenames[0])[0] != 'X':
-                        self.used_filenames = [Path('Y:/') / '/'.join(x.parts[3:]) for x in self.used_filenames]
+
                 unused_files = self._list_difference(file_paths, self.used_filenames)
         else:
             self.logger.info(f"Generating a new split for {self.subset_name}.")
@@ -323,7 +326,7 @@ class SubSetGenerator:
             with open(self.save_file, 'wb') as f:
                 used_files_rel = self.used_filenames
                 if self.data_root is not None:
-                    used_files_rel = [p.relative_to(self.data_root) for p in self.used_filenames]
+                    used_files_rel = [str(p.relative_to(self.data_root)).strip('/') for p in self.used_filenames]
                 pickle.dump([str(fn) for fn in used_files_rel], f)
         return unused_files
 
