@@ -77,7 +77,10 @@ class DataloaderPressureSensorV2:
         Load the flow front for the given states or all available states if states is None
         """
         states, pressure_values = self.extract_data_from_result_file(filename)
-        pressure_values = pressure_values / 100000
+        if pressure_values is not None:
+            pressure_values = pressure_values / 100000
+        else:
+            return None
         meta_fn = str(filename).replace("RESULT.erfh5", "meta_data.hdf5")
         useless_states, set_of_dryspot_states = self.extract_data_from_meta_file(meta_fn)
         if states is None or \
