@@ -6,7 +6,7 @@ import h5py
 import numpy as np
 
 import Resources.training as r
-from Utils.data_utils import extract_nearest_mesh_nodes_to_sensors, get_node_propery_at_states, \
+from Utils.data_utils import extract_nearest_mesh_nodes_to_sensors, get_node_propery_at_states_and_indices, \
     extract_coords_of_mesh_nodes
 
 
@@ -44,9 +44,9 @@ class DataloaderPressureSensorV2:
                 states = f["post"]["singlestate"]
                 states = list(states)[self.skip_indizes[0]:self.skip_indizes[1]:self.skip_indizes[2]]
 
-                pressure_values = get_node_propery_at_states(f, "PRESSURE", states)
-                pressure_values = np.squeeze(pressure_values)
                 self.extract_coords_data(f)
+                pressure_values = get_node_propery_at_states_and_indices(f, "PRESSURE", states, self.indeces_of_sensors)
+                pressure_values = np.squeeze(pressure_values)
             except KeyError:
                 logger = logging.getLogger()
                 logger.warning(f'Warning: {filename}')
@@ -77,6 +77,7 @@ class DataloaderPressureSensorV2:
         Load the flow front for the given states or all available states if states is None
         """
         states, pressure_values = self.extract_data_from_result_file(filename)
+        pressure_values = pressure_values / 100000
         meta_fn = str(filename).replace("RESULT.erfh5", "meta_data.hdf5")
         useless_states, set_of_dryspot_states = self.extract_data_from_meta_file(meta_fn)
         if states is None or \
@@ -98,6 +99,6 @@ class DataloaderPressureSensorV2:
 
 
 if __name__ == '__main__':
-    dl = DataloaderPressureSensorV2(sensor_indizes=((1, 8), (1, 8)))
+    dl = DataloaderPressureSensorV2(sensor_indizes=((0, 1), (0, 1)))
     dl.get_pressure_sensor_v2_bool_dryspot(
         r'Y:\data\RTM\Leoben\sim_output\2019-07-24_16-32-40_10p\0\2019-07-24_16-32-40_0_RESULT.erfh5')
