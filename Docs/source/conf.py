@@ -14,13 +14,19 @@
 #
 import os
 import sys
+import cv2  
+import numpy
+import h5py
+
+autodoc_mock_imports = ["torch", "apex"]
+
 
 sys.path.insert(0, os.path.abspath('../..'))
 
 # -- Project information -----------------------------------------------------
 
 project = 'RTM-Predictions'
-copyright = '2020, ISSE Uni Augsburg'
+copyright = '2020, ISSE Universität Augsburg'
 author = 'lodesluk'
 
 # The short X.Y version

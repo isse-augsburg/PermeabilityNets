@@ -8,7 +8,8 @@ stages:
 linter:
   stage: lint
   script:
-    - flake8 --max-line-length=120 --ignore=W291,W503,W504 .
+    - flake8 --max-line-length=120 --ignore=W291,W503,W504 --exclude=Docs . 
+# local: flake8 --max-line-length=120 --ignore=W291,W503,W504,F841 --exclude=_* .
 
 test:
   stage: test
@@ -17,9 +18,6 @@ test:
 
   tags:
     - dgx2
-
-  only:
-    - master
 
 documentation:
   stage: docs

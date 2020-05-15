@@ -1,7 +1,4 @@
-from pathlib import Path
-
 import torch
-from torch.optim.lr_scheduler import ExponentialLR
 
 import Resources.training as r
 from Models.erfh5_ConvModel import S80Deconv2ToDrySpotEff
@@ -9,18 +6,19 @@ from Pipeline.data_gather import get_filelist_within_folder_blacklisted
 from Pipeline.data_loader_dryspot import DataloaderDryspots
 from Trainer.ModelTrainer import ModelTrainer
 from Trainer.evaluation import BinaryClassificationEvaluator
-from Utils.training_utils import read_cmd_params
+from Utils.eval_utils import run_eval_w_binary_classificator
 
 if __name__ == "__main__":
-    args = read_cmd_params()
+    dl = DataloaderDryspots(sensor_indizes=((1, 4), (1, 4)),
+                            aux_info=True)
 
-    dl = DataloaderDryspots(sensor_indizes=((1, 4), (1, 4)))
-
+    checkpoint_p = r.chkp_S80_to_ds_thres
+    adv_output_dir = checkpoint_p.parent / "advanced_eval"
     m = ModelTrainer(
-        lambda: S80Deconv2ToDrySpotEff(pretrained="deconv_weights",
-                                       checkpoint_path=r.chkp_S80_to_ff2,
+        lambda: S80Deconv2ToDrySpotEff(pretrained="all",
+                                       checkpoint_path=checkpoint_p,
                                        freeze_nlayers=9,
-                                       round_at=0.5),
+                                       round_at=.8),
         data_source_paths=r.get_data_paths_base_0(),
         save_path=r.save_path,
         load_datasets_path=r.datasets_dryspots,
@@ -37,16 +35,7 @@ if __name__ == "__main__":
         optimizer_function=lambda params: torch.optim.AdamW(params, lr=0.0001),
         classification_evaluator_function=lambda summary_writer:
         BinaryClassificationEvaluator(summary_writer=summary_writer),
-        lr_scheduler_function=lambda optim: ExponentialLR(optim, 0.5),
+        caching_torch=False
     )
 
-    if not args.eval:
-        m.start_training()
-    else:
-        m.inference_on_test_set(
-            Path(args.eval_path),
-            Path(args.checkpoint_path),
-            lambda summary_writer: BinaryClassificationEvaluator(
-                Path(args.eval_path) / "eval_on_test_set",
-            ),
-        )
+    run_eval_w_binary_classificator(adv_output_dir, m, checkpoint_p)
