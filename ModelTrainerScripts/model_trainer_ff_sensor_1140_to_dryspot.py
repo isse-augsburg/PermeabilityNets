@@ -3,7 +3,7 @@ from pathlib import Path
 import torch
 
 import Resources.training as r
-from Models.erfh5_ConvModel import S20Channel4toDrySpot
+from Models.erfh5_fullyConnected import S1140DryspotModelFCWide
 from Pipeline.data_gather import get_filelist_within_folder_blacklisted
 from Pipeline.data_loader_flowfront_sensor import DataloaderFlowfrontSensor
 from Trainer.ModelTrainer import ModelTrainer
@@ -13,16 +13,17 @@ from Utils.training_utils import read_cmd_params
 if __name__ == "__main__":
     args = read_cmd_params()
 
-    dlds = DataloaderFlowfrontSensor(sensor_indizes=((1, 8), (1, 8)),
-                                     frame_count=4)
-    m = ModelTrainer(lambda: S20Channel4toDrySpot(),
+    dlds = DataloaderFlowfrontSensor(sensor_indizes=((0, 1), (0, 1)),
+                                     frame_count=1,
+                                     use_binary_sensor_only=True)
+    m = ModelTrainer(lambda: S1140DryspotModelFCWide(),
                      data_source_paths=r.get_data_paths_base_0(),
                      save_path=r.save_path,
                      load_datasets_path=r.datasets_dryspots,
                      cache_path=r.cache_path,
                      batch_size=2048,
                      train_print_frequency=100,
-                     epochs=1000,
+                     epochs=100,
                      num_workers=75,
                      num_validation_samples=131072,
                      num_test_samples=1048576,
@@ -36,14 +37,14 @@ if __name__ == "__main__":
                      # lr_scheduler_function=lambda optim: ExponentialLR(optim, 0.1),
                      )
 
-    if not args.eval:
+    if not args.run_eval:
         m.start_training()
     else:
         m.inference_on_test_set(
-            output_path=Path(args.eval_path),
+            output_path=Path(args.eval),
             checkpoint_path=Path(args.checkpoint_path),
-            classification_evaluator_function=lambda sw: BinaryClassificationEvaluator(
-                Path(args.eval_path) / "eval_on_test_set",
+            classification_evaluator_function=lambda summary_writer: BinaryClassificationEvaluator(
+                Path(args.eval) / "eval_on_test_set",
                 skip_images=True,
                 with_text_overlay=True)
         )

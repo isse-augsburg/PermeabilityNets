@@ -47,9 +47,14 @@ class ModelTrainer:
         epochs: Number of epochs for training.
         dummy_epoch: If set to True, a dummy epoch will be fetched before training.
                      This results in better shuffling for the first epoch
+        produce_torch_datasets_only: Only write cache data, useful for producing and publishing certain datasets.
+                                     Output directory is the caching directory, that comes out of the
+                                     handle_torch_caching method. The root dir is saved in
+                                     Ressources.training.datasets_dryspots_torch
         num_workers: Number of processes for processing data.
         num_validation_samples: Number of samples for the validation set.
         num_test_samples: Number of samples for the test set.
+        data_root: The root directory for the training data.
         data_processing_function: function object used by the data generator
                                   for transforming paths into desired data.
         data_gather_function: function object used by the data generator for
@@ -58,16 +63,11 @@ class ModelTrainer:
                       Specifies if and how caching is done.
         loss_criterion: Loss criterion for training.
         optimizer_function: Object of a Torch optimizer. Passed as a lambda call, e.g.
-                            lambda: params: torch.optim.Adam(params, lr=0.0001
+                            lambda: params: torch.optim.Adam(params, lr=0.0001)
         classification_evaluator: Classification Evaluator for evaluating the
                                   models performance.
-        chechpointing_strategy: From enum CheckpointingStrategy in Pipeline.TorchDataGeneratorUtils.torch_internal.py.
+        checkpointing_strategy: From enum CheckpointingStrategy in Pipeline.TorchDataGeneratorUtils.torch_internal.py.
                                 Specifies which checkpoints are stored during training.
-        save_torch_dataset_path (Path): Saves the Dataset to this Path. Use a full path, including a filename. Note that
-            this should only be used with the DataLoaderListLoopingStrategy. This could use very much Space on your
-            drive
-        load_torch_dataset_path (Path): Load a saved Dataset from this Path. This can improve loading times in the
-            first epoch. Note that this should only be used with the DataLoaderListLoopingStrategy.
     """
 
     def __init__(
@@ -81,13 +81,15 @@ class ModelTrainer:
         train_print_frequency: int = 10,
         epochs: int = 10,
         dummy_epoch=True,
+        produce_torch_datasets_only=False,
         num_workers: int = 10,
         num_validation_samples: int = 10,
         num_test_samples: int = 10,
+        data_root: Path = r.data_root,
         data_processing_function=None,
         data_gather_function=None,
         looping_strategy=None,
-        cache_mode=td.CachingMode.Both,
+        cache_mode=td.CachingMode.FileList,
         loss_criterion=MSELoss(),
         optimizer_function=lambda params: torch.optim.Adam(params, lr=0.0001),
         lr_scheduler_function=None,
@@ -97,6 +99,11 @@ class ModelTrainer:
         run_eval_step_before_training=False,
         dont_care_num_samples=False,
         use_mixed_precision=False,
+        sampler=None,
+        caching_torch=True,
+        demo_path=None,
+        resize_label_to=(0, 0),
+        load_test_set_in_training_mode=False
     ):
         initial_timestamp = str(datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
         self.save_path = save_path / initial_timestamp
@@ -109,6 +116,9 @@ class ModelTrainer:
         self.load_datasets_path = load_datasets_path
         self.epochs = epochs
         self.dummy_epoch = dummy_epoch
+        self.produce_torch_datasets_only = produce_torch_datasets_only
+        if produce_torch_datasets_only and not dummy_epoch:
+            raise ValueError("Can't do a cache only run without enabling dummy_epoch!")
         self.num_workers = num_workers
         self.num_validation_samples = num_validation_samples
         self.num_test_samples = num_test_samples
@@ -123,13 +133,26 @@ class ModelTrainer:
         self.model_name = "Model"
         self.logger = logging.getLogger(__name__)
         self.best_loss = np.finfo(float).max
+        self.sampler = sampler
+        self.demo_path = demo_path
+        if demo_path is not None:
+            caching_torch = False
 
-        load_and_save_path, data_loader_hash = handle_torch_caching(
-            self.data_processing_function, self.data_source_paths, self.load_datasets_path)
-        self.data_loader_hash = data_loader_hash
+        if caching_torch:
+            load_and_save_path, data_loader_hash = handle_torch_caching(
+                self.data_processing_function, self.data_source_paths, self.sampler, self.batch_size)
+            self.data_loader_hash = data_loader_hash
+            self.load_torch_dataset_path = load_and_save_path
+            self.save_torch_dataset_path = load_and_save_path
+        else:
+            self.data_loader_hash = "NOT_CACHING"
+            self.load_torch_dataset_path = None
+            self.save_torch_dataset_path = None
 
-        self.load_torch_dataset_path = load_and_save_path
-        self.save_torch_dataset_path = load_and_save_path
+        if self.demo_path is not None:
+            self.data_loader_hash = "DEMO_MODE"
+            self.load_torch_dataset_path = Path(self.demo_path)
+            self.save_torch_dataset_path = Path(self.demo_path)
 
         self.optimizer_function = optimizer_function
         self.lr_scheduler_function = lr_scheduler_function
@@ -147,6 +170,10 @@ class ModelTrainer:
         self.dont_care_num_samples = dont_care_num_samples
 
         self.use_mixed_precision = use_mixed_precision
+        self.resize_label = resize_label_to
+        self.load_test_set_in_training_mode = load_test_set_in_training_mode
+
+        self.data_root = data_root
 
     def __create_datagenerator(self, test_mode=False):
         try:
@@ -159,6 +186,7 @@ class ModelTrainer:
                 num_test_samples=self.num_test_samples,
                 split_load_path=self.load_datasets_path,
                 split_save_path=self.save_path,
+                split_data_root=self.data_root,
                 num_workers=self.num_workers,
                 cache_path=self.cache_path,
                 cache_mode=self.cache_mode,
@@ -166,7 +194,9 @@ class ModelTrainer:
                 save_torch_dataset_path=self.save_torch_dataset_path,
                 load_torch_dataset_path=self.load_torch_dataset_path,
                 dont_care_num_samples=self.dont_care_num_samples,
-                test_mode=test_mode
+                test_mode=test_mode,
+                sampler=self.sampler,
+                load_test_set_in_training_mode=self.load_test_set_in_training_mode,
             )
         except Exception:
             logger = logging.getLogger(__name__)
@@ -214,6 +244,8 @@ class ModelTrainer:
         self.writer.add_text("Optimizer/LRScheduler", f"{sched_str}")
         self.writer.add_text("Model/Structure", f"{self.__get_model_def()}")
         self.writer.add_text("Model/ParamCount", f"{param_count}")
+        if hasattr(self.model, "round_at") and self.model.round_at is not None:
+            self.writer.add_text("Model/Threshold", f"{self.model.round_at}")
         self.writer.add_text("Data/SourcePaths", f"{[str(p) for p in self.data_source_paths]}")
         self.writer.add_text("Data/CheckpointSourcePath", f"{self.load_datasets_path}")
         dl_info = self.data_processing_function.__self__.__dict__
@@ -264,6 +296,8 @@ class ModelTrainer:
         """ Sets up training and logging and starts train loop
         """
         # self.save_path.mkdir(parents=True, exist_ok=True)
+        if self.demo_path is not None:
+            print(f"Running in demo mode. Please refer to {self.save_path} for logs et al.")
         logging_cfg.apply_logging_config(self.save_path)
         self.writer = SummaryWriter(log_dir=self.save_path)
         self.classification_evaluator = self.classification_evaluator_function(summary_writer=self.writer)
@@ -296,8 +330,18 @@ class ModelTrainer:
             logger.info("Running eval before training to see, if any training happens")
             validation_loss = self.__eval(self.data_generator.get_validation_samples(), 0, 0)
             self.writer.add_scalar("Validation/Loss", validation_loss, 0)
-        logger.info("The Training Will Start Shortly")
-        self.__train_loop()
+
+        if self.produce_torch_datasets_only:
+            logger.info(f"Triggering caching, saving all datasets to {self.save_torch_dataset_path}")
+            logger.info("Training dataset ...")
+            iter(self.data_generator)
+            logger.info("Validation dataset ...")
+            _ = self.data_generator.get_validation_samples()
+            logger.info("Test dataset ...")
+            _ = self.data_generator.get_test_samples()
+        else:
+            logger.info("The Training Will Start Shortly")
+            self.__train_loop()
 
         logging.shutdown()
 
@@ -315,7 +359,7 @@ class ModelTrainer:
 
                 self.optimizer.zero_grad()
                 outputs = self.model(inputs)
-
+                label = self.resize_label_if_necessary(label)
                 loss = self.loss_criterion(outputs, label)
                 self.writer.add_scalar("Training/Loss", loss.item(), step_count)
                 if not self.use_mixed_precision:
@@ -369,6 +413,7 @@ class ModelTrainer:
                 # data = torch.unsqueeze(data, 0)
                 # label = torch.unsqueeze(label, 0)
                 output = self.model(data)
+                label = self.resize_label_if_necessary(label)
                 current_loss = self.loss_criterion(output, label).item()
                 loss = loss + current_loss
                 count += 1
@@ -394,6 +439,19 @@ class ModelTrainer:
                     self.__save_checkpoint(eval_step, loss, fn=f"checkpoint_{eval_step}.pth")
 
             return loss
+
+    def resize_label_if_necessary(self, label):
+        """
+        Resize the label: saves online storage by making it possible to use the bigger image labels of 1140 sensors
+        also for 80 and 20 sensors
+        :param label:
+        :return:
+        """
+        if self.resize_label != (0, 0):
+            label = torch.nn.functional.interpolate(label.reshape(-1, 1, label.shape[1], label.shape[2]),
+                                                    self.resize_label)
+            label = label.squeeze()
+        return label
 
     def __save_checkpoint(self, eval_step, loss, fn=r.chkp):
         torch.save(
@@ -455,6 +513,9 @@ class ModelTrainer:
         else:
             save_path = self.save_path
 
+        if self.demo_path is not None:
+            print(f"Eval - running in demo mode. Please refer to {save_path.absolute()} for log / results.")
+
         logging_cfg.apply_logging_config(save_path, eval=True)
 
         logger = logging.getLogger(__name__)
@@ -465,8 +526,10 @@ class ModelTrainer:
         data_generator = self.__create_datagenerator(test_mode=True)
         logger.info("Loading Checkpoint")
         if checkpoint_path is not None:
+            logger.info(f"Loading Checkpoint: {checkpoint_path}")
             self.__load_checkpoint(checkpoint_path)
         else:
+            logger.info(f"Loading Checkpoint: {self.save_path / r.chkp}")
             self.__load_checkpoint(self.save_path / r.chkp)
 
         data_list = data_generator.get_test_samples()
@@ -474,4 +537,5 @@ class ModelTrainer:
             self.classification_evaluator = classification_evaluator_function(summary_writer=None)
         logger.info("Starting inference")
         self.__eval(data_list, test_mode=True)
+        logger.info("Inference completed.")
         logging.shutdown()

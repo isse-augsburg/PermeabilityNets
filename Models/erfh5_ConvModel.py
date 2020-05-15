@@ -6,6 +6,7 @@ from torch import nn
 from torch.nn import Conv2d, ConvTranspose2d, Linear
 
 from Models.model_utils import load_model_layers_from_path
+from Utils.data_utils import reshape_to_indeces
 from Utils.training_utils import count_parameters
 
 
@@ -383,7 +384,8 @@ class S80DeconvToDrySpotEff(nn.Module):
 class S80Deconv2ToDrySpotEff(nn.Module):
     def __init__(self, pretrained="", checkpoint_path=None,
                  freeze_nlayers=0,  # Could be 9
-                 round_at: float = None):
+                 round_at: float = None,
+                 demo_mode=False):
         super(S80Deconv2ToDrySpotEff, self).__init__()
         self.ct1 = ConvTranspose2d(1, 128, 3, stride=2, padding=0)
         self.ct3 = ConvTranspose2d(128, 64, 7, stride=2, padding=0)
@@ -409,11 +411,23 @@ class S80Deconv2ToDrySpotEff(nn.Module):
 
         self.round_at = round_at
 
+        self.demo_mode = demo_mode
+
         if pretrained == "deconv_weights":
             logger = logging.getLogger(__name__)
             weights = load_model_layers_from_path(path=checkpoint_path,
                                                   layer_names={'ct1', 'ct3', 'ct5', 'ct6', 'ctr',
                                                                'c1', 'cu', 'ck', 'cj'})
+            incomp = self.load_state_dict(weights, strict=False)
+            logger.debug(f'All layers: {self.state_dict().keys()}')
+            logger.debug(f'Loaded weights but the following: {incomp}')
+        elif pretrained == "all":
+            logger = logging.getLogger(__name__)
+            weights = load_model_layers_from_path(path=checkpoint_path,
+                                                  layer_names={'ct1', 'ct3', 'ct5', 'ct6', 'ctr',
+                                                               'c1', 'cu', 'ck', 'cj',
+                                                               'cc2', 'cc3', 'cc4', 'cc5', 'cc6',
+                                                               'lin1', 'lin3'})
             incomp = self.load_state_dict(weights, strict=False)
             logger.debug(f'All layers: {self.state_dict().keys()}')
             logger.debug(f'Loaded weights but the following: {incomp}')
@@ -431,6 +445,8 @@ class S80Deconv2ToDrySpotEff(nn.Module):
                 break
 
     def forward(self, inputs):
+        if self.demo_mode:
+            inputs = reshape_to_indeces(inputs, ((1, 4), (1, 4)), 80).contiguous()
         inputs = inputs.reshape((-1, 1, 10, 8))
         x = F.relu(self.ct1(inputs))
         x = F.relu(self.ct3(x))
@@ -526,7 +542,8 @@ class S20DeconvToDrySpotEff(nn.Module):
 
 
 class S20DeconvToDrySpotEff2(nn.Module):
-    def __init__(self, pretrained="", checkpoint_path=None, freeze_nlayers=0):
+    def __init__(self, pretrained="", checkpoint_path=None, freeze_nlayers=0, round_at: float = None,
+                 demo_mode=False):
         super(S20DeconvToDrySpotEff2, self).__init__()
         self.ct1 = ConvTranspose2d(1, 256, 3, stride=2)
         self.ct2 = ConvTranspose2d(256, 128, 5, stride=2)
@@ -549,12 +566,24 @@ class S20DeconvToDrySpotEff2(nn.Module):
         self.dropout = nn.Dropout(0.3)
         # self.bn8 = nn.BatchNorm2d(8)
         # self.bn512 = nn.BatchNorm2d(512)
+        self.round_at = round_at
+
+        self.demo_mode = demo_mode
 
         if pretrained == "deconv_weights":
             logger = logging.getLogger(__name__)
             weights = load_model_layers_from_path(path=checkpoint_path,
                                                   layer_names={'ct1', 'ct2', 'ct3', 'ct4',
                                                                'details'})
+            incomp = self.load_state_dict(weights, strict=False)
+            logger.debug(f'All layers: {self.state_dict().keys()}')
+            logger.debug(f'Loaded weights but the following: {incomp}')
+        if pretrained == "all":
+            logger = logging.getLogger(__name__)
+            weights = load_model_layers_from_path(path=checkpoint_path,
+                                                  layer_names={'ct1', 'ct2', 'ct3', 'ct4',
+                                                               'details', 'c2', 'c3', 'c4', 'c5', 'c6', 'c7',
+                                                               'lin1', 'lin2'})
             incomp = self.load_state_dict(weights, strict=False)
             logger.debug(f'All layers: {self.state_dict().keys()}')
             logger.debug(f'Loaded weights but the following: {incomp}')
@@ -572,6 +601,8 @@ class S20DeconvToDrySpotEff2(nn.Module):
                 break
 
     def forward(self, inputs):
+        if self.demo_mode:
+            inputs = reshape_to_indeces(inputs, ((1, 8), (1, 8)), 20).contiguous()
         frs = inputs.reshape((-1, 1, 5, 4))
 
         x = F.relu(self.ct1(frs))
@@ -579,6 +610,10 @@ class S20DeconvToDrySpotEff2(nn.Module):
         x = F.relu(self.ct3(x))
         x = F.relu(self.ct4(x))
         x = F.relu(self.details(x))
+
+        if self.round_at is not None:
+            x = x.masked_fill((x >= self.round_at), 1.)
+            x = x.masked_fill((x < self.round_at), 0.)
 
         # Shape: [1, 8, 127, 111]
         # x = self.bn8(x)

@@ -1,28 +1,26 @@
-from pathlib import Path
-
 import torch
 
 import Resources.training as r
-from Models.erfh5_DeconvModel import S20DeconvModelEfficient
+from Models.erfh5_DeconvModel import DeconvModelEfficient
 from Pipeline.data_gather import get_filelist_within_folder_blacklisted
 from Pipeline.data_loaders_IMG import DataloaderImages
 from Trainer.ModelTrainer import ModelTrainer
 from Trainer.evaluation import SensorToFlowfrontEvaluator
-from Utils.training_utils import read_cmd_params
 
 if __name__ == "__main__":
-    args = read_cmd_params()
+    dl = DataloaderImages((149, 117))
 
-    dl = DataloaderImages((125, 109), sensor_indizes=((1, 8), (1, 8)))
+    checkpoint_p = r.chkp_S1140_to_ff_0_basepr
+    adv_output_dir = checkpoint_p.parent / "advanced_eval"
 
     m = ModelTrainer(
-        lambda: S20DeconvModelEfficient(),
+        lambda: DeconvModelEfficient(),
         data_source_paths=r.get_data_paths_base_0(),
         save_path=r.save_path,
         load_datasets_path=r.datasets_dryspots,
         cache_path=r.cache_path,
         batch_size=2048,
-        train_print_frequency=100,
+        train_print_frequency=10,
         epochs=1000,
         num_workers=75,
         num_validation_samples=131072,
@@ -35,15 +33,12 @@ if __name__ == "__main__":
         SensorToFlowfrontEvaluator(summary_writer=summary_writer),
     )
 
-    if not args.eval:
-        m.start_training()
-    else:
-        m.inference_on_test_set(
-            Path(args.eval_path),
-            Path(args.checkpoint_path),
-            SensorToFlowfrontEvaluator(
-                Path(args.eval_path) / "eval_on_test_set",
-                skip_images=False,
-                sensors_shape=(5, 4)
-            ),
-        )
+    adv_output_dir.mkdir(exist_ok=True)
+    m.inference_on_test_set(
+        output_path=adv_output_dir,
+        checkpoint_path=checkpoint_p,
+        classification_evaluator_function=lambda summary_writer:
+        SensorToFlowfrontEvaluator(adv_output_dir,
+                                   skip_images=False,
+                                   print_n_images=5000)
+    )
