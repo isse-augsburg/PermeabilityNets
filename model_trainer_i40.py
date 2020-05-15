@@ -23,14 +23,56 @@ from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
 from sklearn.naive_bayes import GaussianNB
 from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
 import time 
+import numpy as np
+
+def load_test_data():
+    test_datagenerator = td.LoopingDataGenerator(
+                    r.get_data_paths_base_0(),
+                    get_filelist_within_folder_blacklisted,
+                    dl.get_sensor_bool_dryspot,
+                    batch_size=512,
+                    num_validation_samples=131072,
+                    num_test_samples=1048576,
+                    split_load_path=r.datasets_dryspots, 
+                    split_save_path=r.save_path,
+                    num_workers=75,
+                    cache_path=r.cache_path,
+                    cache_mode=td.CachingMode.Both,
+                    # save_torch_dataset_path=load_and_save_path,
+                    # load_torch_dataset_path=load_and_save_path,
+                    dont_care_num_samples=False,
+                    test_mode=True
+                )
+
+    test_data = []
+    test_labels = []
+    test_set = test_datagenerator.get_test_samples()
+
+    for data, labels, _ in test_set:
+        test_data.extend(data)
+        test_labels.extend(labels)
+
+    test_data = np.array(test_data)
+    test_labels = np.array(test_labels)
+    test_labels = np.ravel(test_labels)
+    test_data_shape = test_data.shape
+    test_labels_shape = test_labels.shape
+    print(f"Test shapes: Data -> {test_data_shape}, Labels -> {test_labels_shape}")
+    print("Loaded Test data.")
+    return test_data, test_labels
+
+
 
 if __name__ == "__main__":
+    num_samples = 150000
+
     args = read_cmd_params()
+    print("Using ca. 150 000 samples.")
 
     dl = DataloaderDryspots(sensor_indizes=((0, 1), (0, 1)))
     print("Created Dataloader.")
-    load_and_save_path, data_loader_hash = handle_torch_caching(
-    dl.get_flowfront_bool_dryspot, r.get_data_paths_base_0(), r.datasets_dryspots)
+    # load_and_save_path, data_loader_hash = handle_torch_caching(
+    # dl.get_flowfront_bool_dryspot, r.get_data_paths_base_0(), r.datasets_dryspots)
 
     generator = td.LoopingDataGenerator(
                 r.get_data_paths_base_0(),
@@ -44,8 +86,8 @@ if __name__ == "__main__":
                 num_workers=75,
                 cache_path=r.cache_path,
                 cache_mode=td.CachingMode.Both,
-                save_torch_dataset_path=load_and_save_path,
-                load_torch_dataset_path=load_and_save_path,
+                # save_torch_dataset_path=load_and_save_path,
+                # load_torch_dataset_path=load_and_save_path,
                 dont_care_num_samples=False,
                 test_mode=False
             )
@@ -55,37 +97,22 @@ if __name__ == "__main__":
     train_labels = []
 
     for inputs, labels, _ in generator:
-
         train_data.extend(inputs.numpy())
-        train_labels.append(labels.numpy())
+        train_labels.extend(labels.numpy())
+        
+        if len(train_data) > num_samples:
+            break
     
+    train_data = np.array(train_data)
+    train_labels = np.array(train_labels)
+    train_labels = np.ravel(train_labels)
+    train_data_shape = train_data.shape
+    train_labels_shape = train_labels.shape
+    print(f"Train Shapes: Data -> {train_data_shape}, Labels -> {train_labels_shape}")
     print("Loaded train data.")
 
-    test_datagenerator = td.LoopingDataGenerator(
-                    r.get_data_paths_base_0(),
-                    get_filelist_within_folder_blacklisted,
-                    dl.get_sensor_bool_dryspot,
-                    batch_size=512,
-                    num_validation_samples=131072,
-                    num_test_samples=1048576,
-                    split_load_path=r.datasets_dryspots, 
-                    split_save_path=r.save_path,
-                    num_workers=75,
-                    cache_path=r.cache_path,
-                    cache_mode=td.CachingMode.Both,
-                    save_torch_dataset_path=load_and_save_path,
-                    load_torch_dataset_path=load_and_save_path,
-                    dont_care_num_samples=False,
-                    test_mode=True
-                )
-
-    test_set = test_datagenerator.get_test_samples()
-    test_data = [data.numpy() for (data, _, _) in test_set]
-    test_labels = [label.numpy() for (_, label, _) in test_set]
-    print("Loaded Test data.")
-
     classifiers = [
-    ("Nearest Neighbors", KNeighborsClassifier(3)), # 5 worse then 3
+    ("Nearest Neighbors", KNeighborsClassifier(3, n_jobs=-1)), # 5 worse then 3
     ("Decision Tree", DecisionTreeClassifier(max_depth=50)), # better then 5
     ("Random Forest", RandomForestClassifier(n_estimators=15)), # better 
     ("Neural Net", MLPClassifier(alpha=0.5, max_iter=5000)), # no difference
@@ -103,6 +130,7 @@ if __name__ == "__main__":
         start_time = time.time()
 
         clf.fit(train_data, train_labels)
+        test_data, test_labels = load_test_data()
         preds = clf.predict(test_data)
         accuracy = metrics.accuracy_score(test_labels, preds)
 
