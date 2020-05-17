@@ -297,7 +297,7 @@ class SubSetGenerator:
         if self.load_file is not None and self.load_file.is_file():
             with open(self.load_file, 'rb') as f:
                 self.logger.info(f"Loading {self.subset_name} from stored file {self.load_file}")
-                used_filenames_str = [fn for fn in pickle.load(f)]
+                used_filenames_str = pickle.load(f)
                 unix_abs = all(fn.startswith('/') for fn in used_filenames_str)
                 self.used_filenames = [Path(fn) for fn in used_filenames_str]
                 if os.name == 'nt' and unix_abs:
