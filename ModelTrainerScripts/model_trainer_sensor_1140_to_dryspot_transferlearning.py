@@ -45,6 +45,7 @@ if __name__ == "__main__":
         classification_evaluator_function=lambda summary_writer:
         BinaryClassificationEvaluator(summary_writer=summary_writer),
         lr_scheduler_function=lambda optim: ExponentialLR(optim, 0.5),
+        caching_torch=False,
         demo_path=None
     )
 
