@@ -2,6 +2,7 @@ import logging
 
 import h5py
 import numpy as np
+from PIL import Image
 
 import Resources.training as tr_resources
 from Utils.data_utils import normalize_coords, load_mean_std
@@ -133,3 +134,72 @@ class DataloaderDryspots:
             f.close()
             meta_file.close()
             return None
+
+    def get_sensor_bool_dryspot_299x299(self, filename):
+
+        print("Test")
+        """ file = self.get_sensor_bool_dryspot(filename)
+        
+        if file is None:
+            return None
+        else:
+            if self.aux_info:
+                file = [(data.reshape(38, 30), label, aux) for data, label, aux in file]
+                sample = [(np.array(Image.fromarray(data).resize(size=(299, 299), resample=Image.BILINEAR)), label, aux) for data, label, aux in file]
+            else:
+                file = [(data.reshape(38, 30), label) for data, label in file]
+                sample = [(np.array(Image.fromarray(data).resize(size=(299, 299), resample=Image.BILINEAR)), label) for data, label in file]
+
+            return sample """
+
+        f = h5py.File(filename, 'r')
+        meta_file = h5py.File(str(filename).replace("RESULT.erfh5", "meta_data.hdf5"), 'r')
+        try:
+            array_of_states = meta_file["dryspot_states/singlestates"][()]
+            if self.ignore_useless_states:
+                useless_states = meta_file["useless_states/singlestates"][()]
+            set_of_states = set(array_of_states.flatten())
+            pressure_array = \
+                f['post']['multistate']['TIMESERIES1']['multientityresults'][
+                    'SENSOR']['PRESSURE']['ZONE1_set1'][
+                    'erfblock'][
+                    'res'][()]
+            instances = []
+            states = f["post"]["singlestate"]
+
+            states = list(states)[self.skip_indizes[0]:self.skip_indizes[1]:self.skip_indizes[2]]
+
+            for i, state in enumerate(states):
+                if self.ignore_useless_states and len(useless_states) > 0 and state == f'state{useless_states[0]:012d}':
+                    break
+                label = 0
+                state_num = int(str(state).replace("state", "0"))
+                if state_num in set_of_states:
+                    label = 1
+                try:
+                    data = np.squeeze(pressure_array[state_num - 1])
+                    if self.divide_by_100k:
+                        # "Normalize data" to fit betw. 0 and 1
+                        data = data / 100000
+                    else:
+                        # Standardize data for each sensor
+                        data = (data - self.mean) / self.std
+                    if self.sensor_indizes != ((0, 1), (0, 1)):
+                        rect = data.reshape(38, 30)
+                        data = np.array(Image.fromarray(rect).resize(size=(299, 299), resample=Image.BILINEAR))
+                        
+                        # data = sel.flatten()
+                    if self.aux_info:
+                        instances.append((data, label, {"ix": i, "max": len(states)}))
+                    else:
+                        instances.append((data, label))
+                except IndexError:
+                    continue
+            f.close()
+            meta_file.close()
+            return instances
+        except KeyError:
+            f.close()
+            meta_file.close()
+            return None
+            
