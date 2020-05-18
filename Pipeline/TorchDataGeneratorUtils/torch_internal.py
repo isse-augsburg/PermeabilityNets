@@ -293,10 +293,11 @@ class SubSetGenerator:
         Returns:
             A list of file paths that can still be used
         """
+        loaded_abs = False
         if self.load_file is not None and self.load_file.is_file():
             with open(self.load_file, 'rb') as f:
                 self.logger.info(f"Loading {self.subset_name} from stored file {self.load_file}")
-                used_filenames_str = [fn for fn in pickle.load(f)]
+                used_filenames_str = pickle.load(f)
                 unix_abs = all(fn.startswith('/') for fn in used_filenames_str)
                 self.used_filenames = [Path(fn) for fn in used_filenames_str]
                 if os.name == 'nt' and unix_abs:
@@ -306,6 +307,7 @@ class SubSetGenerator:
                     if str(self.used_filenames[0])[0] != 'Y' and str(self.used_filenames[0])[0] != 'X':
                         self.used_filenames = [Path('Y:/') / '/'.join(x.parts[3:]) for x in self.used_filenames]
                 all_abs = all(p.is_absolute() for p in self.used_filenames)
+                loaded_abs = all_abs
                 # If we got a data_root and have non relative paths, apply the data_root
                 # This assumes that we never get mixed relative and absolute paths which should be reasonable
                 if self.data_root is not None and not all_abs:
@@ -325,7 +327,7 @@ class SubSetGenerator:
         if self.save_file is not None:
             with open(self.save_file, 'wb') as f:
                 used_files_rel = self.used_filenames
-                if self.data_root is not None:
+                if self.data_root is not None and not loaded_abs:
                     used_files_rel = [str(p.relative_to(self.data_root)).strip('/') for p in self.used_filenames]
                 pickle.dump([str(fn) for fn in used_files_rel], f)
         return unused_files
