@@ -137,7 +137,6 @@ class DataloaderDryspots:
 
     def get_sensor_bool_dryspot_299x299(self, filename):
 
-        print("Test")
         """ file = self.get_sensor_bool_dryspot(filename)
         
         if file is None:
@@ -184,11 +183,12 @@ class DataloaderDryspots:
                     else:
                         # Standardize data for each sensor
                         data = (data - self.mean) / self.std
-                    if self.sensor_indizes != ((0, 1), (0, 1)):
-                        rect = data.reshape(38, 30)
-                        data = np.array(Image.fromarray(rect).resize(size=(299, 299), resample=Image.BILINEAR))
+
+                    rect = data.reshape(38, 30)
+                    data = np.array(Image.fromarray(rect).resize(size=(299, 299), resample=Image.BILINEAR))
+                    data = np.expand_dims(data, axis=0)
                         
-                        # data = sel.flatten()
+
                     if self.aux_info:
                         instances.append((data, label, {"ix": i, "max": len(states)}))
                     else:
