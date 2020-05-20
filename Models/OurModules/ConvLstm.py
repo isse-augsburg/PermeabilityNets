@@ -16,14 +16,22 @@ class ConvLSTMCell(nn.Module):
 
         self.padding = int((kernel_size - 1) / 2)
 
-        self.Wxi = nn.Conv2d(self.input_channels, self.hidden_channels, self.kernel_size, 1, self.padding, bias=True)
-        self.Whi = nn.Conv2d(self.hidden_channels, self.hidden_channels, self.kernel_size, 1, self.padding, bias=False)
-        self.Wxf = nn.Conv2d(self.input_channels, self.hidden_channels, self.kernel_size, 1, self.padding, bias=True)
-        self.Whf = nn.Conv2d(self.hidden_channels, self.hidden_channels, self.kernel_size, 1, self.padding, bias=False)
-        self.Wxc = nn.Conv2d(self.input_channels, self.hidden_channels, self.kernel_size, 1, self.padding, bias=True)
-        self.Whc = nn.Conv2d(self.hidden_channels, self.hidden_channels, self.kernel_size, 1, self.padding, bias=False)
-        self.Wxo = nn.Conv2d(self.input_channels, self.hidden_channels, self.kernel_size, 1, self.padding, bias=True)
-        self.Who = nn.Conv2d(self.hidden_channels, self.hidden_channels, self.kernel_size, 1, self.padding, bias=False)
+        self.Wxi = nn.Conv2d(self.input_channels, self.hidden_channels,
+                             self.kernel_size, 1, self.padding, bias=True)
+        self.Whi = nn.Conv2d(self.hidden_channels, self.hidden_channels,
+                             self.kernel_size, 1, self.padding, bias=False)
+        self.Wxf = nn.Conv2d(self.input_channels, self.hidden_channels,
+                             self.kernel_size, 1, self.padding, bias=True)
+        self.Whf = nn.Conv2d(self.hidden_channels, self.hidden_channels,
+                             self.kernel_size, 1, self.padding, bias=False)
+        self.Wxc = nn.Conv2d(self.input_channels, self.hidden_channels,
+                             self.kernel_size, 1, self.padding, bias=True)
+        self.Whc = nn.Conv2d(self.hidden_channels, self.hidden_channels,
+                             self.kernel_size, 1, self.padding, bias=False)
+        self.Wxo = nn.Conv2d(self.input_channels, self.hidden_channels,
+                             self.kernel_size, 1, self.padding, bias=True)
+        self.Who = nn.Conv2d(self.hidden_channels, self.hidden_channels,
+                             self.kernel_size, 1, self.padding, bias=False)
 
         self.Wci = None
         self.Wcf = None
@@ -39,9 +47,12 @@ class ConvLSTMCell(nn.Module):
 
     def init_hidden(self, batch_size, hidden, shape):
         if self.Wci is None:
-            self.Wci = Variable(torch.zeros(1, hidden, shape[0], shape[1])).cuda()
-            self.Wcf = Variable(torch.zeros(1, hidden, shape[0], shape[1])).cuda()
-            self.Wco = Variable(torch.zeros(1, hidden, shape[0], shape[1])).cuda()
+            self.Wci = Variable(torch.zeros(
+                1, hidden, shape[0], shape[1])).cuda()
+            self.Wcf = Variable(torch.zeros(
+                1, hidden, shape[0], shape[1])).cuda()
+            self.Wco = Variable(torch.zeros(
+                1, hidden, shape[0], shape[1])).cuda()
         else:
             assert shape[0] == self.Wci.size()[2], 'Input Height Mismatched!'
             assert shape[1] == self.Wci.size()[3], 'Input Width Mismatched!'
@@ -63,7 +74,8 @@ class ConvLSTM(nn.Module):
         self._all_layers = []
         for i in range(self.num_layers):
             name = 'cell{}'.format(i)
-            cell = ConvLSTMCell(self.input_channels[i], self.hidden_channels[i], self.kernel_size)
+            cell = ConvLSTMCell(
+                self.input_channels[i], self.hidden_channels[i], self.kernel_size)
             setattr(self, name, cell)
             self._all_layers.append(cell)
 
@@ -95,16 +107,16 @@ class ConvLSTM(nn.Module):
 if __name__ == '__main__':
     # gradient check
     convlstm = ConvLSTM(input_channels=1, hidden_channels=[128, 32], kernel_size=3, step=100,
-                        effective_step=[9,19,29,39,49,59,69,79,89,99]).cuda()
+                        effective_step=[9, 19, 29, 39, 49, 59, 69, 79, 89, 99]).cuda()
     loss_fn = torch.nn.MSELoss()
 
     input = torch.randn(100, 1, 1, 64, 32).cuda()
     target = torch.randn(1, 32, 64, 32).double().cuda()
-    
-   
+
     print("start")
     output = convlstm(input)
     print("Stop")
     output = output[0][0].double()
-    res = torch.autograd.gradcheck(loss_fn, (output, target), eps=1e-6, raise_exception=True)
+    res = torch.autograd.gradcheck(
+        loss_fn, (output, target), eps=1e-6, raise_exception=True)
     print(res)

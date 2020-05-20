@@ -31,7 +31,6 @@ if __name__ == "__main__":
         dummy_epoch=False
     )
 
-
     if not args.eval:
         m.start_training()
     else:
@@ -43,4 +42,3 @@ if __name__ == "__main__":
                 skip_images=False,
             ),
         )
-
