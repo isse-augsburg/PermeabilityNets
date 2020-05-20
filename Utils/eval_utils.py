@@ -18,7 +18,7 @@ def eval_preparation(save_path):
         abs_file_path: absolute file path to the evaluation script to use for testing
     """
 
-    src_path = Path(sys.argv[0]).parent
+    src_path = Path(sys.argv[0]).parent.parent
     calling_script = Path(sys.argv[0]).parts[-1]
     shutil.copytree(src_path, save_path / "rtm-predictions",
                     ignore=shutil.ignore_patterns('.git*', 'env*', '.idea*', '.vscode*', '__pycache__*',
@@ -34,10 +34,11 @@ def eval_preparation(save_path):
 
 export SINGULARITY_DOCKER_USERNAME=\\$oauthtoken
 export SINGULARITY_DOCKER_PASSWORD={os.getenv('SINGULARITY_DOCKER_PASSWORD')}
+export PYTHONPATH="${{PYTHONPATH}}:{save_path}/rtm-predictions"
 
 """ \
                 f'singularity exec --nv -B /cfs:/cfs {docker_img} ' \
-                f'python3 -u {save_path}/rtm-predictions/{calling_script} --eval {save_path} ' \
+                f'python3 -u {save_path}/rtm-predictions/ModelTrainerScripts/{calling_script} --eval {save_path} ' \
                 f'--checkpoint_path {save_path / "checkpoint.pth"} '
     with open(save_path / Path("run_model_eval.sh"), "w") as slurm_script:
         slurm_script.write(slurm_txt)

@@ -31,6 +31,7 @@ class _TestSetInfo:
         self.paths = [self.p]
         self.erf_files = [self.p / f'{i}/{self.run_name}_{i}_RESULT.erfh5' for i in range(100)]
         self._num_samples = None
+        self.data_root = test_resources.test_pipeline_dir
 
     @property
     def num_samples(self):
@@ -113,15 +114,6 @@ class TestFileSetIterator(unittest.TestCase):
         loaded_files = set(fn for fn in (b.aux["sourcefile"] for b in samples))
         self.assertSetEqual(set(map(str, self.test_set.erf_files)), loaded_files)
 
-    def test_caching(self):
-        with tempfile.TemporaryDirectory(prefix="FileSetIterator_Cache") as cache_path:
-            cache_path = Path(cache_path)
-            iterator = ti.FileSetIterator(list(self.test_set.erf_files), _dummy_dataloader_fn, cache_path=cache_path)
-            orig_samples = list(SampleWrapper(sample) for sample in iterator)
-            iterator = ti.FileSetIterator(list(self.test_set.erf_files), None, cache_path=cache_path)
-            cached_samples = list(SampleWrapper(sample) for sample in iterator)
-            self.assertListEqual(orig_samples, cached_samples)
-
     def test_get_remaining_files(self):
         iterator = ti.FileSetIterator(list(self.test_set.erf_files), _dummy_dataloader_fn)
         next(iterator)
@@ -164,6 +156,43 @@ class TestSubsetGenerator(unittest.TestCase):
     def test_split_save_load(self):
         with tempfile.TemporaryDirectory(prefix="SubsetGenerator_Splits") as splitpath:
             subset_gen = ti.SubSetGenerator(_dummy_dataloader_fn, "test_datasplit", self.num_split_samples,
+                                            save_path=splitpath, data_root=self.test_set.data_root)
+            files = list(self.test_set.erf_files)
+            save_unused_files = subset_gen.prepare_subset(self.test_set.erf_files)
+            save_samples = subset_gen.get_samples()
+            self.assertListEqual(save_unused_files, sorted(save_unused_files, key=natural_sort_key))
+
+            subset_gen = ti.SubSetGenerator(_dummy_dataloader_fn, "test_datasplit", self.num_split_samples,
+                                            load_path=splitpath, data_root=self.test_set.data_root)
+            shuffled_files = list(self.test_set.erf_files)
+            random.shuffle(shuffled_files)
+            load_unused_files = subset_gen.prepare_subset(shuffled_files)
+            self.assertListEqual(files, self.test_set.erf_files, "Splitting should not affect the given file list")
+            load_samples = subset_gen.get_samples()
+
+            self.assertCountEqual(save_unused_files, load_unused_files)
+            save_samples = list(SampleWrapper(sample) for sample in save_samples)
+            load_samples = list(SampleWrapper(sample) for sample in load_samples)
+
+            self.assertSetEqual(set(save_samples), set(load_samples))
+            self.assertListEqual(save_samples, load_samples)
+
+    def test_cant_load_rel_paths_without_root(self):
+        with tempfile.TemporaryDirectory(prefix="SubsetGenerator_Splits") as splitpath:
+            subset_gen = ti.SubSetGenerator(_dummy_dataloader_fn, "test_datasplit", self.num_split_samples,
+                                            save_path=splitpath, data_root=self.test_set.data_root)
+            save_unused_files = subset_gen.prepare_subset(self.test_set.erf_files)
+            self.assertListEqual(save_unused_files, sorted(save_unused_files, key=natural_sort_key))
+
+            subset_gen = ti.SubSetGenerator(_dummy_dataloader_fn, "test_datasplit", self.num_split_samples,
+                                            load_path=splitpath)
+            shuffled_files = list(self.test_set.erf_files)
+            random.shuffle(shuffled_files)
+            self.assertRaises(ValueError, subset_gen.prepare_subset, shuffled_files)
+
+    def test_can_load_abs_paths_with_root(self):
+        with tempfile.TemporaryDirectory(prefix="SubsetGenerator_Splits") as splitpath:
+            subset_gen = ti.SubSetGenerator(_dummy_dataloader_fn, "test_datasplit", self.num_split_samples,
                                             save_path=splitpath)
             files = list(self.test_set.erf_files)
             save_unused_files = subset_gen.prepare_subset(self.test_set.erf_files)
@@ -171,7 +200,7 @@ class TestSubsetGenerator(unittest.TestCase):
             self.assertListEqual(save_unused_files, sorted(save_unused_files, key=natural_sort_key))
 
             subset_gen = ti.SubSetGenerator(_dummy_dataloader_fn, "test_datasplit", self.num_split_samples,
-                                            load_path=splitpath)
+                                            load_path=splitpath, data_root=self.test_set.data_root)
             shuffled_files = list(self.test_set.erf_files)
             random.shuffle(shuffled_files)
             load_unused_files = subset_gen.prepare_subset(shuffled_files)
