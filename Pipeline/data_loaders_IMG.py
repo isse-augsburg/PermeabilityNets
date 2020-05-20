@@ -350,7 +350,7 @@ class DataloaderImageSequences(DataloaderImages):
                 if sample >= current:
                     sequence[int(current*100),:] = m[i,:]
                     current += per_step
-            return [(sequence, perm_map)]
+            return [(sequence, np.array(perm_map))]
         except Exception:
             return None
 
@@ -386,9 +386,10 @@ if __name__ == "__main__":
     dl = DataloaderImageSequences()
     root = tr_resources.data_root / "2019-07-23_15-38-08_5000p"
     for num in range(10):
-        num = 31
+        
         p = Path(root / f"{num}/2019-07-23_15-38-08_{num}_RESULT.erfh5")
-        dl.get_sensor_to_perm_map(p)
+        
+        ret = dl.get_sensor_to_perm_map(p)
         #dl.plot_times(p, num, save_to_file=False)
         #dl.plot_times_thresholded(p, num, save_to_file=False)
         #dl.plot_times_more_detailed(p, num, save_to_file=False)
