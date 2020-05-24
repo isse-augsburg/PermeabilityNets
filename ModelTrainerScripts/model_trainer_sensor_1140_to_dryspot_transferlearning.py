@@ -16,29 +16,25 @@ if __name__ == "__main__":
 
     args = read_cmd_params()
 
-    print(">>> Model: Resnet18")
-    '''
-    model = models.resnet18(pretrained=True)
-    # model = models.resnext50_32x4d(pretrained=True)
-    model.conv1 = torch.nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3,
-                               bias=False)
-    num_ftrs = model.fc.in_features
-    model.fc = torch.nn.Linear(num_ftrs, 1)
-    '''
-    model = ModelWrapper()
+    print(">>> Model: Inception v3")
+
+    model = ModelWrapper(models.resnext50_32x4d(pretrained=True))
+    #model = ModelWrapper(models.inception_v3(pretrained=True, aux_logits=False))
 
     if "swt-dgx" in socket.gethostname():
+        print("On DGX. - Using Inception")
         filepaths = r.get_data_paths_base_0()
         save_path = r.save_path
-        batch_size = 2048
+        batch_size = 512
         train_print_frequency = 100
-        epochs = 1000
+        epochs = 50
         num_workers = 75
-        num_validation_samples = 131072
-        num_test_samples = 1048576
+        num_validation_samples = 512
+        num_test_samples = 512
         data_gather_function = get_filelist_within_folder_blacklisted
         data_root = r.data_root
     else: 
+        print("Running local mode.")
         filepaths = [Path("H:/RTM Files/LocalDebug/")]
         save_path = Path("H:/RTM Files/output")
         batch_size = 4
@@ -60,6 +56,7 @@ if __name__ == "__main__":
         batch_size=batch_size,
         train_print_frequency=train_print_frequency,
         epochs=epochs,
+        dummy_epoch=True,
         num_workers=num_workers,
         num_validation_samples=num_validation_samples,
         num_test_samples=num_test_samples,
