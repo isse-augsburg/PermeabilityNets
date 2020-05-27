@@ -407,11 +407,11 @@ class DataloaderImageSequences(DataloaderImages):
     def get_sensor_to_perm_map(self, filename):
         try:
             per_step = 0.01
-            logger = logging.getLogger(__name__)
-            logger.debug(
-                "Loading flow front and premeability maps from {}".format(
-                    filename)
-            )
+            # logger = logging.getLogger(__name__)
+            # logger.debug(
+            #     "Loading flow front and premeability maps from {}".format(
+            #         filename)
+            # )
             f = h5py.File(filename, "r")
             perm_map = self._get_fiber_fraction(f)
             perm_map = perm_map.astype(np.float) / 255

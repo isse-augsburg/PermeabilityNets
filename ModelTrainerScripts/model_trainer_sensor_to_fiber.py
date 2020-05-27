@@ -1,7 +1,7 @@
 from pathlib import Path
 import torch
 import Resources.training as r
-from Models.sensor_to_fiberfraction_model import STFF
+from Models.sensor_to_fiberfraction_model import STFF_v2
 from Pipeline.data_gather import get_filelist_within_folder_blacklisted
 from Pipeline.data_loaders_IMG import DataloaderImageSequences
 from Trainer.evaluation import SensorToFlowfrontEvaluator
@@ -13,7 +13,7 @@ if __name__ == "__main__":
     batch_size = 8
     dl = DataloaderImageSequences()
     m = ModelTrainer(
-        lambda: STFF(),
+        lambda: STFF_v2(),
         r.get_data_paths(),
         r.save_path,
         load_datasets_path=r.datasets_dryspots,
@@ -27,7 +27,7 @@ if __name__ == "__main__":
         data_gather_function=get_filelist_within_folder_blacklisted,
         loss_criterion=torch.nn.MSELoss(),
         classification_evaluator_function=lambda summary_writer:
-        SensorToFlowfrontEvaluator(summary_writer=summary_writer),
+        SensorToFlowfrontEvaluator(summary_writer=summary_writer, skip_images=False, ignore_inp=True, save_path=Path("/cfs/home/s/c/schroeni/Images/SensorFiber/")),
         dummy_epoch=False
     )
 
