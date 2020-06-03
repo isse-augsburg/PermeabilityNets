@@ -187,6 +187,7 @@ class DataloaderDryspots:
                     rect = data.reshape(38, 30)
                     data = np.array(Image.fromarray(rect).resize(size=size, resample=Image.BILINEAR))
                     data = np.expand_dims(data, axis=0)
+                    data = np.repeat(data, 3, axis=0)
                         
 
                     if self.aux_info:
