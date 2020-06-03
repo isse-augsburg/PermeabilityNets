@@ -103,7 +103,8 @@ class ModelTrainer:
         caching_torch=True,
         demo_path=None,
         resize_label_to=(0, 0),
-        load_test_set_in_training_mode=False
+        load_test_set_in_training_mode=False,
+        hold_in_ram=True
     ):
         initial_timestamp = str(datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
         self.save_path = save_path / initial_timestamp
@@ -173,6 +174,8 @@ class ModelTrainer:
         self.resize_label = resize_label_to
         self.load_test_set_in_training_mode = load_test_set_in_training_mode
 
+        self.hold_in_ram = hold_in_ram
+
         self.data_root = data_root
 
     def __create_datagenerator(self, test_mode=False):
@@ -197,6 +200,7 @@ class ModelTrainer:
                 test_mode=test_mode,
                 sampler=self.sampler,
                 load_test_set_in_training_mode=self.load_test_set_in_training_mode,
+                hold_in_ram=self.hold_in_ram,
             )
         except Exception:
             logger = logging.getLogger(__name__)
@@ -371,7 +375,11 @@ class ModelTrainer:
                 if i % self.train_print_frequency == 0 and i != 0:
                     time_delta = time.time() - start_time
 
-                    progress = i / (len(self.data_generator) / self.batch_size)
+                    if len(self.data_generator) == 0:
+                        progress = 0
+                    else:
+                        progress = i / (len(self.data_generator) / self.batch_size)
+                        
                     eta = (len(self.data_generator) / self.batch_size - i) * ((time.time() - epoch_start) / i)
 
                     hours = f"{eta // 3600}h " if eta // 3600 > 0 else ""
