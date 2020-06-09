@@ -135,7 +135,7 @@ class DataloaderDryspots:
             meta_file.close()
             return None
 
-    def get_sensor_bool_dryspot_resized_matrix(self, filename, size=(224, 224)):
+    def get_sensor_bool_dryspot_resized_matrix(self, filename, output_size=(224, 224)):
 
         """ file = self.get_sensor_bool_dryspot(filename)
         
@@ -184,8 +184,10 @@ class DataloaderDryspots:
                         # Standardize data for each sensor
                         data = (data - self.mean) / self.std
 
-                    rect = data.reshape(38, 30)
-                    data = np.array(Image.fromarray(rect).resize(size=size, resample=Image.BILINEAR))
+                    rect = data.reshape(38,30)
+                    sel = rect[self.sensor_indizes[0][0]::self.sensor_indizes[0][1],
+                          self.sensor_indizes[1][0]::self.sensor_indizes[1][1]]
+                    data = np.array(Image.fromarray(sel).resize(size=output_size, resample=Image.BILINEAR))
                     data = np.expand_dims(data, axis=0)
                     data = np.repeat(data, 3, axis=0)
                         

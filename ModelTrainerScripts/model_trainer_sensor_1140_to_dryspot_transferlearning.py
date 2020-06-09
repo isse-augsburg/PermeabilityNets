@@ -59,6 +59,7 @@ if __name__ == "__main__":
 
     def init_trainer(custom_load_datasets_path=load_datasets_path):
 
+        # dlds = DataloaderDryspots(sensor_indizes=((1, 4), (1, 4)))
         dlds = DataloaderDryspots()
         m = ModelTrainer(
             lambda: model,
@@ -93,7 +94,7 @@ if __name__ == "__main__":
     if eval_on_test:
 
         home_dir = Path('/cfs/home/l/o/lodesluk/OutputResNextTest') / str(datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
-    
+
         m = init_trainer(Path('/cfs/home/l/o/lodesluk/code/datasets_dryspot_split'))
         print("Starting evaluation on test set 1")
         m.inference_on_test_set(
@@ -105,7 +106,7 @@ if __name__ == "__main__":
                                             with_text_overlay=True)
         )
 
-        
+
         m = init_trainer(Path('/cfs/home/l/o/lodesluk/code/datasets_dryspot_split2'))
         print("Starting evaluation on test set 2")
         m.inference_on_test_set(
@@ -122,4 +123,3 @@ if __name__ == "__main__":
         print("Starting training.")
         m = init_trainer()
         m.start_training()
-        
