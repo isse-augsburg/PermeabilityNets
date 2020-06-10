@@ -11,18 +11,23 @@ if __name__ == "__main__":
     args = read_cmd_params()
 
     batch_size = 128
+    dataset_paths= r.get_all_data_paths()
+    num_workers = 75
+    num_val = 500
+    num_test = 500
+
     dl = DataloaderImageSequences()
     m = ModelTrainer(
         lambda: STFF_v2(),
-        r.get_all_data_paths(),
+        dataset_paths,
         r.save_path,
         load_datasets_path=r.datasets_dryspots,
         cache_path=r.cache_path,
         batch_size=batch_size,
         epochs=10,
-        num_workers=75,
-        num_validation_samples=500,
-        num_test_samples=500,
+        num_workers=num_workers,
+        num_validation_samples=num_val,
+        num_test_samples=num_test,
         data_processing_function=dl.get_sensor_to_perm_map,
         data_gather_function=get_filelist_within_folder_blacklisted,
         loss_criterion=torch.nn.MSELoss(),
