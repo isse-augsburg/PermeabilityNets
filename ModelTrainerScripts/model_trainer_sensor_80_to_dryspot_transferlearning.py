@@ -27,7 +27,7 @@ if __name__ == "__main__":
     eval_on_test = True
 
     if "swt-dgx" in socket.gethostname():
-        print("On DGX. - Using ResNeXt. 3 input channels. New output")
+        print("On DGX. - 80 sensors")
         filepaths = r.get_data_paths_base_0()
         save_path = r.save_path
         batch_size = 1024
@@ -59,8 +59,8 @@ if __name__ == "__main__":
 
     def init_trainer(custom_load_datasets_path=load_datasets_path):
 
-
-        dlds = DataloaderDryspots()
+        dlds = DataloaderDryspots(sensor_indizes=((1, 4), (1, 4)))
+    
         m = ModelTrainer(
             lambda: model,
             data_source_paths=filepaths,
@@ -94,12 +94,13 @@ if __name__ == "__main__":
     if eval_on_test:
 
         home_dir = Path('/cfs/home/l/o/lodesluk/OutputResNextTest') / str(datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
+        checkpoint_path = Path('/cfs/share/cache/output_lodesluk/2020-06-09_17-03-25/checkpoint.pth')
 
         m = init_trainer(Path('/cfs/home/l/o/lodesluk/code/datasets_dryspot_split'))
         print("Starting evaluation on test set 1")
         m.inference_on_test_set(
             output_path=home_dir / "TestSet1",
-            checkpoint_path=Path('/cfs/share/cache/output_lodesluk/2020-06-04_11-43-19/checkpoint.pth'),
+            checkpoint_path=checkpoint_path,
             classification_evaluator_function=lambda summary_writer:
             BinaryClassificationEvaluator(save_path / "1" ,
                                             skip_images=True,
@@ -111,7 +112,7 @@ if __name__ == "__main__":
         print("Starting evaluation on test set 2")
         m.inference_on_test_set(
             output_path=home_dir / "TestSet2",
-            checkpoint_path=Path('/cfs/share/cache/output_lodesluk/2020-06-04_11-43-19/checkpoint.pth'),
+            checkpoint_path=checkpoint_path,
             classification_evaluator_function=lambda summary_writer:
             BinaryClassificationEvaluator(save_path/ "2",
                                             skip_images=True,
@@ -120,6 +121,7 @@ if __name__ == "__main__":
         print(">>>>> Evaluation finished.")
 
     else:
-        print("Starting training.")
+        print("Init tainer.")
         m = init_trainer()
+        print("Init finshed. Starting training.")
         m.start_training()
