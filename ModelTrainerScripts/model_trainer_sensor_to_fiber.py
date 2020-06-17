@@ -32,7 +32,8 @@ if __name__ == "__main__":
         data_gather_function=get_filelist_within_folder_blacklisted,
         loss_criterion=torch.nn.MSELoss(),
         classification_evaluator_function=lambda summary_writer:
-        SensorToFlowfrontEvaluator(summary_writer=summary_writer, skip_images=False, ignore_inp=True, save_path=Path("/cfs/home/s/c/schroeni/Images/SensorFiber/")),
+        SensorToFlowfrontEvaluator(summary_writer=summary_writer, skip_images=False, ignore_inp=True,
+                                   save_path=Path("/cfs/home/s/c/schroeni/Images/SensorFiber/")),
         dummy_epoch=False
     )
 
@@ -43,8 +44,8 @@ if __name__ == "__main__":
             Path(args.eval),
             Path(args.checkpoint_path),
             lambda summary_writer: SensorToFlowfrontEvaluator(summary_writer=summary_writer,
-                save_path=Path(args.eval) / "eval_on_test_set",
-                skip_images=False,
-		        ignore_inp=True,
-            ),
+                                                              save_path=Path(args.eval) / "eval_on_test_set",
+                                                              skip_images=False,
+                                                              ignore_inp=True,
+                                                              ),
         )
