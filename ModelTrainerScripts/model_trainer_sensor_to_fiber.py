@@ -11,14 +11,14 @@ if __name__ == "__main__":
     args = read_cmd_params()
 
     batch_size = 128
-    dataset_paths= r.get_all_data_paths()
+    dataset_paths = r.get_all_data_paths()
     num_workers = 75
     num_val = 500
     num_test = 500
 
     dl = DataloaderImageSequences()
     m = ModelTrainer(
-        lambda: STFF_v2(),
+        lambda: STFF_v2(slice_start=1, shrink_factor=8),
         dataset_paths,
         r.save_path,
         load_datasets_path=r.datasets_dryspots,
