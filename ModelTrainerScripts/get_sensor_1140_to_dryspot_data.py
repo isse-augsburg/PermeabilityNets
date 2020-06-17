@@ -9,7 +9,8 @@ from Trainer.evaluation import BinaryClassificationEvaluator
 
 if __name__ == "__main__":
     """
-    Producing data only. Using to sequential sampler to unshuffle the data + 1 "thread" only to make sure there is no shuffling between threads.
+    Producing data only. Using to sequential sampler to unshuffle the data + 1 "thread" only to make sure there is no 
+    shuffling between threads.
     """
     dlds = DataloaderDryspots()
     m = ModelTrainer(
