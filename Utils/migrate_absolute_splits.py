@@ -1,8 +1,8 @@
+import os
+import pickle
+import sys
 from argparse import ArgumentParser
 from pathlib import Path
-import sys
-import pickle
-import os
 
 
 def migrate_paths(paths, root):

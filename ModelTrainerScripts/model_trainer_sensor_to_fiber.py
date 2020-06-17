@@ -1,12 +1,15 @@
 from pathlib import Path
+
 import torch
+
 import Resources.training as r
 from Models.sensor_to_fiberfraction_model import STFF_v2
 from Pipeline.data_gather import get_filelist_within_folder_blacklisted
 from Pipeline.data_loaders_IMG import DataloaderImageSequences
+from Trainer.ModelTrainer import ModelTrainer
 from Trainer.evaluation import SensorToFlowfrontEvaluator
 from Utils.training_utils import read_cmd_params
-from Trainer.ModelTrainer import ModelTrainer
+
 if __name__ == "__main__":
     args = read_cmd_params()
 

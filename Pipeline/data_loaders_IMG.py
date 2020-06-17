@@ -12,7 +12,6 @@ import numpy as np
 import Resources.training as tr_resources
 from Pipeline.resampling import get_fixed_number_of_indices
 from Utils.data_utils import extract_coords_of_mesh_nodes, load_mean_std
-
 # from Pipeline.data_gather import get_filelist_within_folder
 # data_function must return [(data, label) ... (data, label)]
 from Utils.img_utils import create_np_image
