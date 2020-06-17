@@ -4,6 +4,7 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 from torch.nn import Conv2d, ConvTranspose2d, Linear
+from torchvision import models
 
 from Models.model_utils import load_model_layers_from_path
 from Utils.data_utils import reshape_to_indeces
@@ -876,6 +877,81 @@ class SensorDeconvToDryspotEfficient2(nn.Module):
         x = F.relu(self.linear2(x))
         x = self.dropout(x)
         x = torch.sigmoid(self.linear3(x))
+        return x
+
+
+class SensorDeconvToDryspotTransferLearning(nn.Module):
+    def __init__(self, pretrained="",
+                 checkpoint_path=None,
+                 freeze_nlayers=0,
+                 transfer_model=models.resnext50_32x4d(pretrained=True)):
+
+        super(SensorDeconvToDryspotTransferLearning, self).__init__()
+        self.ct1 = ConvTranspose2d(1, 128, 3, stride=2, padding=0)
+        self.ct2 = ConvTranspose2d(128, 64, 7, stride=2, padding=0)
+        self.ct3 = ConvTranspose2d(64, 32, 15, stride=2, padding=0)
+        self.ct4 = ConvTranspose2d(32, 8, 17, stride=2, padding=0)
+
+        self.shaper0 = Conv2d(8, 16, 17, stride=2, padding=0)
+        self.shaper = Conv2d(16, 32, 15, stride=2, padding=0)
+        self.med = Conv2d(32, 32, 7, padding=0)
+        self.details = Conv2d(32, 32, 3)
+        ###
+
+        self.maxpool = nn.MaxPool2d(2, 2)
+        self.linear2 = Linear(1536, 1024)
+        self.linear3 = Linear(1024, 1)
+
+        self.bn32 = nn.BatchNorm2d(32)
+        self.bn512 = nn.BatchNorm2d(512)
+
+        self.dropout = nn.Dropout(0.3)
+
+        self.upsample = nn.Upsample(size=(224, 224), mode='bilinear')
+        self.transfer_model = transfer_model
+        num_ftrs = self.transfer_model.fc.in_features
+        self.transfer_model.fc = torch.nn.Linear(num_ftrs, 1)
+
+
+        if pretrained == "deconv_weights":
+            weights = load_model_layers_from_path(path=checkpoint_path,
+                                                  layer_names={"ct1", "ct2", "ct3", "ct4",
+                                                               "shaper0", "shaper", "med", "details"})
+            self.load_state_dict(weights, strict=False)
+
+        if freeze_nlayers == 0:
+            return
+
+        for i, c in enumerate(self.children()):
+            logger = logging.getLogger(__name__)
+            logger.info(f'Freezing: {c}')
+
+            for param in c.parameters():
+                param.requires_grad = False
+            if i == freeze_nlayers - 1:
+                break
+
+    def forward(self, inputs):
+        fr = inputs.reshape((-1, 1, 38, 30))
+
+        k = F.relu(self.ct1(fr))
+        k2 = F.relu(self.ct2(k))
+        k3 = F.relu(self.ct3(k2))
+        k3 = F.relu(self.ct4(k3))
+
+        t1 = F.relu(self.shaper0(k3))
+        t1 = F.relu(self.shaper(t1))
+        t2 = F.relu(self.med(t1))
+        t3 = F.relu(self.details(t2))
+
+        # Shape: [1, 32, 151, 119]
+        x = self.upsample(t3)
+        x = self.bn32(t3)
+
+        x = self.transfer_model(x)
+        x = F.sigmoid(x)
+
+
         return x
 
 
