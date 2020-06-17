@@ -29,7 +29,7 @@ class TestSaveDatasetsTorch(unittest.TestCase):
         m = ModelTrainer(lambda: S20DryspotModelFCWide(),
                          data_source_paths=tr_resources.get_data_paths_debug(),
                          save_path=out_path,
-                         load_datasets_path=self.torch_dataset_resources / "reference_datasets",
+                         dataset_split_path=self.torch_dataset_resources / "reference_datasets",
                          cache_path=None,
                          num_validation_samples=8,
                          num_test_samples=8,

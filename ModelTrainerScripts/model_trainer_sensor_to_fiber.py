@@ -21,7 +21,7 @@ if __name__ == "__main__":
         lambda: STFF_v2(slice_start=1, shrink_factor=8),
         dataset_paths,
         r.save_path,
-        load_datasets_path=r.datasets_dryspots,
+        dataset_split_path=r.dataset_split,
         cache_path=r.cache_path,
         batch_size=batch_size,
         epochs=10,

@@ -20,7 +20,7 @@ if __name__ == "__main__":
         lambda: FlowfrontToFiberfractionModel(),
         r.get_data_paths(),
         r.save_path,
-        load_datasets_path=r.datasets_dryspots,
+        dataset_split_path=r.dataset_split,
         cache_path=r.cache_path,
         batch_size=batch_size,
         epochs=5,
