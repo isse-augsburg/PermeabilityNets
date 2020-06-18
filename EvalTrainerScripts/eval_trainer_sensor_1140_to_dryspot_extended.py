@@ -19,7 +19,7 @@ if __name__ == "__main__":
                                                 freeze_nlayers=8),
         data_source_paths=r.get_data_paths_base_0(),
         save_path=r.save_path,
-        load_datasets_path=r.datasets_dryspots,
+        dataset_split_path=r.dataset_split,
         cache_path=r.cache_path,
         batch_size=1024,
         train_print_frequency=100,

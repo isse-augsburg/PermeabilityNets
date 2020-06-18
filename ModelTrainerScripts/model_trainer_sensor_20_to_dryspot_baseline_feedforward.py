@@ -21,7 +21,7 @@ if __name__ == "__main__":
         lambda: S20DryspotModelFCWide(demo_mode=True if args.demo is not None else False),
         data_source_paths=r.get_data_paths_base_0(),
         save_path=r.save_path if args.demo is None else Path(args.demo),
-        load_datasets_path=r.datasets_dryspots,
+        dataset_split_path=r.dataset_split,
         cache_path=r.cache_path,
         batch_size=32768,
         train_print_frequency=100,
