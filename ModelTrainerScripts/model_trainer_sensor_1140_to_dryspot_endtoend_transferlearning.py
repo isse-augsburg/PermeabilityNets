@@ -38,16 +38,18 @@ if __name__ == "__main__":
         cache_path = r.cache_path
     else: 
         print("Running local mode.")
-        filepaths = [Path("H:/RTM Files/LocalDebug/")]
-        save_path = Path("H:/RTM Files/output")
-        batch_size = 4
-        train_print_frequency = 5
+
+        basepath = Path("/home/lukas/rtm/rtm_files")
+        filepaths = [basepath]
+        save_path = Path("/home/lukas/rtm/output/")
+        batch_size = 16
+        train_print_frequency = 100
         epochs = 5
         num_workers = 8
-        num_validation_samples = 2
-        num_test_samples = 2
+        num_validation_samples = 8000
+        num_test_samples = 8000
         data_gather_function = get_filelist_within_folder
-        data_root = Path("H:/RTM Files/LocalDebug/")
+        data_root = basepath
         load_datasets_path=None
         cache_path = None
 
@@ -61,7 +63,6 @@ if __name__ == "__main__":
             lambda: model,
             data_source_paths=filepaths,
             save_path=save_path,
-            load_datasets_path=custom_load_datasets_path,
             cache_path=cache_path,
             batch_size=batch_size,
             train_print_frequency=train_print_frequency,

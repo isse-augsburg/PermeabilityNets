@@ -907,8 +907,9 @@ class SensorDeconvToDryspotTransferLearning(nn.Module):
 
         self.dropout = nn.Dropout(0.3)
 
-        self.upsample = nn.Upsample(size=(224, 224), mode='bilinear')
+        self.upsample = nn.Upsample(size=(224, 224))
         self.transfer_model = transfer_model
+        self.transfer_model.conv1 = torch.nn.Conv2d(32, 64, kernel_size=7, stride=2, padding=3, bias=False)
         num_ftrs = self.transfer_model.fc.in_features
         self.transfer_model.fc = torch.nn.Linear(num_ftrs, 1)
 
@@ -946,7 +947,8 @@ class SensorDeconvToDryspotTransferLearning(nn.Module):
 
         # Shape: [1, 32, 151, 119]
         x = self.upsample(t3)
-        x = self.bn32(t3)
+        #x = F.interpolate(t3, [3, 224, 224])
+        x = self.bn32(x)
 
         x = self.transfer_model(x)
         x = F.sigmoid(x)
