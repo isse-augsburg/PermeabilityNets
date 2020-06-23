@@ -29,7 +29,7 @@ _ij_S80_deconv_conv = _ijcai / "S80_to_DS_deconv_conv"
 _ij_densenet_baselines = _ijcai / "densenet_baseline"
 plots_output = _ijcai / "plots"
 
-datasets_dryspots = _share_path / 'data/RTM/Leoben/reference_datasets/dryspot_detection'
+dataset_split = _share_path / 'data/RTM/Leoben/reference_datasets/general_purpose_dataset_split'
 datasets_dryspots_torch = _share_path / 'data/RTM/Leoben/reference_datasets_torch'
 chkp = "checkpoint.pth"
 

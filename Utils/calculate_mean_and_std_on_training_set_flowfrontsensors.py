@@ -17,7 +17,7 @@ if __name__ == "__main__":
         num_validation_samples=131072,
         num_test_samples=1048576,
         batch_size=131072,
-        split_load_path=r.datasets_dryspots,
+        split_load_path=r.dataset_split,
         split_save_path=Path(),
         num_workers=75,
         looping_strategy=None

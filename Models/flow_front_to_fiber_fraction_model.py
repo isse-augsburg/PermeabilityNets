@@ -11,11 +11,11 @@ class FlowfrontFeaturesRNN(nn.Module):
         self.nlayers = num_layers
 
         self.lstm = nn.LSTM(input_dim, hidden_dim,
-                            batch_first=False, num_layers=self.nlayers,
+                            batch_first=True, num_layers=self.nlayers,
                             bidirectional=False, dropout=0.2)
         self.hidden2hidden1 = nn.Linear(int(hidden_dim), 1024)
         self.hidden2hidden2 = nn.Linear(1024, 8192)
-        self.hidden2hidden3 = nn.Linear(8192, 24025)
+        self.hidden2hidden3 = nn.Linear(8192, 17433)
         self.drop = nn.Dropout(0.30)
         self.init_weights()
 
@@ -42,16 +42,14 @@ class FlowfrontFeaturesRNN(nn.Module):
         lstm_out, hidden = self.lstm(x)
 
         out = lstm_out[-1]
-
         out = out.view(out.size(0), -1)
         out = self.drop(out)
         out = F.relu(self.hidden2hidden1(out))
         out = self.drop(out)
         out = F.relu(self.hidden2hidden2(out))
         out = self.drop(out)
-        out = F.relu(self.hidden2hidden3(out))
-        out = self.drop(out)
-        # out = torch.sigmoid(out)
+        out = self.hidden2hidden3(out)
+        out = torch.sigmoid(out)
         # out = F.softmax(out, dim=1)
         return out
 
@@ -84,16 +82,16 @@ class FlowfrontToFiberfractionModel(nn.Module):
     def __init__(self):
         super(FlowfrontToFiberfractionModel, self).__init__()
         self.cnn = FlowfrontCNN()
-        self.rnn = FlowfrontFeaturesRNN(input_dim=625)
+        self.rnn = FlowfrontFeaturesRNN(input_dim=345)
 
     def forward(self, x):
         # print('>>> INFO: Forward pass CNN')
         out = self.cnn.forward(x)
         out = torch.squeeze(out, dim=1)
-        out = out.permute(1, 0, 2, 3)
         out = out.reshape((out.size()[0], out.size()[1], -1)).contiguous()
         # print('>>> INFO: Forward pass RNN')
         out = self.rnn.forward(out)
+        out = out.reshape((out.size()[0], 149, 117))
         return out
 
 
