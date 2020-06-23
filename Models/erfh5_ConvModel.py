@@ -477,6 +477,7 @@ class S80Deconv2ToDrySpotEff(nn.Module):
         x = torch.sigmoid(self.lin3(x))
         return x
 
+
 class S80Deconv2ToDrySpotTransferLearning(nn.Module):
     def __init__(self, pretrained="", checkpoint_path=None,
                  freeze_nlayers=0,  # Could be 9
@@ -514,7 +515,7 @@ class S80Deconv2ToDrySpotTransferLearning(nn.Module):
 
         self.upsample = nn.Upsample(size=(224, 224))
         self.transfer_model = transfer_model
-        self.transfer_model.conv1 = torch.nn.Conv2d(32, 64, kernel_size=7, stride=2, padding=3, bias=False)
+        self.transfer_model.conv1 = torch.nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False)
         num_ftrs = self.transfer_model.fc.in_features
         self.transfer_model.fc = torch.nn.Linear(num_ftrs, 1)
 
@@ -526,7 +527,6 @@ class S80Deconv2ToDrySpotTransferLearning(nn.Module):
             incomp = self.load_state_dict(weights, strict=False)
             logger.debug(f'All layers: {self.state_dict().keys()}')
             logger.debug(f'Loaded weights but the following: {incomp}')
-    
 
         if freeze_nlayers == 0:
             return
@@ -559,10 +559,6 @@ class S80Deconv2ToDrySpotTransferLearning(nn.Module):
    
         x = self.transfer_model(x)
         x = F.sigmoid(x)
-
-
-        return x
-        
         return x
 
 

@@ -36,13 +36,20 @@ if __name__ == "__main__":
         data_root = r.data_root
         #load_datasets_path=r.datasets_dryspots
         cache_path = r.cache_path
+
+        weights = Path("/cfs/home/s/t/stiebesi/data/RTM/"\
+                       "Results/IJCAI_PRICAI_20_FlowFrontNet/S80_to_DS_deconv_conv/"\
+                       "2020-02-28_12-07-38_deconv_second_try/checkpoint.pth")
+        pretrained = "deconv_weights"
+        freeze_nlayers = 9
+
     else: 
         print("Running local mode.")
 
         basepath = Path("/home/lukas/rtm/rtm_files")
         filepaths = [basepath]
         save_path = Path("/home/lukas/rtm/output/")
-        batch_size = 16
+        batch_size = 2
         train_print_frequency = 100
         epochs = 5
         num_workers = 8
@@ -53,13 +60,13 @@ if __name__ == "__main__":
         load_datasets_path=None
         cache_path = None
 
+        weights = None
+        pretrained = False
+        freeze_nlayers = 0
 
-    weights = Path("/cfs/home/s/t/stiebesi/data/RTM/"\
-        "Results/IJCAI_PRICAI_20_FlowFrontNet/S80_to_DS_deconv_conv/"\
-            "2020-02-28_12-07-38_deconv_second_try/checkpoint.pth")
-    model = S80Deconv2ToDrySpotTransferLearning(pretrained="deconv_weights",
+    model = S80Deconv2ToDrySpotTransferLearning(pretrained=pretrained,
                                                     checkpoint_path=weights,
-                                                    freeze_nlayers=9
+                                                    freeze_nlayers=freeze_nlayers
                                                     )
 
     def init_trainer():
