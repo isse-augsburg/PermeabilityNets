@@ -3,7 +3,7 @@ import torch
 from torch.optim.lr_scheduler import ExponentialLR
 
 import Resources.training as r
-from Models.erfh5_ConvModel import SensorDeconvToDryspotTransferLearning
+from Models.erfh5_ConvModel import S80Deconv2ToDrySpotTransferLearning
 from Pipeline.data_gather import get_filelist_within_folder_blacklisted, get_filelist_within_folder
 from Pipeline.data_loader_dryspot import DataloaderDryspots
 from Trainer.ModelTrainer import ModelTrainer
@@ -54,17 +54,17 @@ if __name__ == "__main__":
         cache_path = None
 
 
-    weights = Path("/cfs/home/s/t/stiebesi/data/RTM/Results/IJCAI_PRICAI_20_FlowFrontNet/"\
-        "S1140_to_DS_deconv_conv/1_new_split_0_ground_pressure/"\
-            "2020-02-07_13-55-43_S1140_to_ff_base_0/checkpoint.pth")
-    model = SensorDeconvToDryspotTransferLearning(pretrained="deconv_weights",
+    weights = Path("/cfs/home/s/t/stiebesi/data/RTM/"\
+        "Results/IJCAI_PRICAI_20_FlowFrontNet/S80_to_DS_deconv_conv/"\
+            "2020-02-28_12-07-38_deconv_second_try/checkpoint.pth")
+    model = S80Deconv2ToDrySpotTransferLearning(pretrained="deconv_weights",
                                                     checkpoint_path=weights,
-                                                    freeze_nlayers=8
+                                                    freeze_nlayers=9
                                                     )
 
     def init_trainer():
 
-        dlds = DataloaderDryspots()
+        dlds = DataloaderDryspots(sensor_indizes=((1, 4), (1, 4)))
         m = ModelTrainer(
             lambda: model,
             data_source_paths=filepaths,
