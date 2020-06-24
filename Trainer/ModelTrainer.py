@@ -20,6 +20,13 @@ from Utils.data_utils import handle_torch_caching
 from Utils.eval_utils import eval_preparation
 from Utils.training_utils import count_parameters, CheckpointingStrategy
 
+import mlflow
+from mlflow import log_metric, log_param,
+
+mlflow.set_tracking_uri("http://swt-clustermanager:4040")
+mlflow.set_experiment("Test ML Flow")
+
+
 try:
     from apex import amp
 except ImportError:
@@ -252,6 +259,8 @@ class ModelTrainer:
         dl_info["data_processing_function"] = self.data_processing_function.__name__
         dl_str = '  \n'.join([f"{k}: {dl_info[k]}" for k in dl_info if dl_info[k] is not None])
         self.writer.add_text("Data/DataLoader", f"{dl_str}")
+        
+        log_param("Model", f"{self.model.info})
 
     def __create_model_and_optimizer(self):
         logger = logging.getLogger(__name__)
@@ -362,6 +371,7 @@ class ModelTrainer:
                 label = self.resize_label_if_necessary(label)
                 loss = self.loss_criterion(outputs, label)
                 self.writer.add_scalar("Training/Loss", loss.item(), step_count)
+                log_metric(loss.item())
                 if not self.use_mixed_precision:
                     loss.backward()
                 else:
