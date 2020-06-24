@@ -3,7 +3,7 @@ from pathlib import Path
 import torch
 
 import Resources.training as r
-from Models.erfh5_ConvModel import S20Channel4toDrySpot
+from Models.erfh5_fullyConnected import S1140DryspotModelFCWide
 from Pipeline.data_gather import get_filelist_within_folder_blacklisted
 from Pipeline.data_loader_flowfront_sensor import DataloaderFlowfrontSensor
 from Trainer.ModelTrainer import ModelTrainer
@@ -13,9 +13,10 @@ from Utils.training_utils import read_cmd_params
 if __name__ == "__main__":
     args = read_cmd_params()
 
-    dlds = DataloaderFlowfrontSensor(sensor_indizes=((1, 8), (1, 8)),
-                                     frame_count=4)
-    m = ModelTrainer(lambda: S20Channel4toDrySpot(),
+    dlds = DataloaderFlowfrontSensor(sensor_indizes=((0, 1), (0, 1)),
+                                     frame_count=1,
+                                     use_binary_sensor_only=True)
+    m = ModelTrainer(lambda: S1140DryspotModelFCWide(),
                      data_source_paths=r.get_data_paths_base_0(),
                      save_path=r.save_path,
                      dataset_split_path=r.dataset_split,

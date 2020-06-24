@@ -282,3 +282,6 @@ Output/
 Images/
 *.out
 *.sh
+
+# Own
+_debug_*
