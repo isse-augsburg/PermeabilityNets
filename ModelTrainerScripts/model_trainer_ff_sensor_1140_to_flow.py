@@ -4,11 +4,10 @@ import torch
 
 import Resources.training as r
 from Models.erfh5_DeconvModel import DeconvModelEfficient
-from Models.erfh5_fullyConnected import S1140DryspotModelFCWide
 from Pipeline.data_gather import get_filelist_within_folder_blacklisted
 from Pipeline.data_loader_flowfront_sensor import DataloaderFlowfrontSensor
 from Trainer.ModelTrainer import ModelTrainer
-from Trainer.evaluation import BinaryClassificationEvaluator, SensorToFlowfrontEvaluator
+from Trainer.evaluation import SensorToFlowfrontEvaluator
 from Utils.training_utils import read_cmd_params
 
 if __name__ == "__main__":
