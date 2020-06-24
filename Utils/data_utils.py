@@ -165,7 +165,7 @@ def get_node_propery_at_states_and_indices(f: h5py.File, node_property: str, sta
     if indices == []:
         data = [f["post"]["singlestate"][state]["entityresults"]["NODE"]
                 [node_property]["ZONE1_set1"]["erfblock"]["res"][()]
-            for state in states]
+                for state in states]
     else:
         data = [f["post"]["singlestate"][state]["entityresults"]["NODE"]
                 [node_property]["ZONE1_set1"]["erfblock"]["res"][()][indices]

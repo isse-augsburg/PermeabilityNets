@@ -38,7 +38,7 @@ class ModelTrainer:
         data_source_paths: List of file paths containing the files for
                            training.
         save_path: Path for saving outputs.
-        load_datasets_path: Path containing dedidacted Datasets in a pickled
+        dataset_split_path: Path containing dedidacted Datasets in a pickled
                             format.
         cache_path: Path containing cached objects.
         batch_size: Batch size for training.
@@ -75,7 +75,7 @@ class ModelTrainer:
         model_creation_function,
         data_source_paths: list,
         save_path,
-        load_datasets_path=None,
+        dataset_split_path=None,
         cache_path=None,
         batch_size: int = 1,
         train_print_frequency: int = 10,
@@ -113,7 +113,7 @@ class ModelTrainer:
         self.train_print_frequency = train_print_frequency
         self.data_source_paths = data_source_paths
         self.batch_size = batch_size
-        self.load_datasets_path = load_datasets_path
+        self.load_datasets_path = dataset_split_path
         self.epochs = epochs
         self.dummy_epoch = dummy_epoch
         self.produce_torch_datasets_only = produce_torch_datasets_only

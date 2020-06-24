@@ -143,7 +143,7 @@ class DataLoaderListLoopingStrategy(LoopingStrategy, torch.utils.data.Dataset):
         if not hasattr(self, "sampler") or self.sampler is None:
             return iter(torch.utils.data.DataLoader(self, shuffle=True, batch_size=self.batch_size))
         else:
-            sampler = self.sampler((self.features, self.labels, self.aux))
+            sampler = self.sampler(self.samples)
             return iter(torch.utils.data.DataLoader(self, sampler=sampler, batch_size=self.batch_size))
 
     def __getitem__(self, index):
