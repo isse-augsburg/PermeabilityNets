@@ -14,10 +14,10 @@ if __name__ == "__main__":
     args = read_cmd_params()
 
     dlds = DataloaderFlowfrontSensor(sensor_indizes=((0, 1), (0, 1)),
-                                     frame_count=5,
-                                     use_binary_sensor_only=False)
+                                     frame_count=1,
+                                     use_binary_sensor_only=True)
     m = ModelTrainer(lambda: S1140DryspotModelFCWide(),
-                     data_source_paths=r.get_data_paths_base_0(),
+                     data_source_paths=r.get_data_paths_debug(),
                      save_path=r.save_path,
                      dataset_split_path=r.dataset_split,
                      cache_path=r.cache_path,
@@ -25,8 +25,8 @@ if __name__ == "__main__":
                      train_print_frequency=100,
                      epochs=100,
                      num_workers=75,
-                     num_validation_samples=131072,
-                     num_test_samples=1048576,
+                     num_validation_samples=512,  # 131072,
+                     num_test_samples=1024,  # 1048576,
                      data_processing_function=dlds.get_flowfront_sensor_bool_dryspot,
                      data_gather_function=get_filelist_within_folder_blacklisted,
                      loss_criterion=torch.nn.BCELoss(),
@@ -34,7 +34,6 @@ if __name__ == "__main__":
                      classification_evaluator_function=lambda summary_writer:
                      BinaryClassificationEvaluator(summary_writer=summary_writer),
                      dont_care_num_samples=True
-                     # lr_scheduler_function=lambda optim: ExponentialLR(optim, 0.1),
                      )
 
     if not args.run_eval:

@@ -102,7 +102,7 @@ def dry_spot_analysis(file_path, triang: tri.Triangulation, Xi: np.ndarray, Yi: 
     keys = list(f["/post/singlestate"].keys())
     # Fiber fraction map creation with tripcolor
     _ = __create_permeability_map(f, triang, colored=True,
-                                  path=str(output_dir_imgs / f"permeability_map.png"))
+                                  path=str(output_dir_imgs / "permeability_map.png"))
     perm_map = __create_permeability_map(f, triang)
     spot_list_s = []
     spot_list_e = []
