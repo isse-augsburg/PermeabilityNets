@@ -34,7 +34,6 @@ class MLFlowNoLog():
         mlflow.end_run()
         mlflow.start_run()
         mlflow.set_tracking_uri(str(mlf_tmp))
-        mlflow.create_experiment("MLFlowNoLog")
         mlflow.set_experiment("MLFlowNoLog")
 
     
