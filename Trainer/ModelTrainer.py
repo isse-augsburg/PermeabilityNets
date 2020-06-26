@@ -5,6 +5,7 @@ import time
 from collections import OrderedDict
 from datetime import datetime
 from pathlib import Path
+import sys
 
 import numpy as np
 import torch
@@ -20,14 +21,13 @@ from Utils.data_utils import handle_torch_caching
 from Utils.eval_utils import eval_preparation
 from Utils.training_utils import count_parameters, CheckpointingStrategy
 import getpass
-import mlflow
-from mlflow import log_metric, log_param, log_artifacts, set_tag
+from mlflow import log_metric, log_param, log_artifacts, set_tag, set_tracking_uri, set_experiment
 
 # Visit the following URL to check the MLFlow dashboard.
-mlflow.set_tracking_uri("http://swt-clustermanager.informatik.uni-augsburg.de:5000")
+set_tracking_uri("http://swt-clustermanager.informatik.uni-augsburg.de:5000")
 # Setting the experiment: normally, it is the Slurm jobname, if the script is not called with slurm,
 #  it is the name of calling script, which should help categorizing experiments as well.
-mlflow.set_experiment(f"{os.getenv('SLURM_JOB_NAME', sys.argv[0])}")
+set_experiment(f"{os.getenv('SLURM_JOB_NAME', sys.argv[0])}")
 
 try:
     from apex import amp
