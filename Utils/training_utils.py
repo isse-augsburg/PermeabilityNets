@@ -8,6 +8,7 @@ import torch
 import mlflow
 import tempfile
 from pathlib import Path
+import shutil
 
 
 class CheckpointingStrategy(Enum):
@@ -22,26 +23,24 @@ class CheckpointingStrategy(Enum):
 
 class MLFlowNoLog():
     is_on = False
-    experiment_id = -1
     def __init__(self):
         pass
 
     def __enter__(self):
         MLFlowNoLog.is_on = True
-        tmp = tempfile.gettempdir()
-        mlf_tmp = Path(tmp) / "MLFlowNoLog"
+        mlf_tmp = Path(tempfile.gettempdir()) / "MLFlowNoLog"
         mlf_tmp.mkdir(exist_ok=True)
         mlflow.set_tracking_uri(str(mlf_tmp))
-        MLFlowNoLog.experiment_id = mlflow.set_experiment("MLFlowNoLog")
+        mlflow.set_experiment("MLFlowNoLog")
         mlflow.start_run()
 
     def __exit__(self, type, value, traceback):
         MLFlowNoLog.is_on = False
         mlflow.end_run()
-        mlflow.delete_experiment(MLFlowNoLog.experiment_id)
+        # mlflow.delete_experiment(MLFlowNoLog.experiment_id)
         
         # Should not be necessary; may break things in MLFlow database internally
-        #shutil.delete("temp")
+        shutil.delete(Path(tempfile.gettempdir()) / "MLFlowNoLog")
 
 
 def count_parameters(model):
