@@ -21,22 +21,13 @@ from Utils.data_utils import handle_torch_caching
 from Utils.eval_utils import eval_preparation
 from Utils.training_utils import count_parameters, CheckpointingStrategy
 import getpass
-from mlflow import log_metric, log_param, log_artifacts, set_tag, set_tracking_uri, set_experiment, end_run
-
-print(socket.gethostname())
-print(sys.argv)
-
+from mlflow import log_metric, log_param, log_artifacts, set_tag, set_tracking_uri, set_experiment
 
 # Visit the following URL to check the MLFlow dashboard.
 set_tracking_uri("http://swt-clustermanager.informatik.uni-augsburg.de:5000")
 # Setting the experiment: normally, it is the Slurm jobname, if the script is not called with slurm,
 #  it is the name of calling script, which should help categorizing experiments as well.
 set_experiment(f"{os.getenv('SLURM_JOB_NAME', sys.argv[0])}")
-
-# No mlflow logging during testing
-if "unittest" in sys.argv[0]:
-    print("Ending run")
-    end_run()
 
 try:
     from apex import amp
