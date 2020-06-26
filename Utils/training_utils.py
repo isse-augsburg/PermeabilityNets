@@ -40,7 +40,7 @@ class MLFlowNoLog():
         # mlflow.delete_experiment(MLFlowNoLog.experiment_id)
         
         # Should not be necessary; may break things in MLFlow database internally
-        shutil.delete(Path(tempfile.gettempdir()) / "MLFlowNoLog")
+        shutil.rmtree(Path(tempfile.gettempdir()) / "MLFlowNoLog")
 
 
 def count_parameters(model):
