@@ -28,14 +28,16 @@ class MLFlowNoLog():
     def __enter__(self):
         MLFlowNoLog.is_on = True
         tmp = tempfile.gettempdir()
-        mlflow.set_experiment("MLNoLog")
-        mlflow.set_tracking_uri(Path(tmp) / "MLNoLog")
+        mlflow.set_experiment("MLFlowNoLog")
+        mlf_tmp = Path(tmp) / "MLFlowNoLog"
+        mlf_tmp.mkdir(exist_ok=True)
+        mlflow.set_tracking_uri(mlf_tmp)
         mlflow.start_run()
 
     def __exit__(self, type, value, traceback):
         MLFlowNoLog.is_on = False
         mlflow.end_run()
-        mlflow.delete_experiment("MLNoLog")
+        mlflow.delete_experiment("MLFlowNoLog")
         
         # Should not be necessary; may break things in MLFlow database internally
         #shutil.delete("temp")
