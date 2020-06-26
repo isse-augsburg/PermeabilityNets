@@ -23,6 +23,8 @@ from Utils.training_utils import count_parameters, CheckpointingStrategy
 import getpass
 from mlflow import log_metric, log_param, log_artifacts, set_tag, set_tracking_uri, set_experiment
 
+print(socket.gethostname())
+print(sys.argv)
 # Visit the following URL to check the MLFlow dashboard.
 set_tracking_uri("http://swt-clustermanager.informatik.uni-augsburg.de:5000")
 # Setting the experiment: normally, it is the Slurm jobname, if the script is not called with slurm,

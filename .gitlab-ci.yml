@@ -1,14 +1,14 @@
 image: nvcr.io/isse/pytorch_extended:20.03
 
 stages:
-  - lint
+ # - lint
   - test
   - docs
 
-linter:
-  stage: lint
-  script:
-    - flake8 --max-line-length=120 --ignore=W291,W503,W504 --exclude=Docs . 
+# linter:
+#   stage: lint
+#   script:
+#     - flake8 --max-line-length=120 --ignore=W291,W503,W504 --exclude=Docs . 
 # local: flake8 --max-line-length=120 --ignore=W291,W503,W504,F841 --exclude=_* .
 
 test:
