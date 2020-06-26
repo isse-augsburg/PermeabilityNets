@@ -7,7 +7,7 @@ import numpy as np
 import torch
 import mlflow
 import tempfile
-import Path
+from pathlib import Path
 
 
 class CheckpointingStrategy(Enum):
