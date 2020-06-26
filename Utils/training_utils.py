@@ -5,6 +5,9 @@ from enum import Enum
 
 import numpy as np
 import torch
+import mlflow
+import tempfile
+import Path
 
 
 class CheckpointingStrategy(Enum):
@@ -15,6 +18,27 @@ class CheckpointingStrategy(Enum):
     """
     Best = 1
     All = 2
+
+
+class MLFlowNoLog():
+    is_on = False
+    def __init__(self):
+        pass
+
+    def __enter__(self):
+        MLFlowNoLog.is_on = True
+        tmp = tempfile.gettempdir()
+        mlflow.set_experiment("MLNoLog")
+        mlflow.set_tracking_uri(Path(tmp) / "MLNoLog")
+        mlflow.start_run()
+
+    def __exit__(self, type, value, traceback):
+        MLFlowNoLog.is_on = False
+        mlflow.end_run()
+        mlflow.delete_experiment("MLNoLog")
+        
+        # Should not be necessary; may break things in MLFlow database internally
+        #shutil.delete("temp")
 
 
 def count_parameters(model):
