@@ -31,7 +31,7 @@ class MLFlowNoLog():
         mlflow.set_experiment("MLFlowNoLog")
         mlf_tmp = Path(tmp) / "MLFlowNoLog"
         mlf_tmp.mkdir(exist_ok=True)
-        mlflow.set_tracking_uri(mlf_tmp)
+        mlflow.set_tracking_uri(str(mlf_tmp))
         mlflow.start_run()
 
     def __exit__(self, type, value, traceback):
