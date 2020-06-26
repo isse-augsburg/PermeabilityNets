@@ -31,11 +31,12 @@ class MLFlowNoLog():
         mlf_tmp = Path(tempfile.gettempdir()) / "MLFlowNoLog"
         mlf_tmp.mkdir(exist_ok=True)
 
+        mlflow.end_run()
+        mlflow.start_run()
         mlflow.set_tracking_uri(str(mlf_tmp))
         mlflow.create_experiment("MLFlowNoLog")
         mlflow.set_experiment("MLFlowNoLog")
-        mlflow.end_run()
-        mlflow.start_run()
+
     
     def __exit__(self, type, value, traceback):
         MLFlowNoLog.is_on = False
