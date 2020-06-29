@@ -16,8 +16,8 @@ test:
   script:
     - python3 -m unittest discover -s Tests -t Tests
 
-  tags:
-    - dgx2
+#  tags:
+#    - dgx2
 
 documentation:
   stage: docs
