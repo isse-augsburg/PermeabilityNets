@@ -401,6 +401,7 @@ def get_roc_curves():
 
 
 def different_tpr_fpr_with_and_without_overlap():
+    # All pickles moved to X:\s\t\stiebesi\results\IJCAI_PRICAI_20_FlowFrontNet\Evaluation_of_full_runs
     fn2 = "consecutive_len_rates_no_overlap.p"
     # fn1 = "consecutive_len_rates_overlap.p"
     fn = "consecutive_len_rates_no_overlap_different_thres.p"
