@@ -22,7 +22,7 @@ from Utils.eval_utils import eval_preparation
 from Utils.training_utils import count_parameters, CheckpointingStrategy
 import getpass
 from Utils.training_utils import MLFlowNoLog
-from mlflow import log_metric, log_param, log_artifacts, set_tag, set_tracking_uri, set_experiment
+from Utils.custom_mlflow import log_metric, log_param, log_artifacts, set_tag, set_tracking_uri, set_experiment
 
 try:
     from apex import amp
@@ -109,13 +109,11 @@ class ModelTrainer:
         resize_label_to=(0, 0),
         load_test_set_in_training_mode=False
     ):
-
-        if MLFlowNoLog.is_on is False:
-            # Visit the following URL to check the MLFlow dashboard.
-            set_tracking_uri("http://swt-clustermanager.informatik.uni-augsburg.de:5000")
-            # Setting the experiment: normally, it is the Slurm jobname, if the script is not called with slurm,
-            #  it is the name of calling script, which should help categorizing experiments as well.
-            set_experiment(f"{os.getenv('SLURM_JOB_NAME', sys.argv[0])}")
+        # Visit the following URL to check the MLFlow dashboard.
+        set_tracking_uri("http://swt-clustermanager.informatik.uni-augsburg.de:5000")
+        # Setting the experiment: normally, it is the Slurm jobname, if the script is not called with slurm,
+        #  it is the name of calling script, which should help categorizing experiments as well.
+        set_experiment(f"{os.getenv('SLURM_JOB_NAME', sys.argv[0])}")
 
         initial_timestamp = str(datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
         self.save_path = save_path / initial_timestamp
