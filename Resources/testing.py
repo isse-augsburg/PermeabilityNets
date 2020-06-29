@@ -10,7 +10,6 @@ def running_in_docker():
 test_src_dir = Path('/cfs/home/s/t/stiebesi/code/tests/test_data')
 torch_datasets = test_src_dir / "TestSaveDatasetsTorch" / "unix"
 if running_in_docker():
-    print("Resources.testing: Running in docker ...")
     test_out_dir = Path('/cache')
 # else:
 # test_out_dir = Path(f'/cfs/share/cache/output_johanmay/tests')
