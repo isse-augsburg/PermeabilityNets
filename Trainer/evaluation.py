@@ -25,7 +25,7 @@ They have to be given a save_path, where the results are going to be stored.
 
 
 class Evaluator:
-    def __init__(self):
+    def __init__(self, summary_writer):
         pass
 
     def commit(self, *args, **kwargs):

@@ -103,7 +103,8 @@ class ModelTrainer:
         caching_torch=True,
         demo_path=None,
         resize_label_to=(0, 0),
-        load_test_set_in_training_mode=False
+        load_test_set_in_training_mode=False,
+        drop_last_batch=False
     ):
         initial_timestamp = str(datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
         self.save_path = save_path / initial_timestamp
@@ -168,6 +169,7 @@ class ModelTrainer:
         self.writer = None
         self.run_eval_step_before_training = run_eval_step_before_training
         self.dont_care_num_samples = dont_care_num_samples
+        self.drop_last_batch = drop_last_batch
 
         self.use_mixed_precision = use_mixed_precision
         self.resize_label = resize_label_to
@@ -197,6 +199,7 @@ class ModelTrainer:
                 test_mode=test_mode,
                 sampler=self.sampler,
                 load_test_set_in_training_mode=self.load_test_set_in_training_mode,
+                drop_last_batch=self.drop_last_batch,
             )
         except Exception:
             logger = logging.getLogger(__name__)

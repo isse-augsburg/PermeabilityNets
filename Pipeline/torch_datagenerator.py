@@ -60,7 +60,8 @@ class LoopingDataGenerator:
                  dont_care_num_samples=False,
                  test_mode=False,
                  sampler=None,
-                 load_test_set_in_training_mode=False
+                 load_test_set_in_training_mode=False,
+                 drop_last_batch=False
                  ):
         self.logger = logging.getLogger(__name__)
 
@@ -80,6 +81,7 @@ class LoopingDataGenerator:
         self.cache_path = cache_path
         self.cache_mode = cache_mode
         self.test_mode = test_mode
+        self.drop_last_batch = drop_last_batch
 
         self.load_torch_dataset_path = load_torch_dataset_path
         self.save_torch_dataset_path = save_torch_dataset_path
@@ -182,7 +184,7 @@ class LoopingDataGenerator:
             # By choosing drop_last=False we may get up to num_workers*(batch_size-1) short batches in the first epoch.
             # The behaviour in the second depends on the used LoopingStrategy, but by default we will only see one short
             # sample in the following epochs
-            dataloader = torch.utils.data.DataLoader(self.file_iterable, drop_last=False,
+            dataloader = torch.utils.data.DataLoader(self.file_iterable, drop_last=self.drop_last_batch,
                                                      batch_size=self.batch_size, num_workers=self.num_workers)
 
             def store_batch(batch):

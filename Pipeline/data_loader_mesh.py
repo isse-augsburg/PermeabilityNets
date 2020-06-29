@@ -41,12 +41,11 @@ class DataLoaderMesh:
                 "erfblock/res"][()]
             verts = normalize_coords(verts)
 
-
             states = f["post"]["singlestate"]
             all_inputs = []
             all_labels = []
 
-            #Get all pressure and filling factor states
+            # Get all pressure and filling factor states
             for s in states:
                 input_features = np.zeros((verts.shape[0]))
                 pressure = f['post']['singlestate'][s]['entityresults']['NODE'][
@@ -61,25 +60,10 @@ class DataLoaderMesh:
                 all_inputs.append(input_features)
                 all_labels.append(flowfront)
 
-
-            #Get internal indices of nodes
-            hashes = f["post/constant/entityresults/NODE/COORDINATE/ZONE1_set0/"
-                "erfblock/entid"][()]
-            hashes = {h : i for i, h in enumerate(hashes)}
-
-            #Calculate faces based on internal indices
-            faces = f["post/constant/connectivities/SHELL/erfblock/ic"][()]
-            faces = faces[:, :-1]
-            faces = np.vectorize(hashes.__getitem__)(faces)
-
-            faces = torch.unsqueeze(torch.Tensor(faces), dim=0)
-            verts = torch.unsqueeze(torch.tensor(verts), dim=0)
-            mesh = Meshes(verts=verts, faces=faces)
-
-            #todo copy mesh?
             for i, x in enumerate(all_inputs):
-                instances.append((x, all_labels[i], {"mesh": mesh}))
-            pass
+                instances.append((x, all_labels[i]))
+
+            return instances
 
         except KeyError:
             logger = logging.getLogger()
@@ -88,9 +72,42 @@ class DataLoaderMesh:
             f.close()
             return None
 
+    def get_batched_mesh(self, batchsize, filename):
+        f = h5py.File(filename, 'r')
+
+        try:
+            verts = f["post/constant/entityresults/NODE/COORDINATE/ZONE1_set0/"
+                      "erfblock/res"][()]
+            verts = normalize_coords(verts)
+            # Get internal indices of nodes
+            hashes = f["post/constant/entityresults/NODE/COORDINATE/ZONE1_set0/"
+                       "erfblock/entid"][()]
+            hashes = {h: i for i, h in enumerate(hashes)}
+
+            # Calculate faces based on internal indices
+            faces = f["post/constant/connectivities/SHELL/erfblock/ic"][()]
+            faces = faces[:, :-1]
+            faces = np.vectorize(hashes.__getitem__)(faces)
+
+            faces = torch.unsqueeze(torch.Tensor(faces), dim=0)
+            faces = faces.repeat(batchsize, 1, 1)
+            verts = torch.unsqueeze(torch.tensor(verts), dim=0)
+            verts = verts.repeat(batchsize, 1, 1)
+            mesh = Meshes(verts=verts, faces=faces)
+
+            return mesh
+
+        except KeyError:
+            logger = logging.getLogger()
+
+            logger.warning(f'Error: Calculation of mesh failed.')
+            f.close()
+            return
 
 
 if __name__ == '__main__':
     dl = DataLoaderMesh(sensor_verts_path=Path("/home/lukas/rtm/sensor_verts.dump"))
     file = Path("/home/lukas/rtm/rtm_files/2019-07-24_16-32-40_308_RESULT.erfh5")
-    dl.get_sensor_flowfront_mesh(file)
+    # mesh = dl.get_batched_mesh(4, file)
+    instances = dl.get_sensor_flowfront_mesh(file)
+    pass
