@@ -29,23 +29,23 @@ class TestSaveDatasetsTorch(unittest.TestCase):
         dlds = DataloaderFlowfrontSensor(sensor_indizes=((1, 8), (1, 8)))
         Utils.custom_mlflow.logging = False
         m = ModelTrainer(lambda: S20DryspotModelFCWide(),
-                        data_source_paths=tr_resources.get_data_paths_debug(),
-                        save_path=out_path,
-                        dataset_split_path=self.torch_dataset_resources / "reference_datasets",
-                        cache_path=None,
-                        num_validation_samples=8,
-                        num_test_samples=8,
-                        num_workers=0,
-                        epochs=epochs,
-                        data_processing_function=dlds.get_flowfront_sensor_bool_dryspot,
-                        data_gather_function=dg.get_filelist_within_folder_blacklisted,
-                        loss_criterion=torch.nn.BCELoss(),
-                        optimizer_function=lambda params: torch.optim.AdamW(params, lr=1e-4),
-                        classification_evaluator_function=lambda summary_writer:
-                        BinaryClassificationEvaluator(summary_writer=summary_writer),
-                        load_test_set_in_training_mode=load_test_set,
-                        data_root=test_resources.test_src_dir,
-                        )
+                         data_source_paths=tr_resources.get_data_paths_debug(),
+                         save_path=out_path,
+                         dataset_split_path=self.torch_dataset_resources / "reference_datasets",
+                         cache_path=None,
+                         num_validation_samples=8,
+                         num_test_samples=8,
+                         num_workers=0,
+                         epochs=epochs,
+                         data_processing_function=dlds.get_flowfront_sensor_bool_dryspot,
+                         data_gather_function=dg.get_filelist_within_folder_blacklisted,
+                         loss_criterion=torch.nn.BCELoss(),
+                         optimizer_function=lambda params: torch.optim.AdamW(params, lr=1e-4),
+                         classification_evaluator_function=lambda summary_writer:
+                         BinaryClassificationEvaluator(summary_writer=summary_writer),
+                         load_test_set_in_training_mode=load_test_set,
+                         data_root=test_resources.test_src_dir,
+                         )
         return m
 
     def compare_old_new_dataset(self, old_data: list, new_data: list):

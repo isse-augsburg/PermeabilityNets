@@ -5,17 +5,17 @@ stages:
   - test
   - docs
 
-# linter:
-#   stage: lint
-#   script:
-#     - flake8 --max-line-length=120 --ignore=W291,W503,W504 --exclude=Docs . 
+linter:
+  stage: lint
+  script:
+    - flake8 --max-line-length=120 --ignore=W291,W503,W504 --exclude=Docs . 
 # local: flake8 --max-line-length=120 --ignore=W291,W503,W504,F841 --exclude=_* .
 
 test:
   stage: test
   script:
-    #- python3 -m unittest discover -s Tests -t Tests
-    - python3 -m unittest Tests.test_torch_datasets
+    - python3 -m unittest discover -s Tests -t Tests
+    # - python3 -m unittest Tests.test_torch_datasets
 
   tags:
     - dgx2
