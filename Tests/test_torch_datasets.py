@@ -27,7 +27,7 @@ class TestSaveDatasetsTorch(unittest.TestCase):
 
     def create_trainer_and_start(self, out_path, epochs=1, load_test_set=False):
         dlds = DataloaderFlowfrontSensor(sensor_indizes=((1, 8), (1, 8)))
-        Utils.custom_mlflow.logging = True
+        Utils.custom_mlflow.logging = False
         m = ModelTrainer(lambda: S20DryspotModelFCWide(),
                         data_source_paths=tr_resources.get_data_paths_debug(),
                         save_path=out_path,
