@@ -49,7 +49,7 @@ class DataLoaderSensor:
         if np.shape(pressure_array)[0] < self.frm:
             return None
         pressure_array = pressure_array[self.frm:, :, :]
-        pressure_array = pressure_array / 1000000
+        pressure_array = pressure_array / 100000
         pressure_array = np.squeeze(pressure_array)
 
         return [(pressure_array, filling)]

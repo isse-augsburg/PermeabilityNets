@@ -136,7 +136,7 @@ class DataLoaderListLoopingStrategy(LoopingStrategy, torch.utils.data.Dataset):
         features, labels, aux = batch
 
         self.samples.extend(zip((f.squeeze(0) for f in torch.split(features, 1)),
-                                (l.squeeze(0) for l in torch.split(labels, 1)),
+                                (label.squeeze(0) for label in torch.split(labels, 1)),
                                 split_aux_dicts(aux)))
 
     def get_new_iterator(self):

@@ -15,6 +15,7 @@ from Pipeline.data_loader_flowfront_sensor import DataloaderFlowfrontSensor
 from Trainer.ModelTrainer import ModelTrainer
 from Trainer.evaluation import BinaryClassificationEvaluator
 from Utils.data_utils import change_win_to_unix_path_if_needed
+import Utils.custom_mlflow
 
 
 class TestSaveDatasetsTorch(unittest.TestCase):
@@ -26,6 +27,7 @@ class TestSaveDatasetsTorch(unittest.TestCase):
 
     def create_trainer_and_start(self, out_path, epochs=1, load_test_set=False):
         dlds = DataloaderFlowfrontSensor(sensor_indizes=((1, 8), (1, 8)))
+        Utils.custom_mlflow.logging = False
         m = ModelTrainer(lambda: S20DryspotModelFCWide(),
                          data_source_paths=tr_resources.get_data_paths_debug(),
                          save_path=out_path,
@@ -66,7 +68,6 @@ class TestSaveDatasetsTorch(unittest.TestCase):
             m = self.create_trainer_and_start(out_path, epochs=2)
             m.start_training()
             self.load_and_save_path = self.reference_datasets_torch / m.data_loader_hash
-            print(self.reference_datasets_torch / m.data_loader_hash)
             self.assertTrue((self.reference_datasets_torch / m.data_loader_hash / "train_set_torch.p").is_file())
             self.assertTrue((self.reference_datasets_torch / m.data_loader_hash / "val_set_torch.p").is_file())
             m.inference_on_test_set()

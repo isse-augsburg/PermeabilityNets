@@ -14,7 +14,7 @@ def apply_logging_config(save_path, eval=False):
 
     logging.basicConfig(
         filename=logfile,
-        level=logging.DEBUG,
+        level=logging.INFO,
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     )
 

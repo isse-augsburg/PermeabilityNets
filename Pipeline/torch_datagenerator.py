@@ -110,9 +110,9 @@ class LoopingDataGenerator:
         self.try_loading_torch_datasets(load_test_set_in_training_mode)
 
         if self.test_mode and self.loaded_test_set:
-            self.logger.info(f"Running in test mode and loaded test data set.")
+            self.logger.info("Running in test mode and loaded test data set.")
         elif not self.test_mode and self.loaded_train_set and self.loaded_val_set:
-            self.logger.info(f"Loaded training and validation data sets from tensors.")
+            self.logger.info("Loaded training and validation data sets from tensors.")
             self.loaded = True
             self.saved = True
         else:
@@ -123,10 +123,10 @@ class LoopingDataGenerator:
             return
         if self.test_mode or load_test_set_in_training_mode:
             if (self.load_torch_dataset_path / "test_set_torch.p").is_file():
-                self.logger.info(f"Loading test set - torch - from {self.load_torch_dataset_path}.")
+                self.logger.info("Loading test set - torch - from {self.load_torch_dataset_path}.")
                 self.saved_test_samples = torch.load(self.load_torch_dataset_path / "test_set_torch.p")
                 self.loaded_test_set = True
-                self.logger.info(f"Done.")
+                self.logger.info("Done.")
                 with open(self.split_save_path / "test_set.p", "wb") as f:
                     pickle.dump(sorted(list(set([x[2]["sourcefile"] for x in self.saved_test_samples]))), f)
             if not load_test_set_in_training_mode:
@@ -135,14 +135,14 @@ class LoopingDataGenerator:
             self.logger.info(f"Loading training set - torch - from {self.load_torch_dataset_path}.")
             self.looping_strategy.load_content(self.load_torch_dataset_path / "train_set_torch.p")
             self.loaded_train_set = True
-            self.logger.info(f"Done.")
+            self.logger.info("Done.")
             with open(self.split_save_path / "training_set.p", "wb") as f:
                 pickle.dump(sorted(list(set([x[2]["sourcefile"] for x in self.looping_strategy]))), f)
         if (self.load_torch_dataset_path / "val_set_torch.p").is_file():
             self.logger.info(f"Loading validation set - torch - from {self.load_torch_dataset_path}.")
             self.saved_val_samples = torch.load(self.load_torch_dataset_path / "val_set_torch.p")
             self.loaded_val_set = True
-            self.logger.info(f"Done.")
+            self.logger.info("Done.")
             with open(self.split_save_path / "validation_set.p", "wb") as f:
                 pickle.dump(sorted(list(set([x[2]["sourcefile"] for x in self.saved_val_samples]))), f)
 

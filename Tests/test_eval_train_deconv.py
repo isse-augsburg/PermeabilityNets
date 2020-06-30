@@ -14,10 +14,12 @@ from Pipeline.data_gather import get_filelist_within_folder_blacklisted
 from Pipeline.data_loaders_IMG import DataloaderImages
 from Trainer.ModelTrainer import ModelTrainer
 from Trainer.evaluation import SensorToFlowfrontEvaluator
+import Utils.custom_mlflow
 
 
 class TestEval(unittest.TestCase):
     def setUp(self):
+        Utils.custom_mlflow.logging = False
         self.eval_path = test_resources.test_eval_dir
         self.test_src_dir = [
             test_resources.test_training_src_dir / '2019-07-11_15-14-48_5p']
