@@ -10,21 +10,16 @@ import pickle
 
 
 class DataLoaderMesh:
-
     def __init__(self, divide_by_100k=True,
                  sensor_verts_path=None):
         self.divide_by_100k = divide_by_100k
         self.sensor_verts = None
 
         if sensor_verts_path is not None:
-            print("Loading sensor vertices from pickle file.")
+            logger = logging.getLogger()
+            logger.info('Loading sensor vertices from pickle file.')
             self.sensor_verts = pickle.load(open(sensor_verts_path, 'rb'))
-            print("Loaded sensor vertices.")
-
-    def __set_value_to_1(self, array, index):
-        array[index] = 1.
-        return array
-
+            logger.info('Loaded sensor vertices.')
 
     def get_sensor_flowfront_mesh(self, filename):
         f = h5py.File(filename, 'r')
@@ -38,7 +33,7 @@ class DataLoaderMesh:
 
         try:
             verts = f["post/constant/entityresults/NODE/COORDINATE/ZONE1_set0/"
-                "erfblock/res"][()]
+                      "erfblock/res"][()]
             verts = normalize_coords(verts)
 
             states = f["post"]["singlestate"]
@@ -49,10 +44,10 @@ class DataLoaderMesh:
             for s in states:
                 input_features = np.zeros((verts.shape[0]))
                 pressure = f['post']['singlestate'][s]['entityresults']['NODE'][
-                        'PRESSURE']['ZONE1_set1']['erfblock']['res'][()]
+                    'PRESSURE']['ZONE1_set1']['erfblock']['res'][()]
 
                 flowfront = f['post']['singlestate'][s]['entityresults']['NODE'][
-                        'FILLING_FACTOR']['ZONE1_set1']['erfblock']['res'][()]
+                    'FILLING_FACTOR']['ZONE1_set1']['erfblock']['res'][()]
 
                 flowfront = np.squeeze(np.ceil(flowfront))
 
@@ -63,12 +58,17 @@ class DataLoaderMesh:
             for i, x in enumerate(all_inputs):
                 instances.append((x, all_labels[i]))
 
+            f.close()
             return instances
 
         except KeyError:
             logger = logging.getLogger()
-
-            logger.warning(f'Warning: {filename}')
+            logger.warning(f'KeyError: {filename}')
+            f.close()
+            return None
+        except:
+            logger = logging.getLogger()
+            logger.warning(f'Exception: {filename}')
             f.close()
             return None
 
@@ -95,14 +95,14 @@ class DataLoaderMesh:
             verts = verts.repeat(batchsize, 1, 1)
             mesh = Meshes(verts=verts, faces=faces)
 
+            f.close()
             return mesh
 
         except KeyError:
             logger = logging.getLogger()
-
             logger.warning(f'Error: Calculation of mesh failed.')
             f.close()
-            return
+            return None
 
 
 if __name__ == '__main__':

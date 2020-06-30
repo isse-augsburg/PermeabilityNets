@@ -207,6 +207,7 @@ def change_win_to_unix_path_if_needed(_str):
         _str = _str.replace("\\", "/").replace("X:", "/cfs/home")
     return _str
 
+
 def get_folder_of_erfh5(file):
     file_string = str(file)
     file_string = file_string.split(".")[0]
@@ -216,11 +217,6 @@ def get_folder_of_erfh5(file):
     return folder
 
 
-
 if __name__ == '__main__':
-    '''extract_nearest_mesh_nodes_to_sensors(
-        Path(r'Y:\data\RTM\Leoben\sim_output\2019-07-23_15-38-08_5000p\0\2019-07-23_15-38-08_0'))'''
-
-    file = Path("/home/lukas/rtm/rtm_files/2019-07-24_16-32-40_308")
-    verts = extract_nearest_mesh_nodes_to_sensors(file)
-    pickle.dump(verts, open("/home/lukas/rtm/sensor_verts.dump", 'wb'))
+    extract_nearest_mesh_nodes_to_sensors(
+        Path(r'Y:\data\RTM\Leoben\sim_output\2019-07-23_15-38-08_5000p\0\2019-07-23_15-38-08_0'))

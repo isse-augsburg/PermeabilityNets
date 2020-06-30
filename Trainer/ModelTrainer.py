@@ -498,7 +498,7 @@ class ModelTrainer:
         return epoch, loss
 
     def __batched(self, data_l: list, batch_size: int):
-        return DataLoader(data_l, batch_size=batch_size, shuffle=False)
+        return DataLoader(data_l, batch_size=batch_size, shuffle=False, drop_last=self.drop_last_batch)
 
     def inference_on_test_set(self,
                               output_path: Path = None,

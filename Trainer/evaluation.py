@@ -25,7 +25,7 @@ They have to be given a save_path, where the results are going to be stored.
 
 
 class Evaluator:
-    def __init__(self, summary_writer):
+    def __init__(self):
         pass
 
     def commit(self, *args, **kwargs):
@@ -274,3 +274,17 @@ class BinaryClassificationEvaluator(Evaluator):
             plt.text(j, i, cm[i, j], horizontalalignment="center", color=color)
 
         return figure
+
+
+class MeshEvaluator(Evaluator):
+    def __init__(self, summary_writer=None):
+        super().__init__()
+
+    def commit(self, output, label, data, aux):
+        pass
+
+    def print_metrics(self, step_count=0):
+        pass
+
+    def reset(self):
+        pass
