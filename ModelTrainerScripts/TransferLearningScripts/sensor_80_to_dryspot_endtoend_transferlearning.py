@@ -42,7 +42,7 @@ if __name__ == "__main__":
         pretrained = "deconv_weights"
         freeze_nlayers = 9
 
-    else:
+    elif "pop-os" in socket.gethostname():
         print("Running local mode.")
 
         basepath = Path("/home/lukas/rtm/rtm_files")
@@ -62,6 +62,8 @@ if __name__ == "__main__":
         weights = None
         pretrained = False
         freeze_nlayers = 0
+    else:
+        print("No valid configuration for this machine found. Aborting.....")
 
     model = S80Deconv2ToDrySpotTransferLearning(pretrained=pretrained,
                                                 checkpoint_path=weights,
@@ -95,7 +97,7 @@ if __name__ == "__main__":
             lr_scheduler_function=lambda optim: ExponentialLR(optim, 0.5),
             caching_torch=False,
             demo_path=None,
-            hold_in_ram=False,
+            hold_samples_in_memory=False,
         )
 
         return m

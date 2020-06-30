@@ -61,7 +61,7 @@ class LoopingDataGenerator:
                  test_mode=False,
                  sampler=None,
                  load_test_set_in_training_mode=False,
-                 hold_in_ram=True
+                 hold_samples_in_memory=True
                  ):
         self.logger = logging.getLogger(__name__)
 
@@ -105,7 +105,7 @@ class LoopingDataGenerator:
 
         self.dont_care_num_samples = dont_care_num_samples
 
-        self.hold_in_ram = hold_in_ram
+        self.hold_in_ram = hold_samples_in_memory
 
         self.try_loading_torch_datasets(load_test_set_in_training_mode)
 

@@ -88,7 +88,7 @@ class ModelTrainer:
         num_workers: int = 10,
         num_validation_samples: int = 10,
         num_test_samples: int = 10,
-        data_root: Path = None,
+        data_root: Path = r.data_root,
         data_processing_function=None,
         data_gather_function=None,
         looping_strategy=None,
@@ -107,7 +107,7 @@ class ModelTrainer:
         demo_path=None,
         resize_label_to=(0, 0),
         load_test_set_in_training_mode=False,
-        hold_in_ram=True
+        hold_samples_in_memory=True
     ):
         # Visit the following URL to check the MLFlow dashboard.
         set_tracking_uri("http://swt-clustermanager.informatik.uni-augsburg.de:5000")
@@ -185,7 +185,7 @@ class ModelTrainer:
         self.resize_label = resize_label_to
         self.load_test_set_in_training_mode = load_test_set_in_training_mode
 
-        self.hold_in_ram = hold_in_ram
+        self.hold_samples_in_memory = hold_samples_in_memory
 
         self.data_root = data_root
 
@@ -211,7 +211,7 @@ class ModelTrainer:
                 test_mode=test_mode,
                 sampler=self.sampler,
                 load_test_set_in_training_mode=self.load_test_set_in_training_mode,
-                hold_in_ram=self.hold_in_ram,
+                hold_samples_in_memory=self.hold_samples_in_memory,
             )
         except Exception:
             logger = logging.getLogger(__name__)

@@ -33,9 +33,8 @@ if __name__ == "__main__":
         # num_test_samples = 524288
         data_gather_function = get_filelist_within_folder_blacklisted
         data_root = r.data_root
-        # load_datasets_path=r.datasets_dryspots
         cache_path = r.cache_path
-    else:
+    elif "pop-os" in socket.gethostname():
         print("Running local mode.")
 
         basepath = Path("/home/lukas/rtm/rtm_files")
@@ -51,6 +50,8 @@ if __name__ == "__main__":
         data_root = basepath
         load_datasets_path = None
         cache_path = None
+    else:
+        print("No valid configuration for this machine found. Aborting.....")
 
     weights = Path("/cfs/home/s/t/stiebesi/data/RTM/Results/IJCAI_PRICAI_20_FlowFrontNet/"
                    "S1140_to_DS_deconv_conv/1_new_split_0_ground_pressure/"
@@ -87,7 +88,7 @@ if __name__ == "__main__":
             lr_scheduler_function=lambda optim: ExponentialLR(optim, 0.5),
             caching_torch=False,
             demo_path=None,
-            hold_in_ram=False,
+            hold_samples_in_memory=False,
         )
 
         return m
