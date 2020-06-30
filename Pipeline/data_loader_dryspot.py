@@ -136,21 +136,6 @@ class DataloaderDryspots:
             return None
 
     def get_sensor_bool_dryspot_resized_matrix(self, filename, output_size=(224, 224)):
-
-        """ file = self.get_sensor_bool_dryspot(filename)
-        
-        if file is None:
-            return None
-        else:
-            if self.aux_info:
-                file = [(data.reshape(38, 30), label, aux) for data, label, aux in file]
-                sample = [(np.array(Image.fromarray(data).resize(size=(299, 299), resample=Image.BILINEAR)), label, aux) for data, label, aux in file]
-            else:
-                file = [(data.reshape(38, 30), label) for data, label in file]
-                sample = [(np.array(Image.fromarray(data).resize(size=(299, 299), resample=Image.BILINEAR)), label) for data, label in file]
-
-            return sample """
-
         f = h5py.File(filename, 'r')
         meta_file = h5py.File(str(filename).replace("RESULT.erfh5", "meta_data.hdf5"), 'r')
         try:
@@ -184,14 +169,12 @@ class DataloaderDryspots:
                         # Standardize data for each sensor
                         data = (data - self.mean) / self.std
 
-                    rect = data.reshape(38,30)
-                    sel = rect[self.sensor_indizes[0][0]::self.sensor_indizes[0][1],
-                          self.sensor_indizes[1][0]::self.sensor_indizes[1][1]]
+                    rect = data.reshape(38, 30)
+                    sel = rect[self.sensor_indizes[0][0]::self.sensor_indizes[0][1], 
+                               self.sensor_indizes[1][0]::self.sensor_indizes[1][1]]
                     data = np.array(Image.fromarray(sel).resize(size=output_size, resample=Image.BILINEAR))
                     data = np.expand_dims(data, axis=0)
-                    data = np.repeat(data, 3, axis=0)
-                        
-
+                    data = np.repeat(data, 3, axis=0)               
                     if self.aux_info:
                         instances.append((data, label, {"ix": i, "max": len(states)}))
                     else:
@@ -205,4 +188,3 @@ class DataloaderDryspots:
             f.close()
             meta_file.close()
             return None
-            

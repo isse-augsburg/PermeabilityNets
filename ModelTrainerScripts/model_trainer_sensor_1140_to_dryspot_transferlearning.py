@@ -4,15 +4,16 @@ from torch.optim.lr_scheduler import ExponentialLR
 
 import Resources.training as r
 from Models.transfer_learning_models import ModelWrapper
-from Pipeline.data_gather import get_filelist_within_folder_blacklisted, get_filelist_within_folder
+from Pipeline.data_gather import get_filelist_within_folder_blacklisted, \
+    get_filelist_within_folder
 from Pipeline.data_loader_dryspot import DataloaderDryspots
 from Trainer.ModelTrainer import ModelTrainer
 from Trainer.evaluation import BinaryClassificationEvaluator
 from Utils.training_utils import read_cmd_params
-from Pipeline.TorchDataGeneratorUtils.looping_strategies import NoOpLoopingStrategy
-from torchvision import models 
+from Pipeline.TorchDataGeneratorUtils.looping_strategies import \
+    NoOpLoopingStrategy
+from torchvision import models
 import socket
-import os
 from datetime import datetime
 
 if __name__ == "__main__":
@@ -22,8 +23,6 @@ if __name__ == "__main__":
     print(">>> Model: Resnext")
 
     model = ModelWrapper(models.resnext50_32x4d(pretrained=True))
-    #model = ModelWrapper(models.inception_v3(pretrained=True, aux_logits=False))
-
     eval_on_test = True
 
     if "swt-dgx" in socket.gethostname():
@@ -39,9 +38,9 @@ if __name__ == "__main__":
         num_test_samples = 524288
         data_gather_function = get_filelist_within_folder_blacklisted
         data_root = r.data_root
-        load_datasets_path=r.datasets_dryspots
+        load_datasets_path = r.datasets_dryspots
         cache_path = r.cache_path
-    else: 
+    else:
         print("Running local mode.")
         filepaths = [Path("H:/RTM Files/LocalDebug/")]
         save_path = Path("H:/RTM Files/output")
@@ -53,12 +52,10 @@ if __name__ == "__main__":
         num_test_samples = 2
         data_gather_function = get_filelist_within_folder
         data_root = Path("H:/RTM Files/LocalDebug/")
-        load_datasets_path=None
+        load_datasets_path = None
         cache_path = None
 
-
     def init_trainer(custom_load_datasets_path=load_datasets_path):
-
 
         dlds = DataloaderDryspots()
         m = ModelTrainer(
@@ -79,7 +76,8 @@ if __name__ == "__main__":
             data_gather_function=get_filelist_within_folder_blacklisted,
             data_root=data_root,
             loss_criterion=torch.nn.BCELoss(),
-            optimizer_function=lambda params: torch.optim.AdamW(params, lr=1e-4),
+            optimizer_function=lambda params: torch.optim.AdamW(
+                params, lr=1e-4),
             classification_evaluator_function=lambda summary_writer:
             BinaryClassificationEvaluator(summary_writer=summary_writer),
             lr_scheduler_function=lambda optim: ExponentialLR(optim, 0.5),
@@ -90,32 +88,35 @@ if __name__ == "__main__":
 
         return m
 
-
     if eval_on_test:
 
-        home_dir = Path('/cfs/home/l/o/lodesluk/OutputResNextTest') / str(datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
+        home_dir = Path('/cfs/home/l/o/lodesluk/OutputResNextTest') / \
+            str(datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
 
-        m = init_trainer(Path('/cfs/home/l/o/lodesluk/code/datasets_dryspot_split'))
+        m = init_trainer(
+            Path('/cfs/home/l/o/lodesluk/code/datasets_dryspot_split'))
         print("Starting evaluation on test set 1")
         m.inference_on_test_set(
             output_path=home_dir / "TestSet1",
-            checkpoint_path=Path('/cfs/share/cache/output_lodesluk/2020-06-04_11-43-19/checkpoint.pth'),
+            checkpoint_path=Path(
+                '/cfs/share/cache/output_lodesluk/2020-06-04_11-43-19/checkpoint.pth'),
             classification_evaluator_function=lambda summary_writer:
-            BinaryClassificationEvaluator(save_path / "1" ,
-                                            skip_images=True,
-                                            with_text_overlay=True)
+            BinaryClassificationEvaluator(save_path / "1",
+                                          skip_images=True,
+                                          with_text_overlay=True)
         )
 
-
-        m = init_trainer(Path('/cfs/home/l/o/lodesluk/code/datasets_dryspot_split2'))
+        m = init_trainer(
+            Path('/cfs/home/l/o/lodesluk/code/datasets_dryspot_split2'))
         print("Starting evaluation on test set 2")
         m.inference_on_test_set(
             output_path=home_dir / "TestSet2",
-            checkpoint_path=Path('/cfs/share/cache/output_lodesluk/2020-06-04_11-43-19/checkpoint.pth'),
+            checkpoint_path=Path(
+                '/cfs/share/cache/output_lodesluk/2020-06-04_11-43-19/checkpoint.pth'),
             classification_evaluator_function=lambda summary_writer:
-            BinaryClassificationEvaluator(save_path/ "2",
-                                            skip_images=True,
-                                            with_text_overlay=True)
+            BinaryClassificationEvaluator(save_path / "2",
+                                          skip_images=True,
+                                          with_text_overlay=True)
         )
         print(">>>>> Evaluation finished.")
 

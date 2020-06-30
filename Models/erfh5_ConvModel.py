@@ -483,7 +483,8 @@ class S80Deconv2ToDrySpotTransferLearning(nn.Module):
                  freeze_nlayers=0,  # Could be 9
                  round_at: float = None,
                  demo_mode=False,
-                 transfer_model=models.resnext50_32x4d(pretrained=True)):
+                 transfer_model=models.resnext50_32x4d(pretrained=True),
+                 freeze_transfer_model=True):
         super(S80Deconv2ToDrySpotTransferLearning, self).__init__()
         self.ct1 = ConvTranspose2d(1, 128, 3, stride=2, padding=0)
         self.ct3 = ConvTranspose2d(128, 64, 7, stride=2, padding=0)
@@ -496,17 +497,6 @@ class S80Deconv2ToDrySpotTransferLearning(nn.Module):
         self.ck = Conv2d(64, 32, 3, padding=0)
         self.cj = Conv2d(32, 1, 3, padding=0)
 
-        self.cc2 = Conv2d(1, 16, 21)
-        self.cc3 = Conv2d(16, 64, 13)
-        self.cc4 = Conv2d(64, 256, 5)
-        self.cc5 = Conv2d(256, 512, 3)
-        self.cc6 = Conv2d(512, 1024, 1)
-
-        self.maxpool = nn.MaxPool2d(2, 2)
-        self.dropout = nn.Dropout(.3)
-        self.lin1 = nn.Linear(1024 * 2, 512)
-        self.lin3 = nn.Linear(512, 1)
-
         self.round_at = round_at
 
         self.demo_mode = demo_mode
@@ -515,7 +505,6 @@ class S80Deconv2ToDrySpotTransferLearning(nn.Module):
 
         self.upsample = nn.Upsample(size=(224, 224))
         self.transfer_model = transfer_model
-        self.transfer_model.conv1 = torch.nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False)
         num_ftrs = self.transfer_model.fc.in_features
         self.transfer_model.fc = torch.nn.Linear(num_ftrs, 1)
 
@@ -540,6 +529,16 @@ class S80Deconv2ToDrySpotTransferLearning(nn.Module):
             if i == freeze_nlayers - 1:
                 break
 
+        if freeze_transfer_model:
+            logger = logging.getLogger(__name__)
+            logger.info('Freezing pretrained CNN')
+
+            for i, c in enumerate(self.transfer_model.children()):
+                for param in c.parameters():
+                    param.requires_grad = False
+            self.transfer_model.fc.weight.requires_grad = True
+            self.transfer_model.fc.bias.requires_grad = True
+
     def forward(self, inputs):
         if self.demo_mode:
             inputs = reshape_to_indeces(inputs, ((1, 4), (1, 4)), 80).contiguous()
@@ -555,8 +554,9 @@ class S80Deconv2ToDrySpotTransferLearning(nn.Module):
         x = F.relu(self.ck(x))
         x = F.relu(self.cj(x))
         ###
+        x = x.repeat(1, 3, 1, 1)
         x = self.upsample(x)
-   
+
         x = self.transfer_model(x)
         x = F.sigmoid(x)
         return x
@@ -980,28 +980,19 @@ class SensorDeconvToDryspotTransferLearning(nn.Module):
         self.shaper = Conv2d(16, 32, 15, stride=2, padding=0)
         self.med = Conv2d(32, 32, 7, padding=0)
         self.details = Conv2d(32, 32, 3)
+        self.details2 = Conv2d(32, 1, 3, padding=0)
         ###
-
-        self.maxpool = nn.MaxPool2d(2, 2)
-        self.linear2 = Linear(1536, 1024)
-        self.linear3 = Linear(1024, 1)
-
-        self.bn32 = nn.BatchNorm2d(32)
-        self.bn512 = nn.BatchNorm2d(512)
-
-        self.dropout = nn.Dropout(0.3)
 
         self.upsample = nn.Upsample(size=(224, 224))
         self.transfer_model = transfer_model
-        self.transfer_model.conv1 = torch.nn.Conv2d(32, 64, kernel_size=7, stride=2, padding=3, bias=False)
         num_ftrs = self.transfer_model.fc.in_features
         self.transfer_model.fc = torch.nn.Linear(num_ftrs, 1)
-
 
         if pretrained == "deconv_weights":
             weights = load_model_layers_from_path(path=checkpoint_path,
                                                   layer_names={"ct1", "ct2", "ct3", "ct4",
-                                                               "shaper0", "shaper", "med", "details"})
+                                                               "shaper0", "shaper", "med", 
+                                                               "details", "details2"})
             self.load_state_dict(weights, strict=False)
             print("Loaded deconv weights.")
 
@@ -1029,15 +1020,13 @@ class SensorDeconvToDryspotTransferLearning(nn.Module):
         t1 = F.relu(self.shaper(t1))
         t2 = F.relu(self.med(t1))
         t3 = F.relu(self.details(t2))
+        t3 = F.relu(self.details2(t3))
 
-        # Shape: [1, 32, 151, 119]
-        x = self.upsample(t3)
-        #x = F.interpolate(t3, [3, 224, 224])
-        x = self.bn32(x)
+        x = t3.repeat(1, 3, 1, 1)
+        x = self.upsample(x)
 
         x = self.transfer_model(x)
         x = F.sigmoid(x)
-
 
         return x
 

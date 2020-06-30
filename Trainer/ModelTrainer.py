@@ -378,8 +378,7 @@ class ModelTrainer:
                     if len(self.data_generator) == 0:
                         progress = 0
                     else:
-                        progress = i / (len(self.data_generator) / self.batch_size)
-                        
+                        progress = i / (len(self.data_generator) / self.batch_size)                        
                     eta = (len(self.data_generator) / self.batch_size - i) * ((time.time() - epoch_start) / i)
 
                     hours = f"{eta // 3600}h " if eta // 3600 > 0 else ""
