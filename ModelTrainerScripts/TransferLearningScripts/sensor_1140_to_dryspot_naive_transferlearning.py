@@ -57,7 +57,6 @@ if __name__ == "__main__":
     else:
         print("No valid configuration for this machine found. Aborting.....")
 
-
     def init_trainer():
 
         dlds = DataloaderDryspots()
