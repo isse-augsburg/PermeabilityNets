@@ -14,20 +14,21 @@ from Pipeline.TorchDataGeneratorUtils.looping_strategies import \
     NoOpLoopingStrategy
 from torchvision import models
 import socket
-from datetime import datetime
+import Utils.custom_mlflow
 
 if __name__ == "__main__":
+
+    Utils.custom_mlflow.logging = False
 
     args = read_cmd_params()
 
     print(">>> Model: Resnext")
 
     model = ModelWrapper(models.resnext50_32x4d(pretrained=True))
-
-    eval_on_test = True
+    eval_on_test = False
 
     if "swt-dgx" in socket.gethostname():
-        print("On DGX. - 80 sensors")
+        print("On DGX. - Using ResNeXt. 3 input channels. New output")
         filepaths = r.get_data_paths_base_0()
         save_path = r.save_path
         batch_size = 1024
@@ -42,8 +43,9 @@ if __name__ == "__main__":
         cache_path = r.cache_path
     elif "pop-os" in socket.gethostname():
         print("Running local mode.")
-        filepaths = [Path("H:/RTM Files/LocalDebug/")]
-        save_path = Path("H:/RTM Files/output")
+        basepath = Path("/home/lukas/rtm/rtm_files")
+        filepaths = [basepath]
+        save_path = Path("/home/lukas/rtm/output/")
         batch_size = 4
         train_print_frequency = 5
         epochs = 5
@@ -51,15 +53,16 @@ if __name__ == "__main__":
         num_validation_samples = 2
         num_test_samples = 2
         data_gather_function = get_filelist_within_folder
-        data_root = Path("H:/RTM Files/LocalDebug/")
+        data_root = basepath
         load_datasets_path = None
         cache_path = None
     else:
         print("No valid configuration for this machine found. Aborting.....")
+        exit()
 
     def init_trainer():
 
-        dlds = DataloaderDryspots(sensor_indizes=((1, 4), (1, 4)))
+        dlds = DataloaderDryspots()
         m = ModelTrainer(
             lambda: model,
             data_source_paths=filepaths,
@@ -77,8 +80,8 @@ if __name__ == "__main__":
             data_gather_function=get_filelist_within_folder_blacklisted,
             data_root=data_root,
             loss_criterion=torch.nn.BCELoss(),
-            optimizer_function=lambda params: torch.optim.AdamW(params,
-                                                                lr=1e-4),
+            optimizer_function=lambda params: torch.optim.AdamW(
+                params, lr=1e-4),
             classification_evaluator_function=lambda summary_writer:
             BinaryClassificationEvaluator(summary_writer=summary_writer),
             lr_scheduler_function=lambda optim: ExponentialLR(optim, 0.5),
@@ -90,38 +93,38 @@ if __name__ == "__main__":
         return m
 
     if eval_on_test:
+        '''
         home_dir = Path('/cfs/home/l/o/lodesluk/OutputResNextTest') / \
             str(datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
-        checkpoint_path = Path(
-            '/cfs/share/cache/output_lodesluk/2020-06-09_17-03-25/checkpoint.pth')
 
-        m = init_trainer(
-            Path('/cfs/home/l/o/lodesluk/code/datasets_dryspot_split'))
+        m = init_trainer()
         print("Starting evaluation on test set 1")
         m.inference_on_test_set(
             output_path=home_dir / "TestSet1",
-            checkpoint_path=checkpoint_path,
+            checkpoint_path=Path(
+                '/cfs/share/cache/output_lodesluk/2020-06-04_11-43-19/checkpoint.pth'),
             classification_evaluator_function=lambda summary_writer:
             BinaryClassificationEvaluator(save_path / "1",
                                           skip_images=True,
                                           with_text_overlay=True)
         )
 
-        m = init_trainer(
-            Path('/cfs/home/l/o/lodesluk/code/datasets_dryspot_split2'))
+        m = init_trainer()
         print("Starting evaluation on test set 2")
         m.inference_on_test_set(
             output_path=home_dir / "TestSet2",
-            checkpoint_path=checkpoint_path,
+            checkpoint_path=Path(
+                '/cfs/share/cache/output_lodesluk/2020-06-04_11-43-19/checkpoint.pth'),
             classification_evaluator_function=lambda summary_writer:
             BinaryClassificationEvaluator(save_path / "2",
                                           skip_images=True,
                                           with_text_overlay=True)
         )
-        print(">>>>> Evaluation finished.")
+        print(">>>>> Evaluation finished.")'''
+        print("This function is currently not supported due to changes in caching.")
+        exit()
 
     else:
-        print("Init tainer.")
+        print("Starting training.")
         m = init_trainer()
-        print("Init finshed. Starting training.")
         m.start_training()

@@ -39,6 +39,7 @@ class LoopingDataGenerator:
             this should only be used with the DataLoaderListLoopingStrategy.
         load_torch_dataset_path (Path): Load a saved Dataset from this Path. This can improve loading times in the
             first epoch. Note that this should only be used with the DataLoaderListLoopingStrategy.
+        hold_samples_in_memory (Bool): Flag whether the DataGenerator should keep the processed samples in memory.
     """
 
     def __init__(self,

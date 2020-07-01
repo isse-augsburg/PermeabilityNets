@@ -136,6 +136,10 @@ class DataloaderDryspots:
             return None
 
     def get_sensor_bool_dryspot_resized_matrix(self, filename, output_size=(224, 224)):
+        """
+        Loads the sensor values of a files resized as a matrix (size specified in output_size) and
+        Dryspot yes/no as label.
+        """
         f = h5py.File(filename, 'r')
         meta_file = h5py.File(str(filename).replace("RESULT.erfh5", "meta_data.hdf5"), 'r')
         try:

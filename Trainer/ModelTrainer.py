@@ -71,6 +71,7 @@ class ModelTrainer:
                                   models performance.
         checkpointing_strategy: From enum CheckpointingStrategy in Pipeline.TorchDataGeneratorUtils.torch_internal.py.
                                 Specifies which checkpoints are stored during training.
+        hold_samples_in_memory: Flag whether the DataGenerator should keep the processed samples in memory.
     """
 
     def __init__(
