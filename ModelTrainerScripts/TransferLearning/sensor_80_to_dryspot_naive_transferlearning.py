@@ -15,6 +15,10 @@ from Pipeline.TorchDataGeneratorUtils.looping_strategies import \
 from torchvision import models
 import socket
 
+""" 
+Uses resized sensor matrix (224x224x3) as input for pretrained CNN (naive approach)
+"""
+
 if __name__ == "__main__":
 
     args = read_cmd_params()

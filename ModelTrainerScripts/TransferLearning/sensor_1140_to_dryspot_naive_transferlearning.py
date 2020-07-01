@@ -16,6 +16,10 @@ from torchvision import models
 import socket
 import Utils.custom_mlflow
 
+""" 
+Uses resized sensor matrix (224x224x3) as input for pretrained CNN (naive approach)
+"""
+
 if __name__ == "__main__":
 
     Utils.custom_mlflow.logging = False
