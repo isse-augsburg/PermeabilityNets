@@ -80,6 +80,9 @@ nearest_nodes_to_sensors = _share_path / "data/RTM/Leoben/Mesh/nearest_nodes_to_
 mean_std_20_flowfront_sensors = _share_path / "data/RTM/Leoben/aux_data/mean_std_20_flowfront_sensors.p"
 mean_std_1140_pressure_sensors = _share_path / "data/RTM/Leoben/aux_data/mean_std_1140_pressure_sensors.p"
 
+pseudo_mrm_sensors = _results / "Pseudo_MRM_sensors"
+chkp_FF_sensor_1140_to_ff = pseudo_mrm_sensors / "2020-06-18_18-56-09_S1140_to_ff" / chkp
+
 
 def get_all_data_paths():
     data_paths = [

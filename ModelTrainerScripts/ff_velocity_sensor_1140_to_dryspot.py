@@ -23,7 +23,7 @@ if __name__ == "__main__":
                      cache_path=r.cache_path,
                      batch_size=2048,
                      train_print_frequency=100,
-                     epochs=100,
+                     epochs=1000,
                      num_workers=75,
                      num_validation_samples=131072,
                      num_test_samples=1048576,

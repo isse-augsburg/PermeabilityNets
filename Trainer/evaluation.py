@@ -12,6 +12,8 @@ from PIL import Image
 from sklearn.metrics import confusion_matrix
 from sklearn.preprocessing import normalize
 
+from mlflow import log_metric
+
 """ 
 >>>> PLEASE NOTE: <<<<
 Evaluation classes must provide three functions even if not all of them have functionality: 
@@ -227,6 +229,11 @@ class BinaryClassificationEvaluator(Evaluator):
             self.summary_writer.add_figure("Confusion_Matrix/Absolute", conf_mat_abs, step_count)
             self.summary_writer.add_figure("Confusion_Matrix/Normalized_overall", conf_mat_allnorm, step_count)
             self.summary_writer.add_figure("Confusion_Matrix/Normalized_by_class", conf_mat_classnorm, step_count)
+
+        log_metric("Validation/Accuracy", self.accuracy, step_count)
+        log_metric("Validation/Precision", self.precision, step_count)
+        log_metric("Validation/Recall", self.recall, step_count)
+        log_metric("Validation/Specificity", self.specificity, step_count)
 
         logger.info(f"Accuracy: {self.accuracy:7.4f}, Precision: {self.precision:7.4f}, Recall: {self.recall:7.4f}, "
                     f"Specificity: {self.specificity:7.4f}")

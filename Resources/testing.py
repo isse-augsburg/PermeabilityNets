@@ -7,7 +7,7 @@ def running_in_docker():
     return os.path.exists('/.dockerenv') or os.path.isfile(path) and any('docker' in line for line in open(path))
 
 
-test_src_dir = Path(r'/cfs/home/s/t/stiebesi/code/tests/test_data')
+test_src_dir = Path('/cfs/home/s/t/stiebesi/code/tests/test_data')
 torch_datasets = test_src_dir / "TestSaveDatasetsTorch" / "unix"
 if running_in_docker():
     test_out_dir = Path('/cache')

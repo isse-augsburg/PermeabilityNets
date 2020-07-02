@@ -11,10 +11,12 @@ from Models.erfh5_pressuresequence_CRNN import ERFH5_PressureSequence_Model
 from Pipeline.data_loader_sensor import DataLoaderSensor
 from Trainer.ModelTrainer import ModelTrainer
 from Trainer.evaluation import BinaryClassificationEvaluator
+import Utils.custom_mlflow
 
 
 class TestOkNotOkTraining(unittest.TestCase):
     def setUp(self):
+        Utils.custom_mlflow.logging = False
         self.training_save_path = test_resources.test_training_out_dir
         self.training_data_paths = [
             test_resources.test_training_src_dir / "2019-07-11_15-14-48_100p"

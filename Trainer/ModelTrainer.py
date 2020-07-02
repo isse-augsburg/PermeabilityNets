@@ -5,6 +5,7 @@ import time
 from collections import OrderedDict
 from datetime import datetime
 from pathlib import Path
+import sys
 
 import numpy as np
 import torch
@@ -19,6 +20,8 @@ from Utils import logging_cfg
 from Utils.data_utils import handle_torch_caching
 from Utils.eval_utils import eval_preparation
 from Utils.training_utils import count_parameters, CheckpointingStrategy
+import getpass
+from Utils.custom_mlflow import log_metric, log_param, log_artifacts, set_tag, set_tracking_uri, set_experiment
 
 try:
     from apex import amp
@@ -38,7 +41,7 @@ class ModelTrainer:
         data_source_paths: List of file paths containing the files for
                            training.
         save_path: Path for saving outputs.
-        dataset_split_path: Path containing dedidacted Datasets in a pickled
+        dataset_split_path: Path containing dedicated Datasets in a pickled
                             format.
         cache_path: Path containing cached objects.
         batch_size: Batch size for training.
@@ -106,9 +109,17 @@ class ModelTrainer:
         load_test_set_in_training_mode=False,
         drop_last_batch=False
     ):
+        # Visit the following URL to check the MLFlow dashboard.
+        set_tracking_uri("http://swt-clustermanager.informatik.uni-augsburg.de:5000")
+        # Setting the experiment: normally, it is the Slurm jobname, if the script is not called with slurm,
+        #  it is the name of calling script, which should help categorizing experiments as well.
+        set_experiment(f"{os.getenv('SLURM_JOB_NAME', Path(sys.argv[0])).stem}")
+
         initial_timestamp = str(datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
         self.save_path = save_path / initial_timestamp
         self.save_path.mkdir(parents=True, exist_ok=True)
+
+        set_tag("User", getpass.getuser())
 
         self.cache_path = cache_path
         self.train_print_frequency = train_print_frequency
@@ -230,6 +241,8 @@ class ModelTrainer:
         param_count = count_parameters(self.model)
         sched_str = self.lr_scheduler.__class__.__name__ + f"  \n{self.lr_scheduler.state_dict()}" \
             if self.lr_scheduler is not None else "None"
+
+        # Log file
         self.logger.info("###########################################")
         self.logger.info(">>> Model Trainer INFO <<<")
         self.logger.info(f"Loss criterion: {self.loss_criterion}")
@@ -239,6 +252,8 @@ class ModelTrainer:
         self.logger.info(f"Model: {self.model}")
         self.logger.info(f"Parameter count: {param_count}")
         self.logger.info("###########################################")
+
+        # Tensorboard
         self.writer.add_text("General/LossCriterion", f"{self.loss_criterion}")
         self.writer.add_text("General/BatchSize", f"{self.batch_size}")
         self.writer.add_text("General/MixedPrecision", f"{self.use_mixed_precision}")
@@ -255,6 +270,24 @@ class ModelTrainer:
         dl_info["data_processing_function"] = self.data_processing_function.__name__
         dl_str = '  \n'.join([f"{k}: {dl_info[k]}" for k in dl_info if dl_info[k] is not None])
         self.writer.add_text("Data/DataLoader", f"{dl_str}")
+
+        # ML Flow
+        log_param("General/LossCriterion", f"{self.loss_criterion}")
+        log_param("General/BatchSize", f"{self.batch_size}")
+        log_param("General/MixedPrecision", f"{self.use_mixed_precision}")
+        optim_str = str(self.optimizer).replace("\n", "  \n")
+        log_param("Optimizer/Optimizer", f"{optim_str}")
+        log_param("Optimizer/LRScheduler", f"{sched_str}")
+        log_param("Model/Structure", f"{self.__get_model_def()}")
+        log_param("Model/ParamCount", f"{param_count}")
+        if hasattr(self.model, "round_at") and self.model.round_at is not None:
+            log_param("Model/Threshold", f"{self.model.round_at}")
+        log_param("Data/SourcePaths", f"{[str(p) for p in self.data_source_paths]}")
+        log_param("Data/CheckpointSourcePath", f"{self.load_datasets_path}")
+        dl_info = self.data_processing_function.__self__.__dict__
+        dl_info["data_processing_function"] = self.data_processing_function.__name__
+        dl_str = '  \n'.join([f"{k}: {dl_info[k]}" for k in dl_info if dl_info[k] is not None])
+        log_param("Data/DataLoader", f"{dl_str}")
 
     def __create_model_and_optimizer(self):
         logger = logging.getLogger(__name__)
@@ -306,7 +339,7 @@ class ModelTrainer:
         self.classification_evaluator = self.classification_evaluator_function(summary_writer=self.writer)
 
         logger = logging.getLogger(__name__)
-        logger.info(f"Generating Generator")
+        logger.info("Generating Generator")
 
         self.data_generator = self.__create_datagenerator()
         if self.data_generator.loaded_train_set:
@@ -333,6 +366,9 @@ class ModelTrainer:
             logger.info("Running eval before training to see, if any training happens")
             validation_loss = self.__eval(self.data_generator.get_validation_samples(), 0, 0)
             self.writer.add_scalar("Validation/Loss", validation_loss, 0)
+            log_metric("Validation/Loss", validation_loss, 0)
+
+        log_artifacts(self.save_path)
 
         if self.produce_torch_datasets_only:
             logger.info(f"Triggering caching, saving all datasets to {self.save_torch_dataset_path}")
@@ -365,6 +401,7 @@ class ModelTrainer:
                 label = self.resize_label_if_necessary(label)
                 loss = self.loss_criterion(outputs, label)
                 self.writer.add_scalar("Training/Loss", loss.item(), step_count)
+                log_metric("Training/Loss", loss.item(), step_count)
                 if not self.use_mixed_precision:
                     loss.backward()
                 else:
@@ -389,6 +426,7 @@ class ModelTrainer:
 
             validation_loss = self.__eval(self.data_generator.get_validation_samples(), eval_step, step_count)
             self.writer.add_scalar("Validation/Loss", validation_loss, step_count)
+            log_metric("Validation/Loss", validation_loss, step_count)
             if self.lr_scheduler is not None:
                 old_lr = [pg['lr'] for pg in self.optimizer.state_dict()['param_groups']]
                 self.lr_scheduler.step()
