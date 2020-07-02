@@ -279,12 +279,15 @@ class BinaryClassificationEvaluator(Evaluator):
 class MeshEvaluator(Evaluator):
     def __init__(self, summary_writer=None):
         super().__init__()
+        self.bc_evaluator = BinaryClassificationEvaluator(summary_writer=summary_writer)
 
     def commit(self, output, label, data, aux):
-        pass
+        output = output.view(-1, 1)
+        label = label.view(-1, 1)
+        self.bc_evaluator.commit(output, label, data, aux)
 
     def print_metrics(self, step_count=0):
-        pass
+        self.bc_evaluator.print_metrics(step_count)
 
     def reset(self):
-        pass
+        self.bc_evaluator.reset()

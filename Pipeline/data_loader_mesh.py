@@ -12,6 +12,8 @@ import pickle
 class DataLoaderMesh:
     def __init__(self, divide_by_100k=True,
                  sensor_verts_path=None):
+
+        #TODO use it
         self.divide_by_100k = divide_by_100k
         self.sensor_verts = None
 
