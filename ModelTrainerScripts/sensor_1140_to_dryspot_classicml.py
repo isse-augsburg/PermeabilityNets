@@ -26,8 +26,6 @@ def load_test_data():
         num_workers=75,
         cache_path=r.cache_path,
         cache_mode=td.CachingMode.Both,
-        # save_torch_dataset_path=load_and_save_path,
-        # load_torch_dataset_path=load_and_save_path,
         dont_care_num_samples=False,
         test_mode=True)
 
@@ -67,8 +65,6 @@ if __name__ == "__main__":
         num_workers=75,
         cache_path=r.cache_path,
         cache_mode=td.CachingMode.Both,
-        # save_torch_dataset_path=load_and_save_path,
-        # load_torch_dataset_path=load_and_save_path,
         dont_care_num_samples=False,
         test_mode=False)
     print("Created Datagenerator")
