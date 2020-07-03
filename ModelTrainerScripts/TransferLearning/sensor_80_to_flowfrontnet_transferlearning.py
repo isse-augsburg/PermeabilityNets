@@ -15,7 +15,7 @@ from Pipeline.TorchDataGeneratorUtils.looping_strategies \
 import socket
 
 """
-Like Flowfrontnet, but with pretrained CNN as backbone. Uses sensor vector as input.
+Like Flowfrontnet, but with pretrained CNN as classifier. Uses sensor vector as input.
 """
 
 if __name__ == "__main__":
