@@ -13,7 +13,7 @@ class DataLoaderMesh:
     def __init__(self, divide_by_100k=True,
                  sensor_verts_path=None):
 
-        #TODO use it
+        # TODO use it
         self.divide_by_100k = divide_by_100k
         self.sensor_verts = None
 
@@ -66,11 +66,6 @@ class DataLoaderMesh:
         except KeyError:
             logger = logging.getLogger()
             logger.warning(f'KeyError: {filename}')
-            f.close()
-            return None
-        except:
-            logger = logging.getLogger()
-            logger.warning(f'Exception: {filename}')
             f.close()
             return None
 
