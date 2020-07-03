@@ -5,9 +5,9 @@ from pytorch3d.ops import GraphConv
 from tqdm import tqdm
 
 
-class MeshModel(nn.Module):
-    def __init__(self, mesh, input_dim=1, batch_size=None):
-        super(MeshModel, self).__init__()
+class SensorMeshToFlowFrontModel(nn.Module):
+    def __init__(self, mesh, batch_size=None):
+        super(SensorMeshToFlowFrontModel, self).__init__()
 
         self.batch_size = batch_size
 
@@ -35,6 +35,29 @@ class MeshModel(nn.Module):
         return x
 
 
+class SensorMeshToDryspotModel(nn.Module):
+    def __init__(self, mesh, batch_size=None):
+        super(SensorMeshToDryspotModel, self).__init__()
+        self.mesh = mesh
+        self.batch_size = batch_size
+
+        self.gc_model = SensorMeshToFlowFrontModel(mesh, batch_size)
+
+        self.conv1 = nn.Conv2d(1, 16, 5)
+        self.conv2 = nn.Conv2d(16, 32, 3)
+        self.conv3 = nn.Conv2d(32, 64, 3)
+        self.conv4 = nn.Conv2d(64, 128, 3)
+        self.conv5 = nn.Conv2d(128, 256, 3)
+
+        self.pool = nn.MaxPool2d(2, 2)
+
+    def forward(self, x):
+        x = self.gc_model(x)
+        # x = torch.reshape(x, (-1, 169, -1, 1))
+
+        return x
+
+
 if __name__ == '__main__':
     from Pipeline.data_loader_mesh import DataLoaderMesh
     from pathlib import Path
@@ -44,7 +67,8 @@ if __name__ == '__main__':
     bs = 96
 
     mesh = dl.get_batched_mesh(bs, file)
-    model = MeshModel(mesh)
+    # model = SensorMeshToFlowFrontModel(mesh)
+    model = SensorMeshToDryspotModel(mesh, bs)
     instances = dl.get_sensor_flowfront_mesh(file)
     data, labels = [], []
     batch = instances[0:bs]
@@ -56,4 +80,4 @@ if __name__ == '__main__':
     lables = torch.Tensor(labels)
 
     for i in tqdm(range(500)):
-        model(data)
+        output = model(data)
