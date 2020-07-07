@@ -341,6 +341,7 @@ class S80DeconvToDrySpotEff(nn.Module):
             incomp = self.load_state_dict(weights, strict=False)
             logger.debug(f'All layers: {self.state_dict().keys()}')
             logger.debug(f'Loaded weights but the following: {incomp}')
+            print("Loaded weights")
 
         if freeze_nlayers == 0:
             return
