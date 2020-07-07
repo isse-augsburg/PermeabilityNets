@@ -408,7 +408,7 @@ class DataloaderImageSequences(DataloaderImages):
             per_step = 0.01
             # logger = logging.getLogger(__name__)
             # logger.debug(
-            #     "Loading flow front and premeability maps from {}".format(
+            #     "Loading flow front and permeability maps from {}".format(
             #         filename)
             # )
             f = h5py.File(filename, "r")
@@ -434,7 +434,7 @@ class DataloaderImageSequences(DataloaderImages):
     def get_images_of_flow_front_and_permeability_map(self, filename):
         logger = logging.getLogger(__name__)
         logger.debug(
-            "Loading flow front and premeability maps from {}".format(filename)
+            "Loading flow front and permeability maps from {}".format(filename)
         )
         f = h5py.File(filename, "r")
 
