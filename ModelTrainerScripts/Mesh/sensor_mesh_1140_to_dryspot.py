@@ -4,7 +4,7 @@ from Pipeline.data_loader_mesh import DataLoaderMesh
 from Pipeline.data_gather import get_filelist_within_folder_blacklisted, get_filelist_within_folder
 from Trainer.ModelTrainer import ModelTrainer
 import socket
-from Models.erfh5_MeshModel import SensorMeshToDryspotModel
+from Models.erfh5_MeshModel import SensorMeshToDryspotResnet
 from Trainer.evaluation import BinaryClassificationEvaluator
 import Utils.custom_mlflow
 
@@ -23,9 +23,9 @@ if __name__ == '__main__':
 
         filepaths = [base_path / "rtm_files"]
         save_path = Path(base_path / "output")
-        batch_size = 96
+        batch_size = 64
         train_print_frequency = 50
-        epochs = 5
+        epochs = 20
         num_workers = 8
         num_validation_samples = 5000
         num_test_samples = 5000
@@ -34,6 +34,7 @@ if __name__ == '__main__':
         # cache_path = base_path / "cache"
         cache_path = None
         weights_path = Path("/home/lukas/rtm/results/sensor2flow_2020-07-01_16-50-49/checkpoint.pth")
+        # weights_path = None
     else:
         print("No valid configuration for this machine. Aborting...")
         exit()
@@ -49,7 +50,8 @@ if __name__ == '__main__':
 
     dlm = DataLoaderMesh(sensor_verts_path=sensor_verts_path)
     mesh = dlm.get_batched_mesh(batch_size, sample_file)
-    model = SensorMeshToDryspotModel(mesh, batch_size=batch_size, weights_path=weights_path)
+    # model = SensorMeshToDryspotModel(mesh, batch_size=batch_size, weights_path=weights_path)
+    model = SensorMeshToDryspotResnet(mesh, batch_size=batch_size, weights_path=weights_path)
 
     m = ModelTrainer(
         lambda: model,
@@ -67,7 +69,7 @@ if __name__ == '__main__':
         data_gather_function=get_filelist_within_folder_blacklisted,
         data_root=data_root,
         loss_criterion=torch.nn.BCELoss(),
-        optimizer_function=lambda params: torch.optim.Adam(params, lr=1e-4),
+        optimizer_function=lambda params: torch.optim.SGD(params, lr=0.001),
         classification_evaluator_function=lambda summary_writer:
         BinaryClassificationEvaluator(summary_writer=summary_writer),
         lr_scheduler_function=None,
