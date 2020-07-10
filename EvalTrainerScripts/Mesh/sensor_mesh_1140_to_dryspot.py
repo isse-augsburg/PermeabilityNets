@@ -1,7 +1,7 @@
 from pathlib import Path
 import torch
 from Pipeline.data_loader_mesh import DataLoaderMesh
-from Pipeline.data_gather import get_filelist_within_folder_blacklisted, get_filelist_within_folder
+from Pipeline.data_gather import get_filelist_within_folder_blacklisted
 from Trainer.ModelTrainer import ModelTrainer
 import socket
 from Models.erfh5_MeshModel import SensorMeshToDryspotResnet
@@ -72,5 +72,3 @@ if __name__ == '__main__':
                             classification_evaluator_function=lambda summary_writer:
                             BinaryClassificationEvaluator(summary_writer=summary_writer),
                             )
-
-

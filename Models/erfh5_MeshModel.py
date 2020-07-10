@@ -68,7 +68,7 @@ class SensorMeshToDryspotModel(nn.Module):
         self.pool = nn.MaxPool2d(2, 2)
 
         # self.avg_pool = nn.AdaptiveAvgPool1d(168*168*bottleneck_dim)
-        self.adaptive_maxpool = nn.AdaptiveMaxPool1d(100*100*bottleneck_dim)
+        self.adaptive_maxpool = nn.AdaptiveMaxPool1d(100 * 100 * bottleneck_dim)
         self.linear1 = nn.Linear(1024, 256)
         self.linear2 = nn.Linear(256, 64)
         self.linear3 = nn.Linear(64, 1)
@@ -94,10 +94,9 @@ class SensorMeshToDryspotModel(nn.Module):
         self.count = 0
 
     def forward(self, x_in):
-
         m = self.mesh.cuda()
         edges = m.edges_packed()
-        verts = m.verts_packed()
+        # verts = m.verts_packed()
         x = x_in.view(-1, 1).contiguous()
         # x = torch.cat((verts, x), dim=1)
 
@@ -127,7 +126,7 @@ class SensorMeshToDryspotModel(nn.Module):
         x = F.tanh(self.conv5(x))
         x = self.pool(x)
         # shape: [batch_size, 256, 2, 2]
-        x = x.view((x.shape[0], 256*2*2, -1))
+        x = x.view((x.shape[0], 256 * 2 * 2, -1))
         x = x.mean(-1)
 
         x = F.tanh(self.linear1(x))
@@ -135,6 +134,7 @@ class SensorMeshToDryspotModel(nn.Module):
         x = torch.sigmoid(self.linear3(x))
 
         return x
+
 
 class SensorMeshToDryspotResnet(nn.Module):
     def __init__(self,
@@ -163,7 +163,7 @@ class SensorMeshToDryspotResnet(nn.Module):
 
         self.upsample = nn.Upsample(size=(224, 224))
 
-        self.adaptive_maxpool = nn.AdaptiveMaxPool1d(168*168*bottleneck_dim)
+        self.adaptive_maxpool = nn.AdaptiveMaxPool1d(168 * 168 * bottleneck_dim)
 
         if pretrained == 'GraphConv' and weights_path is not None:
             logger = logging.getLogger(__name__)
@@ -187,10 +187,9 @@ class SensorMeshToDryspotResnet(nn.Module):
         self.count = 0
 
     def forward(self, x_in):
-
         m = self.mesh.cuda()
         edges = m.edges_packed()
-        verts = m.verts_packed()
+        # verts = m.verts_packed()
         x = x_in.view(-1, 1).contiguous()
         # x = torch.cat((verts, x), dim=1)
 

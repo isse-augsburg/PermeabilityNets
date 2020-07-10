@@ -129,7 +129,6 @@ class DataLoaderMesh:
             f.close()
             return None
 
-
     def get_batched_mesh(self, batchsize, filename):
         f = h5py.File(filename, 'r')
 
