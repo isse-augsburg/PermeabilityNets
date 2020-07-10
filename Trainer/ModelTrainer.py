@@ -398,7 +398,6 @@ class ModelTrainer:
 
                 self.optimizer.zero_grad()
                 outputs = self.model(inputs)
-                print(outputs)
                 label = self.resize_label_if_necessary(label)
                 loss = self.loss_criterion(outputs, label)
                 self.writer.add_scalar("Training/Loss", loss.item(), step_count)
