@@ -71,6 +71,7 @@ class ModelTrainer:
                                   models performance.
         checkpointing_strategy: From enum CheckpointingStrategy in Pipeline.TorchDataGeneratorUtils.torch_internal.py.
                                 Specifies which checkpoints are stored during training.
+        hold_samples_in_memory: Flag whether the DataGenerator should keep the processed samples in memory.
     """
 
     def __init__(
@@ -107,6 +108,7 @@ class ModelTrainer:
         demo_path=None,
         resize_label_to=(0, 0),
         load_test_set_in_training_mode=False,
+        hold_samples_in_memory=True,
         drop_last_batch=False
     ):
         # Visit the following URL to check the MLFlow dashboard.
@@ -186,6 +188,8 @@ class ModelTrainer:
         self.resize_label = resize_label_to
         self.load_test_set_in_training_mode = load_test_set_in_training_mode
 
+        self.hold_samples_in_memory = hold_samples_in_memory
+
         self.data_root = data_root
 
     def __create_datagenerator(self, test_mode=False):
@@ -211,6 +215,7 @@ class ModelTrainer:
                 sampler=self.sampler,
                 load_test_set_in_training_mode=self.load_test_set_in_training_mode,
                 drop_last_batch=self.drop_last_batch,
+                hold_samples_in_memory=self.hold_samples_in_memory,
             )
         except Exception:
             logger = logging.getLogger(__name__)
@@ -411,7 +416,10 @@ class ModelTrainer:
                 if i % self.train_print_frequency == 0 and i != 0:
                     time_delta = time.time() - start_time
 
-                    progress = i / (len(self.data_generator) / self.batch_size)
+                    if len(self.data_generator) == 0:
+                        progress = 0
+                    else:
+                        progress = i / (len(self.data_generator) / self.batch_size)
                     eta = (len(self.data_generator) / self.batch_size - i) * ((time.time() - epoch_start) / i)
 
                     hours = f"{eta // 3600}h " if eta // 3600 > 0 else ""
@@ -454,7 +462,6 @@ class ModelTrainer:
                 # data = torch.unsqueeze(data, 0)
                 # label = torch.unsqueeze(label, 0)
                 output = self.model(data)
-                print("eval" + str(output))
                 label = self.resize_label_if_necessary(label)
                 current_loss = self.loss_criterion(output, label).item()
                 loss = loss + current_loss

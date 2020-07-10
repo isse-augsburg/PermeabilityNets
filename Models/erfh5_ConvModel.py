@@ -4,6 +4,7 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 from torch.nn import Conv2d, ConvTranspose2d, Linear
+from torchvision import models
 
 from Models.model_utils import load_model_layers_from_path
 from Utils.data_utils import reshape_to_indeces
@@ -478,6 +479,90 @@ class S80Deconv2ToDrySpotEff(nn.Module):
         return x
 
 
+class S80Deconv2ToDrySpotTransferLearning(nn.Module):
+    def __init__(self, pretrained="", checkpoint_path=None,
+                 freeze_nlayers=0,  # Could be 9
+                 round_at: float = None,
+                 demo_mode=False,
+                 transfer_model=models.resnext50_32x4d(pretrained=True),
+                 freeze_transfer_model=True):
+        super(S80Deconv2ToDrySpotTransferLearning, self).__init__()
+        self.ct1 = ConvTranspose2d(1, 128, 3, stride=2, padding=0)
+        self.ct3 = ConvTranspose2d(128, 64, 7, stride=2, padding=0)
+        self.ct5 = ConvTranspose2d(64, 32, 15, stride=2, padding=0)
+        self.ct6 = ConvTranspose2d(32, 16, 17, stride=2, padding=0)
+        self.ctr = ConvTranspose2d(16, 8, 19, stride=1, padding=0)
+
+        self.c1 = Conv2d(8, 32, 11, stride=2, padding=1)
+        self.cu = Conv2d(32, 64, 7, stride=1, padding=1)
+        self.ck = Conv2d(64, 32, 3, padding=0)
+        self.cj = Conv2d(32, 1, 3, padding=0)
+
+        self.round_at = round_at
+
+        self.demo_mode = demo_mode
+
+        self.transfer_model = transfer_model
+
+        self.upsample = nn.Upsample(size=(224, 224))
+        self.transfer_model = transfer_model
+        num_ftrs = self.transfer_model.fc.in_features
+        self.transfer_model.fc = torch.nn.Linear(num_ftrs, 1)
+
+        if pretrained == "deconv_weights":
+            logger = logging.getLogger(__name__)
+            weights = load_model_layers_from_path(path=checkpoint_path,
+                                                  layer_names={'ct1', 'ct3', 'ct5', 'ct6', 'ctr',
+                                                               'c1', 'cu', 'ck', 'cj'})
+            incomp = self.load_state_dict(weights, strict=False)
+            logger.debug(f'All layers: {self.state_dict().keys()}')
+            logger.debug(f'Loaded weights but the following: {incomp}')
+
+        if freeze_nlayers == 0:
+            return
+
+        for i, c in enumerate(self.children()):
+            logger = logging.getLogger(__name__)
+            logger.info(f'Freezing: {c}')
+
+            for param in c.parameters():
+                param.requires_grad = False
+            if i == freeze_nlayers - 1:
+                break
+
+        if freeze_transfer_model:
+            logger = logging.getLogger(__name__)
+            logger.info('Freezing pretrained CNN')
+
+            for i, c in enumerate(self.transfer_model.children()):
+                for param in c.parameters():
+                    param.requires_grad = False
+            self.transfer_model.fc.weight.requires_grad = True
+            self.transfer_model.fc.bias.requires_grad = True
+
+    def forward(self, inputs):
+        if self.demo_mode:
+            inputs = reshape_to_indeces(inputs, ((1, 4), (1, 4)), 80).contiguous()
+        inputs = inputs.reshape((-1, 1, 10, 8))
+        x = F.relu(self.ct1(inputs))
+        x = F.relu(self.ct3(x))
+        x = F.relu(self.ct5(x))
+        x = F.relu(self.ct6(x))
+        x = F.relu(self.ctr(x))
+
+        x = F.relu(self.c1(x))
+        x = F.relu(self.cu(x))
+        x = F.relu(self.ck(x))
+        x = F.relu(self.cj(x))
+        ###
+        x = x.repeat(1, 3, 1, 1)
+        x = self.upsample(x)
+
+        x = self.transfer_model(x)
+        x = F.sigmoid(x)
+        return x
+
+
 class S20DeconvToDrySpotEff(nn.Module):
     def __init__(self, pretrained="", checkpoint_path=None, freeze_nlayers=0):
         super(S20DeconvToDrySpotEff, self).__init__()
@@ -877,6 +962,73 @@ class SensorDeconvToDryspotEfficient2(nn.Module):
         x = F.relu(self.linear2(x))
         x = self.dropout(x)
         x = torch.sigmoid(self.linear3(x))
+        return x
+
+
+class SensorDeconvToDryspotTransferLearning(nn.Module):
+    def __init__(self, pretrained="",
+                 checkpoint_path=None,
+                 freeze_nlayers=0,
+                 transfer_model=models.resnext50_32x4d(pretrained=True)):
+
+        super(SensorDeconvToDryspotTransferLearning, self).__init__()
+        self.ct1 = ConvTranspose2d(1, 128, 3, stride=2, padding=0)
+        self.ct2 = ConvTranspose2d(128, 64, 7, stride=2, padding=0)
+        self.ct3 = ConvTranspose2d(64, 32, 15, stride=2, padding=0)
+        self.ct4 = ConvTranspose2d(32, 8, 17, stride=2, padding=0)
+
+        self.shaper0 = Conv2d(8, 16, 17, stride=2, padding=0)
+        self.shaper = Conv2d(16, 32, 15, stride=2, padding=0)
+        self.med = Conv2d(32, 32, 7, padding=0)
+        self.details = Conv2d(32, 32, 3)
+        self.details2 = Conv2d(32, 1, 3, padding=0)
+        ###
+
+        self.upsample = nn.Upsample(size=(224, 224))
+        self.transfer_model = transfer_model
+        num_ftrs = self.transfer_model.fc.in_features
+        self.transfer_model.fc = torch.nn.Linear(num_ftrs, 1)
+
+        if pretrained == "deconv_weights":
+            weights = load_model_layers_from_path(path=checkpoint_path,
+                                                  layer_names={"ct1", "ct2", "ct3", "ct4",
+                                                               "shaper0", "shaper", "med", 
+                                                               "details", "details2"})
+            self.load_state_dict(weights, strict=False)
+            print("Loaded deconv weights.")
+
+        if freeze_nlayers == 0:
+            return
+
+        for i, c in enumerate(self.children()):
+            logger = logging.getLogger(__name__)
+            logger.info(f'Freezing: {c}')
+
+            for param in c.parameters():
+                param.requires_grad = False
+            if i == freeze_nlayers - 1:
+                break
+
+    def forward(self, inputs):
+        fr = inputs.reshape((-1, 1, 38, 30))
+
+        k = F.relu(self.ct1(fr))
+        k2 = F.relu(self.ct2(k))
+        k3 = F.relu(self.ct3(k2))
+        k3 = F.relu(self.ct4(k3))
+
+        t1 = F.relu(self.shaper0(k3))
+        t1 = F.relu(self.shaper(t1))
+        t2 = F.relu(self.med(t1))
+        t3 = F.relu(self.details(t2))
+        t3 = F.relu(self.details2(t3))
+
+        x = t3.repeat(1, 3, 1, 1)
+        x = self.upsample(x)
+
+        x = self.transfer_model(x)
+        x = F.sigmoid(x)
+
         return x
 
 

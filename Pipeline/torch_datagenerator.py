@@ -39,6 +39,7 @@ class LoopingDataGenerator:
             this should only be used with the DataLoaderListLoopingStrategy.
         load_torch_dataset_path (Path): Load a saved Dataset from this Path. This can improve loading times in the
             first epoch. Note that this should only be used with the DataLoaderListLoopingStrategy.
+        hold_samples_in_memory (Bool): Flag whether the DataGenerator should keep the processed samples in memory.
     """
 
     def __init__(self,
@@ -61,6 +62,7 @@ class LoopingDataGenerator:
                  test_mode=False,
                  sampler=None,
                  load_test_set_in_training_mode=False,
+                 hold_samples_in_memory=True,
                  drop_last_batch=False
                  ):
         self.logger = logging.getLogger(__name__)
@@ -105,6 +107,8 @@ class LoopingDataGenerator:
         self.loaded_test_set = False
 
         self.dont_care_num_samples = dont_care_num_samples
+
+        self.hold_in_ram = hold_samples_in_memory
 
         self.try_loading_torch_datasets(load_test_set_in_training_mode)
 
@@ -180,7 +184,7 @@ class LoopingDataGenerator:
         return paths
 
     def __iter__(self):
-        if self.first and not self.loaded_train_set:
+        if not self.hold_in_ram or (self.first and not self.loaded_train_set):
             # By choosing drop_last=False we may get up to num_workers*(batch_size-1) short batches in the first epoch.
             # The behaviour in the second depends on the used LoopingStrategy, but by default we will only see one short
             # sample in the following epochs
