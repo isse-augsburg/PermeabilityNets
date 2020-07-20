@@ -7,17 +7,36 @@ import socket
 from Models.erfh5_MeshModel import SensorMeshToDryspotResnet
 from Trainer.evaluation import BinaryClassificationEvaluator
 import Utils.custom_mlflow
+import Resources.training as r
 
 if __name__ == '__main__':
-    sensor_verts_path = Path("/home/lukas/rtm/sensor_verts.dump")
-    sample_file = Path("/home/lukas/rtm/rtm_files/2019-07-24_16-32-40_308_RESULT.erfh5")
 
-    Utils.custom_mlflow.logging = False
     debug = False
 
     if "swt-dgx" in socket.gethostname():
-        pass
+        home_folder = Path("/cfs/home/l/o/lodesluk/code/mesh")
+        sensor_verts_path = home_folder / "sensor_verts.dump"
+        sample_file = home_folder / "2019-07-24_16-32-40_308_RESULT.erfh5"
+        print("Running on DGX")
+
+        filepaths = r.get_data_paths_base_0()
+        save_path = r.save_path
+        batch_size = 1024
+        train_print_frequency = 100
+        epochs = 5
+        num_workers = 75
+        num_validation_samples = 131072
+        num_test_samples = 1048576
+        data_root = r.data_root
+        cache_path = None
+        weights_path = home_folder / "checkpoint_sensor2ff.pth"
+
     elif "pop-os" in socket.gethostname():
+        sensor_verts_path = Path("/home/lukas/rtm/sensor_verts.dump")
+        sample_file = Path("/home/lukas/rtm/rtm_files/2019-07-24_16-32-40_308_RESULT.erfh5")
+
+        Utils.custom_mlflow.logging = False
+
         print("Running local mode.")
         base_path = Path("/home/lukas/rtm/")
 
@@ -78,4 +97,13 @@ if __name__ == '__main__':
         drop_last_batch=True
     )
 
+    print("Starting training routine.")
     m.start_training()
+    print("Training finished. Starting test.")
+    m.inference_on_test_set(
+        classification_evaluator_function=lambda summary_writer:
+        BinaryClassificationEvaluator(save_path / "eval_on_test_set",
+                                      skip_images=True,
+                                      with_text_overlay=True)
+    )
+
