@@ -1,6 +1,7 @@
 import logging
 import math
 import os
+import fnmatch
 import pickle
 import random
 from enum import Enum
@@ -11,6 +12,50 @@ import numpy as np
 import torch
 
 from Utils.data_utils import change_win_to_unix_path_if_needed
+
+
+def save_data_chunks(chunk_size, all_items, save_path):
+    """ Splits all_items in chunk_size smaller chunks and saves these chunks.
+
+    Args:
+        chunk_size (int): Specifies how many items a chunks contains.
+        all_items (list): List containing all data items to be saved.
+        save_path (Path): Path specifying the directory the data chunks should be stored in.
+    """
+    logger = logging.getLogger(__name__)
+    logger.debug(f"Splitting {len(all_items)} items into {chunk_size} chunks.")
+
+    all_chunks = []
+
+    save_dir = save_path.with_suffix('')
+    if not os.path.isdir(save_dir):
+        os.mkdir(save_dir)
+
+    for i in range(0, len(all_items), chunk_size):
+        all_chunks.append(all_items[i:i + chunk_size])
+
+    for i, chunk in enumerate(all_chunks):
+        f = save_dir / Path((str(i) + ".pt"))
+        torch.save(chunk, f)
+        # pickle.dump(chunk, open(f, "wb"))
+
+    logger.debug(f"Successfully saved {chunk_size} data chunks.")
+
+
+def load_data_chunks(load_path):
+    logger = logging.getLogger(__name__)
+    logger.debug(f"Loading data chunks from {load_path}.")
+
+    load_dir = load_path.with_suffix('')
+    all_chunks = os.listdir(load_dir)
+    all_samples = []
+
+    for c in all_chunks:
+        if fnmatch.fnmatch(c, '*.pt'):
+            all_samples.extend(torch.load(load_dir / c))
+
+    logger.debug(f"Successfully loaded data_chunks from {load_dir}")
+    return all_samples
 
 
 class FileSetIterator:

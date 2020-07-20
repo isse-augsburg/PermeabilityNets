@@ -108,7 +108,8 @@ class ModelTrainer:
         demo_path=None,
         resize_label_to=(0, 0),
         load_test_set_in_training_mode=False,
-        hold_samples_in_memory=True
+        hold_samples_in_memory=True,
+        train_set_chunk_size=0
     ):
         # Visit the following URL to check the MLFlow dashboard.
         set_tracking_uri("http://swt-clustermanager.informatik.uni-augsburg.de:5000")
@@ -187,6 +188,7 @@ class ModelTrainer:
         self.load_test_set_in_training_mode = load_test_set_in_training_mode
 
         self.hold_samples_in_memory = hold_samples_in_memory
+        self.train_set_chunk_size = train_set_chunk_size
 
         self.data_root = data_root
 
@@ -213,6 +215,7 @@ class ModelTrainer:
                 sampler=self.sampler,
                 load_test_set_in_training_mode=self.load_test_set_in_training_mode,
                 hold_samples_in_memory=self.hold_samples_in_memory,
+                train_set_chunk_size=self.train_set_chunk_size
             )
         except Exception:
             logger = logging.getLogger(__name__)

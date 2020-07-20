@@ -40,6 +40,8 @@ class LoopingDataGenerator:
         load_torch_dataset_path (Path): Load a saved Dataset from this Path. This can improve loading times in the
             first epoch. Note that this should only be used with the DataLoaderListLoopingStrategy.
         hold_samples_in_memory (Bool): Flag whether the DataGenerator should keep the processed samples in memory.
+        train_set_chunk_size (int): If >0, the dataset will be saved in multiple .pt chunks. Specifies how many samples
+            are stored in a chunk.
     """
 
     def __init__(self,
@@ -62,7 +64,8 @@ class LoopingDataGenerator:
                  test_mode=False,
                  sampler=None,
                  load_test_set_in_training_mode=False,
-                 hold_samples_in_memory=True
+                 hold_samples_in_memory=True,
+                 train_set_chunk_size=0,
                  ):
         self.logger = logging.getLogger(__name__)
 
@@ -91,7 +94,9 @@ class LoopingDataGenerator:
         self.saved_val_samples = None
 
         if looping_strategy is None:
-            looping_strategy = DataLoaderListLoopingStrategy(batch_size, sampler=sampler)
+            looping_strategy = DataLoaderListLoopingStrategy(batch_size,
+                                                             sampler=sampler,
+                                                             chunk_size=train_set_chunk_size)
         self.looping_strategy = looping_strategy
         self.first = True
         if len(self.looping_strategy) > 0:
@@ -132,7 +137,8 @@ class LoopingDataGenerator:
                     pickle.dump(sorted(list(set([x[2]["sourcefile"] for x in self.saved_test_samples]))), f)
             if not load_test_set_in_training_mode:
                 return
-        if (self.load_torch_dataset_path / "train_set_torch.p").is_file():
+        if (self.load_torch_dataset_path / "train_set_torch.p").is_file() or \
+                (self.load_torch_dataset_path / "train_set_torch").is_dir():
             self.logger.info(f"Loading training set - torch - from {self.load_torch_dataset_path}.")
             self.looping_strategy.load_content(self.load_torch_dataset_path / "train_set_torch.p")
             self.loaded_train_set = True
