@@ -7,7 +7,7 @@ from .TorchDataGeneratorUtils.looping_strategies import (
     LoopingStrategy, DataLoaderListLoopingStrategy, stack_aux_dicts, split_aux_dicts
 )
 from .TorchDataGeneratorUtils.torch_internal import FileDiscovery, FileSetIterable, CachingMode, \
-                                                    SubSetGenerator, save_data_chunks, load_data_chunks
+    SubSetGenerator, save_data_chunks, load_data_chunks
 
 stack_aux_dicts = stack_aux_dicts
 split_aux_dicts = split_aux_dicts
