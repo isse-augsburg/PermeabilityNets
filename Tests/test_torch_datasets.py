@@ -92,10 +92,8 @@ class TestSaveDatasetsTorch(unittest.TestCase):
             self.torch_all_datasets = Path('/cfs/home/l/o/lodesluk/code/tests/test_data/TorchDatasets/')
             load_and_save_path = self.reference_datasets_torch / m.data_loader_hash
 
-            shutil.copytree(self.torch_all_datasets / "train_set_torch", load_and_save_path / "train_set_torch",
-                            dirs_exist_ok=True)
-            shutil.copytree(self.torch_all_datasets / "test_set_torch", load_and_save_path / "test_set_torch",
-                            dirs_exist_ok=True)
+            shutil.copytree(self.torch_all_datasets / "train_set_torch", load_and_save_path / "train_set_torch")
+            shutil.copytree(self.torch_all_datasets / "test_set_torch", load_and_save_path / "test_set_torch")
             shutil.copy(self.torch_all_datasets / "val_set_torch.p", load_and_save_path)
 
             m.start_training()
