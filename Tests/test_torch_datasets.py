@@ -73,30 +73,37 @@ class TestSaveDatasetsTorch(unittest.TestCase):
             self.assertTrue((self.reference_datasets_torch / m.data_loader_hash / "val_set_torch.p").is_file())
             m.inference_on_test_set()
             self.assertTrue((self.reference_datasets_torch / m.data_loader_hash / "test_set_torch.p").is_file())
-    
+
     def test_save_data_chunks(self):
-        with tempfile.TemporaryDirectory(prefix="TorchDataSetsSaving") as tempdir:
+        with tempfile.TemporaryDirectory(prefix="TorchDataSetsSavingChunks") as tempdir:
             out_path = Path(tempdir)
             m = self.create_trainer_and_start(out_path, epochs=2, train_set_chunk_size=1000)
             m.start_training()
             self.load_and_save_path = self.reference_datasets_torch / m.data_loader_hash
-            self.assertTrue((self.reference_datasets_torch / m.data_loader_hash / "train_set_torch").is_directory())
+            self.assertTrue((self.reference_datasets_torch / m.data_loader_hash / "train_set_torch").is_dir())
             self.assertTrue((self.reference_datasets_torch / m.data_loader_hash / "val_set_torch.p").is_file())
             m.inference_on_test_set()
-            self.assertTrue((self.reference_datasets_torch / m.data_loader_hash / "test_set_torch").is_directory())
+            self.assertTrue((self.reference_datasets_torch / m.data_loader_hash / "test_set_torch").is_dir())
 
     def test_load_data_chunks(self):
-        with tempfile.TemporaryDirectory(prefix="TorchDataSetsLoading") as tempdir:
-            m = self.create_trainer_and_start(Path(tempdir))
-            self.copy_list_of_files_to_load_and_save_path([self.torch_all_datasets / "train_set_torch",
-                                                           self.torch_all_datasets / "val_set_torch.p",
-                                                           self.torch_all_datasets / "test_set_torch"],
-                                                          self.reference_datasets_torch / m.data_loader_hash)
+        with tempfile.TemporaryDirectory(prefix="TorchDataSetsLoadingChunks") as tempdir:
+            m = self.create_trainer_and_start(Path(tempdir), load_test_set=True, train_set_chunk_size=1000)
+            all_datasets = self.torch_all_datasets
+            self.torch_all_datasets = Path('/cfs/home/l/o/lodesluk/code/tests/test_data/TorchDatasets/')
+            load_and_save_path = self.reference_datasets_torch / m.data_loader_hash
+
+            shutil.copytree(self.torch_all_datasets / "train_set_torch", load_and_save_path / "train_set_torch",
+                            dirs_exist_ok=True)
+            shutil.copytree(self.torch_all_datasets / "test_set_torch", load_and_save_path / "test_set_torch",
+                            dirs_exist_ok=True)
+            shutil.copy(self.torch_all_datasets / "val_set_torch.p", load_and_save_path)
+
             m.start_training()
             self.load_and_save_path = self.reference_datasets_torch / m.data_loader_hash
             self.assertTrue(m.data_generator.loaded_train_set)
             self.assertTrue(m.data_generator.loaded_val_set)
-            self.assertTrue(m.data_generator.loaded_train_set)
+            self.assertTrue(m.data_generator.loaded_test_set)
+            self.torch_all_datasets = all_datasets
 
     def test_load_all_data_sets(self):
         with tempfile.TemporaryDirectory(prefix="TorchDataSetsLoading") as tempdir:
@@ -109,6 +116,7 @@ class TestSaveDatasetsTorch(unittest.TestCase):
             self.load_and_save_path = self.reference_datasets_torch / m.data_loader_hash
             self.assertTrue(m.data_generator.loaded_train_set)
             self.assertTrue(m.data_generator.loaded_val_set)
+            # TODO should that really be loaded_train_set again instead of loaded_test_set?
             self.assertTrue(m.data_generator.loaded_train_set)
 
     def test_load_train_set_only(self):

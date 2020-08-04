@@ -130,7 +130,8 @@ class LoopingDataGenerator:
         if self.load_torch_dataset_path is None:
             return
         if self.test_mode or load_test_set_in_training_mode:
-            if (self.load_torch_dataset_path / "test_set_torch.p").is_file():
+            if (self.load_torch_dataset_path / "test_set_torch.p").is_file() or \
+                    self.load_torch_dataset_path.is_dir():
                 self.logger.info("Loading test set - torch - from {self.load_torch_dataset_path}.")
                 if self.train_set_chunk_size > 0: 
                     self.saved_test_samples = load_data_chunks(self.load_torch_dataset_path / "test_set_torch")

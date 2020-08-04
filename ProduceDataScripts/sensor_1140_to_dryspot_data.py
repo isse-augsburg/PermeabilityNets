@@ -14,7 +14,7 @@ if __name__ == "__main__":
     shuffling between threads.
     """
     Utils.custom_mlflow.logging = False
-    
+
     dlds = DataloaderDryspots()
     m = ModelTrainer(
         lambda: SensorDeconvToDryspotEfficient2(),
