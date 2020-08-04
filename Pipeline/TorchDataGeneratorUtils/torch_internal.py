@@ -23,11 +23,13 @@ def save_data_chunks(chunk_size, all_items, save_path):
         save_path (Path): Path specifying the directory the data chunks should be stored in.
     """
     logger = logging.getLogger(__name__)
-    logger.debug(f"Splitting {len(all_items)} items into {chunk_size} chunks.")
+    logger.info(f"Splitting {len(all_items)} items into {chunk_size} chunks.")
 
     all_chunks = []
 
     save_dir = save_path.with_suffix('')
+    save_dir.mkdir(exist_ok=True)
+
     if not os.path.isdir(save_dir):
         os.mkdir(save_dir)
 
@@ -35,26 +37,32 @@ def save_data_chunks(chunk_size, all_items, save_path):
         all_chunks.append(all_items[i:i + chunk_size])
 
     for i, chunk in enumerate(all_chunks):
-        f = save_dir / Path((str(i) + ".pt"))
+        f = save_dir / Path((str(i) + ".p"))
         torch.save(chunk, f)
         # pickle.dump(chunk, open(f, "wb"))
 
-    logger.debug(f"Successfully saved {chunk_size} data chunks.")
+    logger.info(f"Successfully saved {chunk_size} data chunks.")
 
 
 def load_data_chunks(load_path):
     logger = logging.getLogger(__name__)
-    logger.debug(f"Loading data chunks from {load_path}.")
 
     load_dir = load_path.with_suffix('')
-    all_chunks = os.listdir(load_dir)
-    all_samples = []
 
-    for c in all_chunks:
-        if fnmatch.fnmatch(c, '*.pt'):
-            all_samples.extend(torch.load(load_dir / c))
+    if not load_dir.is_dir() and load_path.is_file():
+        logger.info(f"Loading data from {load_path}")
+        all_samples = torch.load(load_path)
+        logger.debug(f"Successfully loaded data from {load_path}")
+    else:
+        logger.info(f"Loading data chunks from {load_path}.")
+        all_chunks = os.listdir(load_dir)
+        all_samples = []
 
-    logger.debug(f"Successfully loaded data_chunks from {load_dir}")
+        for c in all_chunks:
+            if fnmatch.fnmatch(c, '*.p'):
+                all_samples.extend(torch.load(load_dir / c))
+
+        logger.info(f"Successfully loaded data_chunks from {load_dir}")
     return all_samples
 
 

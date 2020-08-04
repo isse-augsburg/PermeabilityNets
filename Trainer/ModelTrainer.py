@@ -72,6 +72,8 @@ class ModelTrainer:
         checkpointing_strategy: From enum CheckpointingStrategy in Pipeline.TorchDataGeneratorUtils.torch_internal.py.
                                 Specifies which checkpoints are stored during training.
         hold_samples_in_memory: Flag whether the DataGenerator should keep the processed samples in memory.
+        train_set_chunk_size (int): If >0, the dataset will be saved in multiple .pt chunks. Specifies how many samples
+            are stored in a chunk. If <=0, saving and loading of torch datasets will not be changed.
     """
 
     def __init__(
@@ -115,7 +117,8 @@ class ModelTrainer:
         set_tracking_uri("http://swt-clustermanager.informatik.uni-augsburg.de:5000")
         # Setting the experiment: normally, it is the Slurm jobname, if the script is not called with slurm,
         #  it is the name of calling script, which should help categorizing experiments as well.
-        set_experiment(f"{os.getenv('SLURM_JOB_NAME', Path(sys.argv[0])).stem}")
+        print("uncomment modeltrainer set_experiment")
+        # set_experiment(f"{os.getenv('SLURM_JOB_NAME', Path(sys.argv[0])).stem}")
 
         initial_timestamp = str(datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
         self.save_path = save_path / initial_timestamp
@@ -156,8 +159,14 @@ class ModelTrainer:
             load_and_save_path, data_loader_hash = handle_torch_caching(
                 self.data_processing_function, self.data_source_paths, self.sampler, self.batch_size)
             self.data_loader_hash = data_loader_hash
-            self.load_torch_dataset_path = load_and_save_path
+
+            if produce_torch_datasets_only:
+                self.load_torch_dataset_path = None
+            else:
+                self.load_torch_dataset_path = load_and_save_path
+              
             self.save_torch_dataset_path = load_and_save_path
+            self.save_torch_dataset_path.mkdir(exist_ok=True)
         else:
             self.data_loader_hash = "NOT_CACHING"
             self.load_torch_dataset_path = None

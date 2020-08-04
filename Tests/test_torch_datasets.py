@@ -25,7 +25,7 @@ class TestSaveDatasetsTorch(unittest.TestCase):
         self.reference_datasets_torch = tr_resources.datasets_dryspots_torch
         self.load_and_save_path = None
 
-    def create_trainer_and_start(self, out_path, epochs=1, load_test_set=False):
+    def create_trainer_and_start(self, out_path, epochs=1, load_test_set=False, train_set_chunk_size=0):
         dlds = DataloaderFlowfrontSensor(sensor_indizes=((1, 8), (1, 8)))
         Utils.custom_mlflow.logging = False
         m = ModelTrainer(lambda: S20DryspotModelFCWide(),
@@ -45,6 +45,7 @@ class TestSaveDatasetsTorch(unittest.TestCase):
                          BinaryClassificationEvaluator(summary_writer=summary_writer),
                          load_test_set_in_training_mode=load_test_set,
                          data_root=test_resources.test_src_dir,
+                         train_set_chunk_size=train_set_chunk_size
                          )
         return m
 
@@ -72,6 +73,30 @@ class TestSaveDatasetsTorch(unittest.TestCase):
             self.assertTrue((self.reference_datasets_torch / m.data_loader_hash / "val_set_torch.p").is_file())
             m.inference_on_test_set()
             self.assertTrue((self.reference_datasets_torch / m.data_loader_hash / "test_set_torch.p").is_file())
+    
+    def test_save_data_chunks(self):
+        with tempfile.TemporaryDirectory(prefix="TorchDataSetsSaving") as tempdir:
+            out_path = Path(tempdir)
+            m = self.create_trainer_and_start(out_path, epochs=2, train_set_chunk_size=1000)
+            m.start_training()
+            self.load_and_save_path = self.reference_datasets_torch / m.data_loader_hash
+            self.assertTrue((self.reference_datasets_torch / m.data_loader_hash / "train_set_torch").is_directory())
+            self.assertTrue((self.reference_datasets_torch / m.data_loader_hash / "val_set_torch.p").is_file())
+            m.inference_on_test_set()
+            self.assertTrue((self.reference_datasets_torch / m.data_loader_hash / "test_set_torch").is_directory())
+
+    def test_load_data_chunks(self):
+        with tempfile.TemporaryDirectory(prefix="TorchDataSetsLoading") as tempdir:
+            m = self.create_trainer_and_start(Path(tempdir))
+            self.copy_list_of_files_to_load_and_save_path([self.torch_all_datasets / "train_set_torch",
+                                                           self.torch_all_datasets / "val_set_torch.p",
+                                                           self.torch_all_datasets / "test_set_torch"],
+                                                          self.reference_datasets_torch / m.data_loader_hash)
+            m.start_training()
+            self.load_and_save_path = self.reference_datasets_torch / m.data_loader_hash
+            self.assertTrue(m.data_generator.loaded_train_set)
+            self.assertTrue(m.data_generator.loaded_val_set)
+            self.assertTrue(m.data_generator.loaded_train_set)
 
     def test_load_all_data_sets(self):
         with tempfile.TemporaryDirectory(prefix="TorchDataSetsLoading") as tempdir:

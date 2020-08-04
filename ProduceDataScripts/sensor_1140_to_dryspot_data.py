@@ -1,17 +1,20 @@
 import torch
-
 import Resources.training as r
 from Models.erfh5_ConvModel import SensorDeconvToDryspotEfficient2
 from Pipeline.data_gather import get_filelist_within_folder_blacklisted
 from Pipeline.data_loader_dryspot import DataloaderDryspots
 from Trainer.ModelTrainer import ModelTrainer
 from Trainer.evaluation import BinaryClassificationEvaluator
+import Utils.custom_mlflow
+
 
 if __name__ == "__main__":
     """
     Producing data only. Using to sequential sampler to unshuffle the data + 1 "thread" only to make sure there is no 
     shuffling between threads.
     """
+    Utils.custom_mlflow.logging = False
+    
     dlds = DataloaderDryspots()
     m = ModelTrainer(
         lambda: SensorDeconvToDryspotEfficient2(),
@@ -28,7 +31,8 @@ if __name__ == "__main__":
         classification_evaluator_function=lambda summary_writer:
         BinaryClassificationEvaluator(summary_writer=summary_writer),
         produce_torch_datasets_only=True,
-        sampler=lambda data_source: torch.utils.data.SequentialSampler(data_source=data_source)
+        sampler=lambda data_source: torch.utils.data.SequentialSampler(data_source=data_source),
+        train_set_chunk_size=300000
     )
 
     m.start_training()

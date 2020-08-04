@@ -6,7 +6,8 @@ import torch
 from .TorchDataGeneratorUtils.looping_strategies import (
     LoopingStrategy, DataLoaderListLoopingStrategy, stack_aux_dicts, split_aux_dicts
 )
-from .TorchDataGeneratorUtils.torch_internal import FileDiscovery, FileSetIterable, CachingMode, SubSetGenerator
+from .TorchDataGeneratorUtils.torch_internal import FileDiscovery, FileSetIterable, CachingMode, \
+                                                    SubSetGenerator, save_data_chunks, load_data_chunks
 
 stack_aux_dicts = stack_aux_dicts
 split_aux_dicts = split_aux_dicts
@@ -41,7 +42,7 @@ class LoopingDataGenerator:
             first epoch. Note that this should only be used with the DataLoaderListLoopingStrategy.
         hold_samples_in_memory (Bool): Flag whether the DataGenerator should keep the processed samples in memory.
         train_set_chunk_size (int): If >0, the dataset will be saved in multiple .pt chunks. Specifies how many samples
-            are stored in a chunk.
+            are stored in a chunk. If <=0, saving and loading of torch datasets will not be changed.
     """
 
     def __init__(self,
@@ -112,6 +113,7 @@ class LoopingDataGenerator:
         self.dont_care_num_samples = dont_care_num_samples
 
         self.hold_in_ram = hold_samples_in_memory
+        self.train_set_chunk_size = train_set_chunk_size
 
         self.try_loading_torch_datasets(load_test_set_in_training_mode)
 
@@ -130,7 +132,10 @@ class LoopingDataGenerator:
         if self.test_mode or load_test_set_in_training_mode:
             if (self.load_torch_dataset_path / "test_set_torch.p").is_file():
                 self.logger.info("Loading test set - torch - from {self.load_torch_dataset_path}.")
-                self.saved_test_samples = torch.load(self.load_torch_dataset_path / "test_set_torch.p")
+                if self.train_set_chunk_size > 0: 
+                    self.saved_test_samples = load_data_chunks(self.load_torch_dataset_path / "test_set_torch")
+                else:
+                    self.saved_test_samples = torch.load(self.load_torch_dataset_path / "test_set_torch.p")
                 self.loaded_test_set = True
                 self.logger.info("Done.")
                 with open(self.split_save_path / "test_set.p", "wb") as f:
@@ -230,5 +235,9 @@ class LoopingDataGenerator:
         if self.saved_test_samples is None:
             self.saved_test_samples = self.test_set_generator.get_samples()
             if self.save_torch_dataset_path is not None:
-                torch.save(self.saved_test_samples, self.save_torch_dataset_path / "test_set_torch.p")
+                if self.train_set_chunk_size > 0:
+                    save_data_chunks(self.train_set_chunk_size, self.saved_test_samples,
+                                     self.save_torch_dataset_path / "test_set_torch")
+                else:
+                    torch.save(self.saved_test_samples, self.save_torch_dataset_path / "test_set_torch.p")
         return self.saved_test_samples
