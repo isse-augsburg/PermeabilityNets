@@ -45,7 +45,7 @@ class TestSaveDatasetsTorch(unittest.TestCase):
                          BinaryClassificationEvaluator(summary_writer=summary_writer),
                          load_test_set_in_training_mode=load_test_set,
                          data_root=test_resources.test_src_dir,
-                         train_set_chunk_size=train_set_chunk_size
+                         torch_datasets_chunk_size=train_set_chunk_size
                          )
         return m
 

@@ -11,6 +11,9 @@ import Utils.custom_mlflow
 if __name__ == "__main__":
     """
     Producing data only.
+
+    torch_datasets_chunk_size = 300 000: each chunk = ca. 22 GB 
+    torch_datasets_chunk_size = 75 000: each chunk = ca. 5.5 GB 
     """
     Utils.custom_mlflow.logging = False
 
@@ -31,7 +34,7 @@ if __name__ == "__main__":
         SensorToFlowfrontEvaluator(summary_writer=summary_writer),
         produce_torch_datasets_only=True,
         sampler=lambda data_source: torch.utils.data.SequentialSampler(data_source=data_source),
-        train_set_chunk_size=75000
+        torch_datasets_chunk_size=75000
     )
 
     m.start_training()

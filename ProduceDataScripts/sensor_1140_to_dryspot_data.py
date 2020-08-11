@@ -12,6 +12,8 @@ if __name__ == "__main__":
     """
     Producing data only. Using to sequential sampler to unshuffle the data + 1 "thread" only to make sure there is no 
     shuffling between threads.
+
+    torch_datasets_chunk_size = 300 000: each chunk = ca. 1.4 GB 
     """
     Utils.custom_mlflow.logging = False
 
@@ -32,7 +34,7 @@ if __name__ == "__main__":
         BinaryClassificationEvaluator(summary_writer=summary_writer),
         produce_torch_datasets_only=True,
         sampler=lambda data_source: torch.utils.data.SequentialSampler(data_source=data_source),
-        train_set_chunk_size=300000
+        torch_datasets_chunk_size=300000
     )
 
     m.start_training()

@@ -41,8 +41,8 @@ class LoopingDataGenerator:
         load_torch_dataset_path (Path): Load a saved Dataset from this Path. This can improve loading times in the
             first epoch. Note that this should only be used with the DataLoaderListLoopingStrategy.
         hold_samples_in_memory (Bool): Flag whether the DataGenerator should keep the processed samples in memory.
-        train_set_chunk_size (int): If >0, the dataset will be saved in multiple .pt chunks. Specifies how many samples
-            are stored in a chunk. If <=0, saving and loading of torch datasets will not be changed.
+        torch_datasets_chunk_size (int): If >0, the train and testset will be saved in multiple .pt chunks. Specifies
+            how many samples are stored in a chunk. If <=0, saving and loading of torch datasets will not be changed.
     """
 
     def __init__(self,
@@ -66,7 +66,7 @@ class LoopingDataGenerator:
                  sampler=None,
                  load_test_set_in_training_mode=False,
                  hold_samples_in_memory=True,
-                 train_set_chunk_size=0,
+                 torch_datasets_chunk_size=0,
                  ):
         self.logger = logging.getLogger(__name__)
 
@@ -97,7 +97,7 @@ class LoopingDataGenerator:
         if looping_strategy is None:
             looping_strategy = DataLoaderListLoopingStrategy(batch_size,
                                                              sampler=sampler,
-                                                             chunk_size=train_set_chunk_size)
+                                                             chunk_size=torch_datasets_chunk_size)
         self.looping_strategy = looping_strategy
         self.first = True
         if len(self.looping_strategy) > 0:
@@ -113,7 +113,7 @@ class LoopingDataGenerator:
         self.dont_care_num_samples = dont_care_num_samples
 
         self.hold_in_ram = hold_samples_in_memory
-        self.train_set_chunk_size = train_set_chunk_size
+        self.train_set_chunk_size = torch_datasets_chunk_size
 
         self.try_loading_torch_datasets(load_test_set_in_training_mode)
 
