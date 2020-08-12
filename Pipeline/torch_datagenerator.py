@@ -113,7 +113,7 @@ class LoopingDataGenerator:
         self.dont_care_num_samples = dont_care_num_samples
 
         self.hold_in_ram = hold_samples_in_memory
-        self.train_set_chunk_size = torch_datasets_chunk_size
+        self.torch_datasets_chunk_size = torch_datasets_chunk_size
 
         self.try_loading_torch_datasets(load_test_set_in_training_mode)
 
@@ -133,7 +133,7 @@ class LoopingDataGenerator:
             if (self.load_torch_dataset_path / "test_set_torch.p").is_file() or \
                     (self.load_torch_dataset_path / "test_set_torch").is_dir():
                 self.logger.info("Loading test set - torch - from {self.load_torch_dataset_path}.")
-                if self.train_set_chunk_size > 0: 
+                if self.torch_datasets_chunk_size > 0:
                     self.saved_test_samples = load_data_chunks(self.load_torch_dataset_path / "test_set_torch")
                 else:
                     self.saved_test_samples = torch.load(self.load_torch_dataset_path / "test_set_torch.p")
@@ -236,8 +236,8 @@ class LoopingDataGenerator:
         if self.saved_test_samples is None:
             self.saved_test_samples = self.test_set_generator.get_samples()
             if self.save_torch_dataset_path is not None:
-                if self.train_set_chunk_size > 0:
-                    save_data_chunks(self.train_set_chunk_size, self.saved_test_samples,
+                if self.torch_datasets_chunk_size > 0:
+                    save_data_chunks(self.torch_datasets_chunk_size, self.saved_test_samples,
                                      self.save_torch_dataset_path / "test_set_torch")
                 else:
                     torch.save(self.saved_test_samples, self.save_torch_dataset_path / "test_set_torch.p")
