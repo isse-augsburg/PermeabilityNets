@@ -89,7 +89,7 @@ class TestSaveDatasetsTorch(unittest.TestCase):
         with tempfile.TemporaryDirectory(prefix="TorchDataSetsLoadingChunks") as tempdir:
             m = self.create_trainer_and_start(Path(tempdir), load_test_set=True, train_set_chunk_size=1000)
             all_datasets = self.torch_all_datasets
-            self.torch_all_datasets = Path('/cfs/home/l/o/lodesluk/code/tests/test_data/TorchDatasets/')
+            self.torch_all_datasets = Path('/cfs/home/l/o/lodesluk/code/tests/test_data/TorchDatasetsChunks/')
             load_and_save_path = self.reference_datasets_torch / m.data_loader_hash
 
             shutil.copytree(self.torch_all_datasets / "train_set_torch", load_and_save_path / "train_set_torch")
