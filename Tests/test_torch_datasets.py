@@ -115,7 +115,7 @@ class TestSaveDatasetsTorch(unittest.TestCase):
             self.assertTrue(m.data_generator.loaded_train_set)
             self.assertTrue(m.data_generator.loaded_val_set)
             # TODO should that really be loaded_train_set again instead of loaded_test_set?
-            self.assertTrue(m.data_generator.loaded_train_set)
+             self.assertTrue(m.data_generator.loaded_test_set)
 
     def test_load_train_set_only(self):
         """ Check if the splits are produced the same way if only the training set is loaded and if the the
