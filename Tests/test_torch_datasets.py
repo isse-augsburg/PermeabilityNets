@@ -89,7 +89,7 @@ class TestSaveDatasetsTorch(unittest.TestCase):
         with tempfile.TemporaryDirectory(prefix="TorchDataSetsLoadingChunks") as tempdir:
             m = self.create_trainer_and_start(Path(tempdir), load_test_set=True, train_set_chunk_size=1000)
             all_datasets = self.torch_all_datasets
-            self.torch_all_datasets = Path('/cfs/home/l/o/lodesluk/code/tests/test_data/TorchDatasetsChunks/')
+            self.torch_all_datasets = Path('/cfs/home/s/t/stiebesi/code/tests/test_data/TorchDatasetsChunks/')
             load_and_save_path = self.reference_datasets_torch / m.data_loader_hash
 
             shutil.copytree(self.torch_all_datasets / "train_set_torch", load_and_save_path / "train_set_torch")
@@ -105,7 +105,7 @@ class TestSaveDatasetsTorch(unittest.TestCase):
 
     def test_load_all_data_sets(self):
         with tempfile.TemporaryDirectory(prefix="TorchDataSetsLoading") as tempdir:
-            m = self.create_trainer_and_start(Path(tempdir))
+            m = self.create_trainer_and_start(Path(tempdir), load_test_set=True)
             self.copy_list_of_files_to_load_and_save_path([self.torch_all_datasets / "train_set_torch.p",
                                                            self.torch_all_datasets / "val_set_torch.p",
                                                            self.torch_all_datasets / "test_set_torch.p"],
@@ -114,8 +114,7 @@ class TestSaveDatasetsTorch(unittest.TestCase):
             self.load_and_save_path = self.reference_datasets_torch / m.data_loader_hash
             self.assertTrue(m.data_generator.loaded_train_set)
             self.assertTrue(m.data_generator.loaded_val_set)
-            # TODO should that really be loaded_train_set again instead of loaded_test_set?
-             self.assertTrue(m.data_generator.loaded_test_set)
+            self.assertTrue(m.data_generator.loaded_test_set)
 
     def test_load_train_set_only(self):
         """ Check if the splits are produced the same way if only the training set is loaded and if the the
