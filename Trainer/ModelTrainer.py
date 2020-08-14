@@ -72,6 +72,9 @@ class ModelTrainer:
         checkpointing_strategy: From enum CheckpointingStrategy in Pipeline.TorchDataGeneratorUtils.torch_internal.py.
                                 Specifies which checkpoints are stored during training.
         hold_samples_in_memory: Flag whether the DataGenerator should keep the processed samples in memory.
+        torch_datasets_chunk_size (int): If >0, the train and testset will be saved in multiple .pt chunks. Specifies
+                                         how many samples are stored in a chunk. If <=0, saving and loading of torch
+                                         datasets will not be changed.
     """
 
     def __init__(
@@ -108,7 +111,8 @@ class ModelTrainer:
         demo_path=None,
         resize_label_to=(0, 0),
         load_test_set_in_training_mode=False,
-        hold_samples_in_memory=True
+        hold_samples_in_memory=True,
+        torch_datasets_chunk_size=0
     ):
         # Visit the following URL to check the MLFlow dashboard.
         set_tracking_uri("http://swt-clustermanager.informatik.uni-augsburg.de:5000")
@@ -155,8 +159,14 @@ class ModelTrainer:
             load_and_save_path, data_loader_hash = handle_torch_caching(
                 self.data_processing_function, self.data_source_paths, self.sampler, self.batch_size)
             self.data_loader_hash = data_loader_hash
-            self.load_torch_dataset_path = load_and_save_path
+
+            if produce_torch_datasets_only:
+                self.load_torch_dataset_path = None
+            else:
+                self.load_torch_dataset_path = load_and_save_path
+
             self.save_torch_dataset_path = load_and_save_path
+            self.save_torch_dataset_path.mkdir(exist_ok=True)
         else:
             self.data_loader_hash = "NOT_CACHING"
             self.load_torch_dataset_path = None
@@ -187,6 +197,7 @@ class ModelTrainer:
         self.load_test_set_in_training_mode = load_test_set_in_training_mode
 
         self.hold_samples_in_memory = hold_samples_in_memory
+        self.torch_datasets_chunk_size = torch_datasets_chunk_size
 
         self.data_root = data_root
 
@@ -213,6 +224,7 @@ class ModelTrainer:
                 sampler=self.sampler,
                 load_test_set_in_training_mode=self.load_test_set_in_training_mode,
                 hold_samples_in_memory=self.hold_samples_in_memory,
+                torch_datasets_chunk_size=self.torch_datasets_chunk_size
             )
         except Exception:
             logger = logging.getLogger(__name__)
