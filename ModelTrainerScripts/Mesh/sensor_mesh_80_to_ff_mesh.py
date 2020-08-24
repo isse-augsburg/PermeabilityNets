@@ -13,7 +13,7 @@ if __name__ == '__main__':
     sample_file = Path("/home/lukas/rtm/rtm_files/2019-07-24_16-32-40_308_RESULT.erfh5")
 
     Utils.custom_mlflow.logging = False
-    debug = False
+    debug = True
 
     if "swt-dgx" in socket.gethostname():
         pass
@@ -31,8 +31,7 @@ if __name__ == '__main__':
         num_test_samples = 5000
         data_root = Path(base_path / "rtm_files")
         load_datasets_path = None
-        # cache_path = base_path / "cache"
-        cache_path = None
+        cache_path = base_path / "cache"
     else:
         print("No valid configuration for this machine. Aborting...")
         exit()
@@ -44,7 +43,7 @@ if __name__ == '__main__':
         num_test_samples = 4
         data_root = Path(base_path / "debug")
 
-    dlm = DataLoaderMesh(sensor_verts_path=sensor_verts_path)
+    dlm = DataLoaderMesh(sensor_indices=((1, 2), (1, 2)))
     mesh = dlm.get_batched_mesh_torch(batch_size, sample_file)
     model = SensorMeshToFlowFrontModel(mesh, batch_size=batch_size)
 
@@ -56,7 +55,7 @@ if __name__ == '__main__':
         batch_size=batch_size,
         train_print_frequency=train_print_frequency,
         epochs=epochs,
-        dummy_epoch=True,
+        dummy_epoch=True ,
         num_workers=num_workers,
         num_validation_samples=num_validation_samples,
         num_test_samples=num_test_samples,
@@ -64,7 +63,7 @@ if __name__ == '__main__':
         data_gather_function=get_filelist_within_folder_blacklisted,
         data_root=data_root,
         loss_criterion=torch.nn.BCELoss(),
-        optimizer_function=lambda params: torch.optim.AdamW(params, lr=1e-5),
+        optimizer_function=lambda params: torch.optim.AdamW(params, lr=1e-3),
         classification_evaluator_function=lambda summary_writer:
         MeshEvaluator(summary_writer=summary_writer),
         lr_scheduler_function=None,

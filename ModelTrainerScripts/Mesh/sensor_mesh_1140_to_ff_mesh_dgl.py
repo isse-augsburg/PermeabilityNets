@@ -4,7 +4,7 @@ from Pipeline.data_loader_mesh import DataLoaderMesh
 from Pipeline.data_gather import get_filelist_within_folder_blacklisted
 from Trainer.ModelTrainer import ModelTrainer
 import socket
-from Models.erfh5_MeshModel import SensorMeshToFlowFrontModel
+from Models.erfh5_DGLMeshModel import SensorMeshToFlowFrontModelDGL
 from Trainer.evaluation import MeshEvaluator
 import Utils.custom_mlflow
 
@@ -45,8 +45,8 @@ if __name__ == '__main__':
         data_root = Path(base_path / "debug")
 
     dlm = DataLoaderMesh(sensor_verts_path=sensor_verts_path)
-    mesh = dlm.get_batched_mesh_torch(batch_size, sample_file)
-    model = SensorMeshToFlowFrontModel(mesh, batch_size=batch_size)
+    mesh = dlm.get_batched_mesh_dgl(batch_size, sample_file)
+    model = SensorMeshToFlowFrontModelDGL(mesh, batch_size=batch_size)
 
     m = ModelTrainer(
         lambda: model,

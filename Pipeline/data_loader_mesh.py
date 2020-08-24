@@ -7,17 +7,20 @@ import torch
 from Utils.data_utils import normalize_coords, extract_nearest_mesh_nodes_to_sensors, \
     get_folder_of_erfh5
 import pickle
+import dgl
 
 
 class DataLoaderMesh:
-    def __init__(self, divide_by_100k=True,
+    def __init__(self, divide_by_100k=False,
                  sensor_verts_path=None,
-                 ignore_useless_states=False):
+                 ignore_useless_states=False,
+                 sensor_indices=((0, 1), (0, 1))
+                 ):
 
-        # TODO use it
         self.divide_by_100k = divide_by_100k
         self.sensor_verts = None
         self.ignore_useless_states = ignore_useless_states
+        self.sensor_indices = sensor_indices
 
         if sensor_verts_path is not None:
             logger = logging.getLogger()
@@ -32,7 +35,7 @@ class DataLoaderMesh:
 
         if self.sensor_verts is None:
             print("calculating sensor vertices from scratch.")
-            self.sensor_verts = extract_nearest_mesh_nodes_to_sensors(folder)
+            self.sensor_verts = extract_nearest_mesh_nodes_to_sensors(folder, sensor_indices=self.sensor_indices)
             print("Calculated sensor vertices.")
 
         try:
@@ -56,6 +59,9 @@ class DataLoaderMesh:
                 flowfront = np.squeeze(np.ceil(flowfront))
 
                 input_features[self.sensor_verts] = np.squeeze(pressure[self.sensor_verts])
+                if self.divide_by_100k:
+                    # input_features = input_features / 100000
+                    input_features = input_features * 10
                 all_inputs.append(input_features)
                 all_labels.append(flowfront)
 
@@ -129,7 +135,7 @@ class DataLoaderMesh:
             f.close()
             return None
 
-    def get_batched_mesh(self, batchsize, filename):
+    def __get_mesh_components(self, filename):
         f = h5py.File(filename, 'r')
 
         try:
@@ -147,30 +153,55 @@ class DataLoaderMesh:
             faces = np.vectorize(hashes.__getitem__)(faces)
 
             faces = torch.unsqueeze(torch.Tensor(faces), dim=0)
-            faces = faces.repeat(batchsize, 1, 1)
             verts = torch.unsqueeze(torch.tensor(verts), dim=0)
-            verts = verts.repeat(batchsize, 1, 1)
-            mesh = Meshes(verts=verts, faces=faces)
 
             f.close()
-            return mesh
+            return verts, faces
 
         except KeyError:
             logger = logging.getLogger()
             logger.warning(f'KeyError: Calculation of mesh failed.')
             f.close()
-            return None
+            raise Exception('Calculation of mesh failed because of a KeyError')
         except IndexError:
             logger = logging.getLogger()
             logger.warning(f'KeyError: Calculation of mesh failed.')
             f.close()
-            return None
+            raise Exception('Calculation of mesh failed because of a IndexError')
+
+    def get_batched_mesh_torch(self, batchsize, filename):
+
+        verts, faces = self.__get_mesh_components(filename)
+
+        faces = faces.repeat(batchsize, 1, 1)
+        verts = verts.repeat(batchsize, 1, 1)
+        mesh = Meshes(verts=verts, faces=faces)
+
+        return mesh
+
+    def get_batched_mesh_dgl(self, batchsize, filename):
+
+        verts, faces = self.__get_mesh_components(filename)
+
+        # Using PyTorch3d Meshes because of its transformations, e.g. edges_packed()
+        mesh = Meshes(verts=verts, faces=faces)
+        edges = mesh.edges_packed().numpy()
+        src, dst = np.split(edges, 2, axis=1)
+        u = np.squeeze(np.concatenate([src, dst]))
+        v = np.squeeze(np.concatenate([dst, src]))
+        dgl_mesh = dgl.DGLGraph((u, v))
+        batch = [dgl_mesh for i in range(batchsize)]
+        batched_mesh = dgl.batch(batch)
+        return batched_mesh
+
+
 
 
 if __name__ == '__main__':
-    dl = DataLoaderMesh(sensor_verts_path=Path("/home/lukas/rtm/sensor_verts.dump"))
+    sensor_verts_path = Path("/home/lukas/rtm/sensor_verts.dump")
+    dl = DataLoaderMesh()
     file = Path("/home/lukas/rtm/rtm_files/2019-07-24_16-32-40_308_RESULT.erfh5")
     # mesh = dl.get_batched_mesh(4, file)
-    # instances = dl.get_sensor_flowfront_mesh(file)
-    instances = dl.get_sensor_dryspot_mesh(file)
+    instances = dl.get_sensor_flowfront_mesh(file)
+    # instances = dl.get_sensor_dryspot_mesh(file)
     pass

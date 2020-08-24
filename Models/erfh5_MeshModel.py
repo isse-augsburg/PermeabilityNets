@@ -220,7 +220,7 @@ if __name__ == '__main__':
 
     bs = 4
 
-    mesh = dl.get_batched_mesh(bs, file)
+    mesh = dl.get_batched_mesh_torch(bs, file)
     # model = SensorMeshToFlowFrontModel(mesh)
     # model = SensorMeshToDryspotModel(mesh, bs).cuda()
     model = SensorMeshToDryspotResnet(mesh, bs).cuda()

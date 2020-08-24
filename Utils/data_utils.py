@@ -173,8 +173,15 @@ def get_node_propery_at_states_and_indices(f: h5py.File, node_property: str, sta
     return data
 
 
-def extract_nearest_mesh_nodes_to_sensors(fn: Path):
+def extract_nearest_mesh_nodes_to_sensors(fn: Path, sensor_indices=((0, 1), (0, 1))):
     sensor_coords = extract_sensor_coords(Path(str(fn) + "d.out"))
+    sensor_coords = sensor_coords.reshape(38, 30, 2)
+    sensor_coords = sensor_coords[
+                            sensor_indices[0][0]:: sensor_indices[0][1],
+                            sensor_indices[1][0]:: sensor_indices[1][1]
+                        ]
+    sensor_coords = sensor_coords.reshape(-1, 2)
+
     nodes_coords = extract_coords_of_mesh_nodes(Path(str(fn) + "_RESULT.erfh5"), normalized=False)
     dists_indeces = []
     for sensor in sensor_coords:
@@ -224,5 +231,9 @@ def get_folder_of_erfh5(file):
 
 
 if __name__ == '__main__':
+    '''extract_nearest_mesh_nodes_to_sensors(
+        Path(r'Y:\data\RTM\Leoben\sim_output\2019-07-23_15-38-08_5000p\0\2019-07-23_15-38-08_0'))'''
+
     extract_nearest_mesh_nodes_to_sensors(
-        Path(r'Y:\data\RTM\Leoben\sim_output\2019-07-23_15-38-08_5000p\0\2019-07-23_15-38-08_0'))
+        Path("/home/lukas/rtm/rtm_files/2019-07-24_16-32-40_308")
+    )

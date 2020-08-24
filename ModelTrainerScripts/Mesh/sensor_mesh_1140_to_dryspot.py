@@ -68,7 +68,7 @@ if __name__ == '__main__':
         data_root = Path(base_path / "debug")
 
     dlm = DataLoaderMesh(sensor_verts_path=sensor_verts_path)
-    mesh = dlm.get_batched_mesh(batch_size, sample_file)
+    mesh = dlm.get_batched_mesh_torch(batch_size, sample_file)
     # model = SensorMeshToDryspotModel(mesh, batch_size=batch_size, weights_path=weights_path)
     model = SensorMeshToDryspotResnet(mesh, batch_size=batch_size, weights_path=weights_path)
 
