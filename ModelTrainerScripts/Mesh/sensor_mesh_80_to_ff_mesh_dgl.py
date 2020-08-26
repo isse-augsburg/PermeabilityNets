@@ -23,7 +23,7 @@ if __name__ == '__main__':
 
         filepaths = [base_path / "rtm_files"]
         save_path = Path(base_path / "output")
-        batch_size = 96
+        batch_size = 64
         train_print_frequency = 100
         epochs = 5
         num_workers = 8
@@ -63,7 +63,7 @@ if __name__ == '__main__':
         data_gather_function=get_filelist_within_folder_blacklisted,
         data_root=data_root,
         loss_criterion=torch.nn.BCELoss(),
-        optimizer_function=lambda params: torch.optim.AdamW(params, lr=1e-3),
+        optimizer_function=lambda params: torch.optim.AdamW(params, lr=1e-4),
         classification_evaluator_function=lambda summary_writer:
         MeshEvaluator(summary_writer=summary_writer),
         lr_scheduler_function=None,

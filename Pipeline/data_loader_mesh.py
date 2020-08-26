@@ -34,7 +34,7 @@ class DataLoaderMesh:
         instances = []
 
         if self.sensor_verts is None:
-            print("calculating sensor vertices from scratch.")
+            print("Calculating sensor vertices from scratch.")
             self.sensor_verts = extract_nearest_mesh_nodes_to_sensors(folder, sensor_indices=self.sensor_indices)
             print("Calculated sensor vertices.")
 
