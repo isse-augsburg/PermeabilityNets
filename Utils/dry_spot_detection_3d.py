@@ -13,6 +13,10 @@ import numpy as np
 
 from Utils.data_utils import scale_coords_leoben
 
+# part dims: x [-350, 308], y [-297, 360]
+x_lim = [-330, 280]
+y_lim = [-270, 340]
+
 
 def __analyze_image(img: np.ndarray, perm_map: np.ndarray):
     """
@@ -30,7 +34,7 @@ def __analyze_image(img: np.ndarray, perm_map: np.ndarray):
 
        """
     _, threshold = cv2.threshold(img, 70, 190, cv2.THRESH_BINARY)
-    _, contours, _ = cv2.findContours(threshold, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    contours, _ = cv2.findContours(threshold, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     min_size = 3
     dryspots = np.zeros_like(img, dtype=np.float)
     spots = False
@@ -115,14 +119,15 @@ def dry_spot_analysis(file_path, triang: tri.Triangulation, Xi: np.ndarray, Yi: 
     ignore_list = []
     for i, k in enumerate(keys):
         try:
-            z = f[f"/post/singlestate/{k}/entityresults/NODE/FILLING_FACTOR/ZONE1_set1/erfblock/res"][()].flatten()
+            z = f[f"/post/singlestate/{k}/entityresults/NODE/FILLING_FACTOR/ZONE1_set0/erfblock/res"][()].flatten()
         except KeyError:
+            print(f"KeyError in state {i}")
             continue
         zi = __interpolate_flowfront(Xi, Yi, ignore_list, k, triang, z)
         img = __create_flowfront_img(k, output_dir_imgs, save_flowfront_img, xi, yi, zi)
 
         spot_b, dryspot_img, probs = __analyze_image(img, perm_map)
-        if save_flowfront_img:
+        if save_flowfront_img and spot_b:
             cv2.imwrite(str(output_dir_imgs / (f"{k}_permeability_map.png")), perm_map)
             cv2.imwrite(str(output_dir_imgs / (f"{k}_dry.png")), dryspot_img)
 
@@ -205,7 +210,7 @@ def __create_flowfront_img(k, output_dir_imgs, save_flowfront_img, xi, yi, zi):
     ax2 = fig2.add_subplot(111)
     ax2.contourf(xi, yi, zi, levels=10, extend="both")  # cmap="gray")
     del zi
-    ax2.set(xlim=(0, 375), ylim=(0, 300))
+    ax2.set(xlim=(x_lim[0], x_lim[1]), ylim=(y_lim[0], y_lim[1]))
     plt.axis("off")
     plt.tight_layout()
     extent = ax2.get_window_extent().transformed(fig2.dpi_scale_trans.inverted())
@@ -233,14 +238,14 @@ def __create_flowfront_img(k, output_dir_imgs, save_flowfront_img, xi, yi, zi):
 
 
 def __create_permeability_map(f, triang, colored=False, path=None):
-    fvc = f["/post/constant/entityresults/SHELL/FIBER_FRACTION/ZONE1_set1/erfblock/res"][()].flatten()
+    fvc = f["/post/constant/entityresults/SHELL/FIBER_FRACTION/ZONE1_set0/erfblock/res"][()].flatten()
     fig = plt.figure()
     ax = fig.add_subplot(111)
     if colored:
         plt.tripcolor(triang, fvc)
     else:
         plt.tripcolor(triang, fvc, cmap="gray")
-    ax.set(xlim=(0, 375), ylim=(0, 300))
+    ax.set(xlim=(x_lim[0], x_lim[1]), ylim=(y_lim[0], y_lim[1]))
     plt.axis("off")
     plt.tight_layout()
     extent = ax.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
@@ -289,10 +294,13 @@ def create_triangle_mesh(file_path):
     x = scaled_coords[:, 0]
     y = scaled_coords[:, 1]
     triangles = f["/post/constant/connectivities/SHELL/erfblock/ic"][()]
-    triangles = triangles - triangles.min()
+    hashes = f["post/constant/entityresults/NODE/COORDINATE/ZONE1_set0/"
+               "erfblock/entid"][()]
+    hashes = {h: i for i, h in enumerate(hashes)}
+    triangles = np.vectorize(hashes.__getitem__)(triangles)
     triangles = triangles[:, :-1]
-    xi = np.linspace(0, 375, 376)
-    yi = np.linspace(0, 300, 301)
+    xi = np.linspace(-350, 308, 309)
+    yi = np.linspace(-297, 360, 361)
     Xi, Yi = np.meshgrid(xi, yi)
     triang = tri.Triangulation(x, y, triangles=triangles)
     return Xi, Yi, triang, xi, yi
@@ -315,4 +323,7 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    file_path = Path(r"C:\Uni\3D Simulation\Dryspot_Detection_Test\2020-08-26_14-48-19_0_RESULT.erfh5")
+    output_path = Path(r"C:\Uni\3D Simulation\Dryspot_Detection_Test\output")
+    Xi, Yi, triang, xi, yi = create_triangle_mesh(file_path)
+    dry_spot_analysis(file_path, triang, Xi, Yi, xi, yi, save_flowfront_img=True, output_dir_imgs=output_path, )

@@ -230,6 +230,10 @@ def get_folder_of_erfh5(file):
     folder = Path("_".join(file_string))
     return folder
 
+def insert_missing_sensor_in_3dsim(sensor_values):
+    pass
+
+
 
 if __name__ == '__main__':
     '''extract_nearest_mesh_nodes_to_sensors(
