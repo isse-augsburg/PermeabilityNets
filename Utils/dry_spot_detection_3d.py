@@ -14,8 +14,15 @@ import numpy as np
 from Utils.data_utils import scale_coords_leoben
 
 # part dims: x [-350, 308], y [-297, 360]
-x_lim = [-330, 280]
-y_lim = [-270, 340]
+# x_lim = [-330, 280]
+# y_lim = [-270, 340]
+x_lim = [-350, 308]
+y_lim = [-297, 360]
+
+
+def __plot_img(img):
+    plt.imshow(img)
+    plt.show()
 
 
 def __analyze_image(img: np.ndarray, perm_map: np.ndarray):
@@ -34,34 +41,40 @@ def __analyze_image(img: np.ndarray, perm_map: np.ndarray):
 
        """
     _, threshold = cv2.threshold(img, 70, 190, cv2.THRESH_BINARY)
+    # __plot_img(threshold)
     contours, _ = cv2.findContours(threshold, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-    min_size = 3
+    min_size = 75 # previous: 3
     dryspots = np.zeros_like(img, dtype=np.float)
     spots = False
     probs = []
     for i, cnt in enumerate(contours):
         # create a polygon from a contour with tolerance
+        # debug_img = np.zeros_like(img, dtype=np.float)
+        # cv2.drawContours(debug_img, contours, -1, (255, 0, 0), 3)
+        # __plot_img(debug_img)
+
         approx = cv2.approxPolyDP(cnt, 0.005 * cv2.arcLength(cnt, True), True)
         size = cv2.contourArea(cnt)
         # if the contour is to small, ignore it
         if size < min_size:
             continue
         # if the contour contains the whole image, it can be ignored as well
-        if size > 273440:
+        if size > 273440: #prevoius: 273 440
             continue
 
         empty = np.zeros_like(img, dtype=np.float)
         cv2.fillPoly(empty, [np.squeeze(approx)], 255)
         perm_cut = np.where(empty == 255, perm_map.astype(np.float), 0)  # take values from perm map, where contour is
+        # perm_cut = np.where(empty == 255, perm_map.astype(np.float), 25)
         del empty
         # filter values of the background assuming background is between 70 and 65
         perm_cut = np.where((perm_cut <= 70) & (perm_cut >= 65), 0, perm_cut)
         perm_cut = np.where((perm_cut == 0), 0, 255)  # focus on anything other than background
         avg_dryspot_prob = np.sum(perm_cut, dtype=np.float) / size  # normalize with size of contour area
-        # print(avg_dryspot_prob, np.sum(perm_cut,dtype=np.float), size) # debug print statement
+        print(avg_dryspot_prob, np.sum(perm_cut,dtype=np.float), size) # debug print statement
         del perm_cut
         probs.append(avg_dryspot_prob)
-        if avg_dryspot_prob > 250:
+        if avg_dryspot_prob > 250: # prev 250
             cv2.fillPoly(dryspots, [np.squeeze(approx)], 255)
             spots = True
     del contours, threshold
@@ -108,6 +121,7 @@ def dry_spot_analysis(file_path, triang: tri.Triangulation, Xi: np.ndarray, Yi: 
     _ = __create_permeability_map(f, triang, colored=True,
                                   path=str(output_dir_imgs / "permeability_map.png"))
     perm_map = __create_permeability_map(f, triang)
+    # perm_map = np.where(perm_map == 244, 116, perm_map) # cut out surrounding with high permeability
     spot_list_s = []
     spot_list_e = []
     b_set = False
@@ -124,12 +138,13 @@ def dry_spot_analysis(file_path, triang: tri.Triangulation, Xi: np.ndarray, Yi: 
             print(f"KeyError in state {i}")
             continue
         zi = __interpolate_flowfront(Xi, Yi, ignore_list, k, triang, z)
-        img = __create_flowfront_img(k, output_dir_imgs, save_flowfront_img, xi, yi, zi)
+        img = __create_flowfront_img(i, output_dir_imgs, save_flowfront_img, xi, yi, zi)
 
+        print(f"### {i} ###")
         spot_b, dryspot_img, probs = __analyze_image(img, perm_map)
         if save_flowfront_img and spot_b:
-            cv2.imwrite(str(output_dir_imgs / (f"{k}_permeability_map.png")), perm_map)
-            cv2.imwrite(str(output_dir_imgs / (f"{k}_dry.png")), dryspot_img)
+            cv2.imwrite(str(output_dir_imgs / (f"{i}_permeability_map.png")), perm_map)
+            cv2.imwrite(str(output_dir_imgs / (f"{i}_dry.png")), dryspot_img)
 
         # check for large jumps in dryspot probability. This is used to determine whether a file should be blacklisted.
         if len(probs) > 0:
@@ -299,8 +314,8 @@ def create_triangle_mesh(file_path):
     hashes = {h: i for i, h in enumerate(hashes)}
     triangles = np.vectorize(hashes.__getitem__)(triangles)
     triangles = triangles[:, :-1]
-    xi = np.linspace(-350, 308, 309)
-    yi = np.linspace(-297, 360, 361)
+    xi = np.linspace(x_lim[0], x_lim[1], (abs(x_lim[0]) + abs(x_lim[1]) + 1))
+    yi = np.linspace(y_lim[0], y_lim[1], (abs(y_lim[0]) + abs(y_lim[1]) + 1))
     Xi, Yi = np.meshgrid(xi, yi)
     triang = tri.Triangulation(x, y, triangles=triangles)
     return Xi, Yi, triang, xi, yi
