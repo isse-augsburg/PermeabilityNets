@@ -4,6 +4,8 @@ from functools import partial
 from multiprocessing import Pool
 from pathlib import Path
 from time import time
+import os
+import glob
 
 import cv2
 import h5py
@@ -43,7 +45,7 @@ def __analyze_image(img: np.ndarray, perm_map: np.ndarray):
     _, threshold = cv2.threshold(img, 70, 190, cv2.THRESH_BINARY)
     # __plot_img(threshold)
     contours, _ = cv2.findContours(threshold, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-    min_size = 75 # previous: 3
+    min_size = 17 # previous: 3; best: 75
     dryspots = np.zeros_like(img, dtype=np.float)
     spots = False
     probs = []
@@ -67,14 +69,14 @@ def __analyze_image(img: np.ndarray, perm_map: np.ndarray):
         perm_cut = np.where(empty == 255, perm_map.astype(np.float), 0)  # take values from perm map, where contour is
         # perm_cut = np.where(empty == 255, perm_map.astype(np.float), 25)
         del empty
-        # filter values of the background assuming background is between 70 and 65
-        perm_cut = np.where((perm_cut <= 70) & (perm_cut >= 65), 0, perm_cut)
+        # filter values of the background assuming background is between 110 and 120
+        perm_cut = np.where((perm_cut <= 120) & (perm_cut >= 110), 0, perm_cut)
         perm_cut = np.where((perm_cut == 0), 0, 255)  # focus on anything other than background
         avg_dryspot_prob = np.sum(perm_cut, dtype=np.float) / size  # normalize with size of contour area
         print(avg_dryspot_prob, np.sum(perm_cut,dtype=np.float), size) # debug print statement
         del perm_cut
         probs.append(avg_dryspot_prob)
-        if avg_dryspot_prob > 250: # prev 250
+        if avg_dryspot_prob > 257: # prev 250; magic number that works well
             cv2.fillPoly(dryspots, [np.squeeze(approx)], 255)
             spots = True
     del contours, threshold
@@ -121,7 +123,8 @@ def dry_spot_analysis(file_path, triang: tri.Triangulation, Xi: np.ndarray, Yi: 
     _ = __create_permeability_map(f, triang, colored=True,
                                   path=str(output_dir_imgs / "permeability_map.png"))
     perm_map = __create_permeability_map(f, triang)
-    # perm_map = np.where(perm_map == 244, 116, perm_map) # cut out surrounding with high permeability
+    perm_map = np.where(perm_map == 244, 116, perm_map) # cut out surrounding with high permeability
+    perm_map = np.where(perm_map == 255, 116, perm_map) # otherwise contours on the outside will be classified as DS
     spot_list_s = []
     spot_list_e = []
     b_set = False
@@ -248,7 +251,9 @@ def __create_flowfront_img(k, output_dir_imgs, save_flowfront_img, xi, yi, zi):
         del file_bytes2
         bytes_tmp.close()
         del bytes_tmp
+
     img = 255 - img
+    # img = np.where(img == 0, 225, img)
     return img
 
 
@@ -340,5 +345,10 @@ def main():
 if __name__ == "__main__":
     file_path = Path(r"C:\Uni\3D Simulation\Dryspot_Detection_Test\2020-08-26_14-48-19_0_RESULT.erfh5")
     output_path = Path(r"C:\Uni\3D Simulation\Dryspot_Detection_Test\output")
+
+    files = glob.glob("C:\\Uni\\3D Simulation\\Dryspot_Detection_Test\\output\\*")
+    for f in files:
+        os.remove(f)
+
     Xi, Yi, triang, xi, yi = create_triangle_mesh(file_path)
     dry_spot_analysis(file_path, triang, Xi, Yi, xi, yi, save_flowfront_img=True, output_dir_imgs=output_path, )
