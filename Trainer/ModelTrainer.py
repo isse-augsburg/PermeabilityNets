@@ -114,7 +114,7 @@ class ModelTrainer:
         set_tracking_uri("http://swt-clustermanager.informatik.uni-augsburg.de:5000")
         # Setting the experiment: normally, it is the Slurm jobname, if the script is not called with slurm,
         #  it is the name of calling script, which should help categorizing experiments as well.
-        set_experiment(f"{os.getenv('SLURM_JOB_NAME', Path(sys.argv[0])).stem}")
+        set_experiment(f"{Path(os.getenv('SLURM_JOB_NAME', Path(sys.argv[0]))).stem}")
 
         initial_timestamp = str(datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
         self.save_path = save_path / initial_timestamp

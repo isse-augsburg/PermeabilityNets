@@ -43,7 +43,7 @@ class SensorToBinaryRunwiseModel(nn.Module):
         out = self.transpose2(out)
         out = torch.squeeze(out, dim=1)
         out = self.adaptive_pool(out)
-        torch.flatten(out)
+        out = torch.flatten(out, 1)
         out = self.fc1(out)
         out = self.fc2(out)
         return out

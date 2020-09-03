@@ -196,24 +196,26 @@ class DataloaderDryspots:
 
     def get_sensor_bool_dryspot_runlevel(self, filename, threshold_min_counted_dryspots=5):
         """
+        Loads sensor values of a run and subsamples the number of timesteps (based on filling percentage),
+        and determines a runwise label ("ok"/"not ok") based on consecutive dryspots counted
 
         Args:
-            filename:
-            threshold_min_counted_dryspots:
+            filename: full path (pathlib object) to an ERFH5-file containing sensor data
+            threshold_min_counted_dryspots: min. number of consecutive dryspots to turn the runlevel label to "not ok"
 
-        Returns:
+        Returns: List of a single tuple containing
+                    1) sequence of sensor values from 100 selected timesteps
+                    2) runlevel label (0 or 1)
 
         """
-        try:
-            f = h5py.File(filename, "r")
-            meta_file = h5py.File(str(filename).replace("RESULT.erfh5", "meta_data.hdf5"), 'r')
+        f = h5py.File(filename, "r")
+        meta_file = h5py.File(str(filename).replace("RESULT.erfh5", "meta_data.hdf5"), 'r')
 
+        try:
             array_of_states = meta_file["dryspot_states/singlestates"][()]
-            ## what about useless states?
-            # if self.ignore_useless_states:
-            #     useless_states = meta_file["useless_states/singlestates"][()]
             set_of_states = set(array_of_states.flatten())
             states = f["post"]["singlestate"]
+
             states = list(states)[self.skip_indizes[0]:self.skip_indizes[1]:self.skip_indizes[2]]
 
             multi_state_pressure = f[
@@ -228,25 +230,38 @@ class DataloaderDryspots:
             current = 0
             frame_labels = []
 
-            for i, sample in enumerate(percentage_of_all_sensors):
-                if sample >= current:
-                    sequence[int(current * 100), :] = m[i, :]
-                    current += per_step
+            # DEBUG
+            print("DL-Start")
 
-                    frame_label = 0
-                    state_num = int(str(states[i]).replace("state", "0"))
-                    if state_num in set_of_states:
-                        frame_label = 1
-                    frame_labels.append(frame_label)
+            for sample in states:
+                state_num = int(str(sample).replace("state", "0"))
+                try:
+                    sample_percentage = percentage_of_all_sensors[state_num - 1]
+                    if sample_percentage >= current:
+                        sequence[int(current * 100), :] = m[state_num - 1, :]
+                        current += per_step
+
+                        frame_label = 0
+                        if state_num in set_of_states:
+                            frame_label = 1
+                        frame_labels.append(frame_label)
+                except IndexError:
+                    continue
 
             # determine runlevel label using frame labels and threshold
             lens_of_runs_of_dryspots = [sum(1 for _ in group) for key, group in
-                                               groupby(np.array(frame_labels == 1)) if key]
+                                               groupby(np.array(frame_labels) == 1) if key]
             max_len = 0 if len(lens_of_runs_of_dryspots) == 0 else max(lens_of_runs_of_dryspots)
             label = 0 if max_len < threshold_min_counted_dryspots else 1
 
             f.close()
             meta_file.close()
+
+            # DEBUG
+            print("DL-Finish")
+
             return [(sequence, label)]
-        except Exception:
+        except KeyError:
+            f.close()
+            meta_file.close()
             return None

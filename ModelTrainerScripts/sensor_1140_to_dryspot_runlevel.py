@@ -16,8 +16,8 @@ if __name__ == "__main__":
     batch_size = 128
     dataset_paths = r.get_all_data_paths()
     num_workers = 75
-    num_val = 500
-    num_test = 500
+    num_val =  1000
+    num_test = 1000
 
     dl = DataloaderDryspots()
     m = ModelTrainer(
@@ -33,10 +33,10 @@ if __name__ == "__main__":
         num_test_samples=num_test,
         data_processing_function=dl.get_sensor_bool_dryspot_runlevel,
         data_gather_function=get_filelist_within_folder_blacklisted,
-        loss_criterion=torch.nn.BSELoss(),
+        loss_criterion=torch.nn.BCELoss(),
         classification_evaluator_function=lambda summary_writer:
-        BinaryClassificationEvaluator(summary_writer=summary_writer, skip_images=False,
-                                      save_path=Path("/cfs/home/s/e/sertolbe/ok-notok-runlevel/")),
+        BinaryClassificationEvaluator(summary_writer=summary_writer, skip_images=True,
+                                      save_path=Path("/cfs/home/s/e/sertolbe/sensor-to-dryspot-runlevel/")),
         dummy_epoch=False
     )
 
