@@ -136,7 +136,7 @@ def dry_spot_analysis(file_path, triang: tri.Triangulation, Xi: np.ndarray, Yi: 
     ignore_list = []
     for i, k in enumerate(keys):
         try:
-            z = f[f"/post/singlestate/{k}/entityresults/NODE/FILLING_FACTOR/ZONE1_set0/erfblock/res"][()].flatten()
+            z = f[f"/post/singlestate/{k}/entityresults/NODE/FILLING_FACTOR/ZONE1_set1/erfblock/res"][()].flatten()
         except KeyError:
             print(f"KeyError in state {i}")
             continue
@@ -258,7 +258,12 @@ def __create_flowfront_img(k, output_dir_imgs, save_flowfront_img, xi, yi, zi):
 
 
 def __create_permeability_map(f, triang, colored=False, path=None):
-    fvc = f["/post/constant/entityresults/SHELL/FIBER_FRACTION/ZONE1_set0/erfblock/res"][()].flatten()
+    try:
+        fvc = f["/post/constant/entityresults/SHELL/FIBER_FRACTION/ZONE1_set0/erfblock/res"][()].flatten()
+    except KeyError:
+        print("KeyError")
+        fvc = f["/post/constant/entityresults/SHELL/FIBER_FRACTION/ZONE1_set1/erfblock/res"][()].flatten()
+
     fig = plt.figure()
     ax = fig.add_subplot(111)
     if colored:
@@ -343,7 +348,10 @@ def main():
 
 
 if __name__ == "__main__":
-    file_path = Path(r"C:\Uni\3D Simulation\Dryspot_Detection_Test\2020-08-26_14-48-19_0_RESULT.erfh5")
+    # file_path = Path(r"C:\Uni\3D Simulation\Dryspot_Detection_Test\2020-08-26_14-48-19_0_RESULT.erfh5")
+    file_path = Path(r"C:\Uni\3D Simulation\Dryspot_Detection_Test\2020-08-24_11-20-27_1292_RESULT.erfh5")
+    # file_path = Path(r"C:\Uni\3D Simulation\Dryspot_Detection_Test\2020-08-24_11-20-27_2122_RESULT.erfh5")
+    # file_path = Path(r"C:\Uni\3D Simulation\Dryspot_Detection_Test\2020-08-24_11-20-27_3644_RESULT.erfh5")
     output_path = Path(r"C:\Uni\3D Simulation\Dryspot_Detection_Test\output")
 
     files = glob.glob("C:\\Uni\\3D Simulation\\Dryspot_Detection_Test\\output\\*")
@@ -351,4 +359,7 @@ if __name__ == "__main__":
         os.remove(f)
 
     Xi, Yi, triang, xi, yi = create_triangle_mesh(file_path)
-    dry_spot_analysis(file_path, triang, Xi, Yi, xi, yi, save_flowfront_img=True, output_dir_imgs=output_path, )
+    dry_spot_analysis(file_path, triang, Xi, Yi, xi, yi, save_flowfront_img=True,
+                      output_dir_imgs=output_path,
+                      change_meta_file=True,
+                      detect_useless=True)
