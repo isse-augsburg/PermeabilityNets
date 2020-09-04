@@ -12,7 +12,7 @@ from PIL import Image
 from sklearn.metrics import confusion_matrix
 from sklearn.preprocessing import normalize
 
-from mlflow import log_metric
+from mlflow import log_metric, get_artifact_uri
 
 """ 
 >>>> PLEASE NOTE: <<<<
@@ -217,23 +217,44 @@ class BinaryClassificationEvaluator(Evaluator):
         logger.info(f"True positives: {self.tp}, False positives: {self.fp}, True negatives: {self.tn}, "
                     f"False negatives: {self.fn}")
 
+        class_names = ["Not OK", "OK"]
+        conf_mat_abs = self.__plot_confusion_matrix(self.confusion_matrix, class_names)
+        conf_mat_classnorm = self.__plot_confusion_matrix(self.confusion_matrix, class_names, 'class')
+        conf_mat_allnorm = self.__plot_confusion_matrix(self.confusion_matrix, class_names, 'all')
+
+        # Tensorboard
         if self.summary_writer is not None:
             self.summary_writer.add_scalar("Validation/Accuracy", self.accuracy, step_count)
             self.summary_writer.add_scalar("Validation/Precision", self.precision, step_count)
             self.summary_writer.add_scalar("Validation/Recall", self.recall, step_count)
             self.summary_writer.add_scalar("Validation/Specificity", self.specificity, step_count)
-            class_names = ["Not OK", "OK"]
-            conf_mat_abs = self.__plot_confusion_matrix(self.confusion_matrix, class_names)
-            conf_mat_classnorm = self.__plot_confusion_matrix(self.confusion_matrix, class_names, 'class')
-            conf_mat_allnorm = self.__plot_confusion_matrix(self.confusion_matrix, class_names, 'all')
+
             self.summary_writer.add_figure("Confusion_Matrix/Absolute", conf_mat_abs, step_count)
             self.summary_writer.add_figure("Confusion_Matrix/Normalized_overall", conf_mat_allnorm, step_count)
             self.summary_writer.add_figure("Confusion_Matrix/Normalized_by_class", conf_mat_classnorm, step_count)
 
+        # MLflow
         log_metric("Validation/Accuracy", self.accuracy, step_count)
         log_metric("Validation/Precision", self.precision, step_count)
         log_metric("Validation/Recall", self.recall, step_count)
         log_metric("Validation/Specificity", self.specificity, step_count)
+
+        log_metric("Confusion_Matrix/TN", self.tn, step_count)
+        log_metric("Confusion_Matrix/FP", self.fp, step_count)
+        log_metric("Confusion_Matrix/FN", self.fn, step_count)
+        log_metric("Confusion_Matrix/TP", self.tp, step_count)
+
+        save_format = 'png'
+        abs_str = 'absolute'
+        allnorm_str = 'normalized_overall'
+        classnorm_str = 'normalized_by_class'
+        mlflow_path = Path(get_artifact_uri()) / "confusion_matrix"
+        mlflow_path.joinpath(abs_str).mkdir(parents=True, exist_ok=True)
+        mlflow_path.joinpath(allnorm_str).mkdir(parents=True, exist_ok=True)
+        mlflow_path.joinpath(classnorm_str).mkdir(parents=True, exist_ok=True)
+        conf_mat_abs.savefig(mlflow_path / abs_str / f"step_{step_count:05}.{save_format}")
+        conf_mat_allnorm.savefig(mlflow_path / allnorm_str / f"step_{step_count:05}.{save_format}")
+        conf_mat_classnorm.savefig(mlflow_path / classnorm_str / f"step_{step_count:05}.{save_format}")
 
         logger.info(f"Accuracy: {self.accuracy:7.4f}, Precision: {self.precision:7.4f}, Recall: {self.recall:7.4f}, "
                     f"Specificity: {self.specificity:7.4f}")

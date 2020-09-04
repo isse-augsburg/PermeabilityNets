@@ -230,9 +230,6 @@ class DataloaderDryspots:
             current = 0
             frame_labels = []
 
-            # DEBUG
-            print("DL-Start")
-
             for sample in states:
                 state_num = int(str(sample).replace("state", "0"))
                 try:
@@ -256,9 +253,6 @@ class DataloaderDryspots:
 
             f.close()
             meta_file.close()
-
-            # DEBUG
-            print("DL-Finish")
 
             return [(sequence, label)]
         except KeyError:

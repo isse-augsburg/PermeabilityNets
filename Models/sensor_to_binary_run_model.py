@@ -17,8 +17,8 @@ class SensorToBinaryRunwiseModel(nn.Module):
         self.l_add_layers = nn.ModuleList()
         k = 16
 
-        self.convlstm = ConvLSTM(input_channels=1, hidden_channels=[
-                                 128, 32], kernel_size=3, step=100, effective_step=[99])
+        self.convlstm = ConvLSTM(input_channels=1, hidden_channels=[128, 32], kernel_size=3, step=100,
+                                 effective_step=[99])
         self.transpose1 = nn.ConvTranspose2d(32, 16, 3, stride=2, padding=0)
 
         for _ in range(num_addlayers):
@@ -29,7 +29,9 @@ class SensorToBinaryRunwiseModel(nn.Module):
         self.transpose2 = nn.ConvTranspose2d(k, 1, 5, stride=2, padding=0)
         self.adaptive_pool = nn.AdaptiveAvgPool2d((135, 103))
         self.fc1 = nn.Linear(135 * 103, 2048)
-        self.fc2 = nn.Linear(2048, 1)
+        self.fc2 = nn.Linear(2048, 512)
+        self.fc3 = nn.Linear(512, 128)
+        self.output = nn.Linear(128, 1)
 
     def forward(self, x: torch.Tensor):
         # sequence, batch, dim, x,y
@@ -44,6 +46,8 @@ class SensorToBinaryRunwiseModel(nn.Module):
         out = torch.squeeze(out, dim=1)
         out = self.adaptive_pool(out)
         out = torch.flatten(out, 1)
-        out = self.fc1(out)
-        out = self.fc2(out)
+        out = F.relu(self.fc1(out))
+        out = F.relu(self.fc2(out))
+        out = F.relu(self.fc3(out))
+        out = torch.sigmoid(self.output(out))
         return out

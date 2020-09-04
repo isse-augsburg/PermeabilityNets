@@ -14,10 +14,13 @@ if __name__ == "__main__":
     args = read_cmd_params()
 
     batch_size = 128
-    dataset_paths = r.get_all_data_paths()
+    dataset_paths = r.get_data_paths()
+    load_from_cache = True
     num_workers = 75
-    num_val =  1000
-    num_test = 1000
+    num_val =  500
+    num_test = 500
+    lr = 1e-4
+    run_name = f""
 
     dl = DataloaderDryspots()
     m = ModelTrainer(
@@ -34,13 +37,16 @@ if __name__ == "__main__":
         data_processing_function=dl.get_sensor_bool_dryspot_runlevel,
         data_gather_function=get_filelist_within_folder_blacklisted,
         loss_criterion=torch.nn.BCELoss(),
+        optimizer_function=lambda params: torch.optim.AdamW(params, lr=lr),
         classification_evaluator_function=lambda summary_writer:
-        BinaryClassificationEvaluator(summary_writer=summary_writer, skip_images=True,
-                                      save_path=Path("/cfs/home/s/e/sertolbe/sensor-to-dryspot-runlevel/")),
-        dummy_epoch=False
+        BinaryClassificationEvaluator(summary_writer=summary_writer, skip_images=True),
+        dummy_epoch=False,
+        caching_torch=load_from_cache,
+        run_name=run_name,
+        save_in_mlflow_directly=False
     )
 
-    if not args.eval:
+    if not args.run_eval:
         m.start_training()
     else:
         m.inference_on_test_set(

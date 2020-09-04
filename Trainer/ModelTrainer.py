@@ -21,7 +21,8 @@ from Utils.data_utils import handle_torch_caching
 from Utils.eval_utils import eval_preparation
 from Utils.training_utils import count_parameters, CheckpointingStrategy
 import getpass
-from Utils.custom_mlflow import log_metric, log_param, log_artifacts, set_tag, set_tracking_uri, set_experiment
+from Utils.custom_mlflow import log_metric, log_param, log_artifacts, set_tag, set_tracking_uri, set_experiment, start_run, end_run
+from mlflow import get_artifact_uri
 
 try:
     from apex import amp
@@ -72,6 +73,8 @@ class ModelTrainer:
         checkpointing_strategy: From enum CheckpointingStrategy in Pipeline.TorchDataGeneratorUtils.torch_internal.py.
                                 Specifies which checkpoints are stored during training.
         hold_samples_in_memory: Flag whether the DataGenerator should keep the processed samples in memory.
+        run_name: String used as run name for mlflow tracking (makes identifying specific runs in mlflow easier)
+        save_in_mlflow_directly: sets save_path to the mlflow artifact directory (instead of making a full copy at the end)
     """
 
     def __init__(
@@ -108,20 +111,26 @@ class ModelTrainer:
         demo_path=None,
         resize_label_to=(0, 0),
         load_test_set_in_training_mode=False,
-        hold_samples_in_memory=True
+        hold_samples_in_memory=True,
+        run_name='',
+        save_in_mlflow_directly=False
     ):
         # Visit the following URL to check the MLFlow dashboard.
         set_tracking_uri("http://swt-clustermanager.informatik.uni-augsburg.de:5000")
         # Setting the experiment: normally, it is the Slurm jobname, if the script is not called with slurm,
         #  it is the name of calling script, which should help categorizing experiments as well.
         set_experiment(f"{Path(os.getenv('SLURM_JOB_NAME', Path(sys.argv[0]))).stem}")
-
-        initial_timestamp = str(datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
-        self.save_path = save_path / initial_timestamp
-        self.save_path.mkdir(parents=True, exist_ok=True)
-
+        start_run(run_name=run_name)
         set_tag("User", getpass.getuser())
 
+        if save_in_mlflow_directly:
+            self.save_path = Path(get_artifact_uri())
+        else:
+            initial_timestamp = str(datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
+            self.save_path = save_path / initial_timestamp
+        
+        self.save_path.mkdir(parents=True, exist_ok=True)
+        self.save_in_mlflow_directly = save_in_mlflow_directly
         self.cache_path = cache_path
         self.train_print_frequency = train_print_frequency
         self.data_source_paths = data_source_paths
@@ -152,8 +161,10 @@ class ModelTrainer:
             caching_torch = False
 
         if caching_torch:
-            load_and_save_path, data_loader_hash = handle_torch_caching(
-                self.data_processing_function, self.data_source_paths, self.sampler, self.batch_size)
+            load_and_save_path, data_loader_hash = handle_torch_caching(self.data_processing_function,
+                                                                        self.data_source_paths, self.sampler,
+                                                                        self.batch_size, self.num_validation_samples,
+                                                                        self.num_test_samples)
             self.data_loader_hash = data_loader_hash
             self.load_torch_dataset_path = load_and_save_path
             self.save_torch_dataset_path = load_and_save_path
@@ -370,8 +381,6 @@ class ModelTrainer:
             self.writer.add_scalar("Validation/Loss", validation_loss, 0)
             log_metric("Validation/Loss", validation_loss, 0)
 
-        log_artifacts(self.save_path)
-
         if self.produce_torch_datasets_only:
             logger.info(f"Triggering caching, saving all datasets to {self.save_torch_dataset_path}")
             logger.info("Training dataset ...")
@@ -384,7 +393,11 @@ class ModelTrainer:
             logger.info("The Training Will Start Shortly")
             self.__train_loop()
 
+        if not self.save_in_mlflow_directly:
+            log_artifacts(self.save_path)
+
         logging.shutdown()
+        end_run()
 
     def __train_loop(self):
         start_time = time.time()
