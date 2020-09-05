@@ -74,7 +74,10 @@ class ModelTrainer:
                                 Specifies which checkpoints are stored during training.
         hold_samples_in_memory: Flag whether the DataGenerator should keep the processed samples in memory.
         run_name: String used as run name for mlflow tracking (makes identifying specific runs in mlflow easier)
-        save_in_mlflow_directly: sets save_path to the mlflow artifact directory (instead of making a full copy at the end)
+        save_in_mlflow_directly: sets save_path to the mlflow artifact directory (instead of making a copy at the end)
+        torch_datasets_chunk_size (int): If >0, the train and testset will be saved in multiple .pt chunks. Specifies
+                                         how many samples are stored in a chunk. If <=0, saving and loading of torch
+                                         datasets will not be changed.
     """
 
     def __init__(
@@ -113,7 +116,8 @@ class ModelTrainer:
         load_test_set_in_training_mode=False,
         hold_samples_in_memory=True,
         run_name='',
-        save_in_mlflow_directly=False
+        save_in_mlflow_directly=False,
+        torch_datasets_chunk_size=0
     ):
         # Visit the following URL to check the MLFlow dashboard.
         set_tracking_uri("http://swt-clustermanager.informatik.uni-augsburg.de:5000")
@@ -128,7 +132,7 @@ class ModelTrainer:
         else:
             initial_timestamp = str(datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
             self.save_path = save_path / initial_timestamp
-        
+
         self.save_path.mkdir(parents=True, exist_ok=True)
         self.save_in_mlflow_directly = save_in_mlflow_directly
         self.cache_path = cache_path
@@ -166,8 +170,14 @@ class ModelTrainer:
                                                                         self.batch_size, self.num_validation_samples,
                                                                         self.num_test_samples)
             self.data_loader_hash = data_loader_hash
-            self.load_torch_dataset_path = load_and_save_path
+
+            if produce_torch_datasets_only:
+                self.load_torch_dataset_path = None
+            else:
+                self.load_torch_dataset_path = load_and_save_path
+
             self.save_torch_dataset_path = load_and_save_path
+            self.save_torch_dataset_path.mkdir(exist_ok=True)
         else:
             self.data_loader_hash = "NOT_CACHING"
             self.load_torch_dataset_path = None
@@ -198,6 +208,7 @@ class ModelTrainer:
         self.load_test_set_in_training_mode = load_test_set_in_training_mode
 
         self.hold_samples_in_memory = hold_samples_in_memory
+        self.torch_datasets_chunk_size = torch_datasets_chunk_size
 
         self.data_root = data_root
 
@@ -224,6 +235,7 @@ class ModelTrainer:
                 sampler=self.sampler,
                 load_test_set_in_training_mode=self.load_test_set_in_training_mode,
                 hold_samples_in_memory=self.hold_samples_in_memory,
+                torch_datasets_chunk_size=self.torch_datasets_chunk_size
             )
         except Exception:
             logger = logging.getLogger(__name__)

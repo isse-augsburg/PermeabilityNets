@@ -71,3 +71,11 @@ Steps for using the ModelTrainer in your script:
 * Train your model using `mt.start_training()`. No additional parameters need to be passed if you have configured the ModelTrainer correctly
 * Testing using a dedicated test set can be done using `mt.inference_on_test_set( ... )`
 
+
+### Usage of data chunks
+
+* Set `dataset_split_path` parameter of `ModelTrainer` correctly, either directly or in `Resources.training`
+* Pass `torch_datasets_chunk_size` with the correct data chunk size to `ModelTrainer`
+* The correct chunks sizes for our pre-stored datasts are: sensor to dryspot -> 300 000, sensor to flowfront -> 75 000
+* If you want to exclude some datachunks from loading, you either have to change the code of `Pipeline/TorchDataGeneratorUtils/torch_internal.load_data_chunks` or remove any files you don't want to load from the directory.
+
