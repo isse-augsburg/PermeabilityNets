@@ -17,10 +17,10 @@ if __name__ == "__main__":
     dataset_paths = r.get_data_paths()
     load_from_cache = True
     num_workers = 75
-    num_val =  500
+    num_val = 500
     num_test = 500
     lr = 1e-4
-    run_name = f""
+    run_name = ""
 
     dl = DataloaderDryspots()
     m = ModelTrainer(

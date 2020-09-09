@@ -247,7 +247,7 @@ class DataloaderDryspots:
 
             # determine runlevel label using frame labels and threshold
             lens_of_runs_of_dryspots = [sum(1 for _ in group) for key, group in
-                                               groupby(np.array(frame_labels) == 1) if key]
+                                        groupby(np.array(frame_labels) == 1) if key]
             max_len = 0 if len(lens_of_runs_of_dryspots) == 0 else max(lens_of_runs_of_dryspots)
             label = 0 if max_len < threshold_min_counted_dryspots else 1
 
