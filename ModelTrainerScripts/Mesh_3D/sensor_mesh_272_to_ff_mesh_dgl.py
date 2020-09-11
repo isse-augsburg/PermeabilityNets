@@ -8,8 +8,11 @@ from Models.erfh5_DGLMeshModel import SensorMeshToFlowFrontModelDGL
 from Trainer.evaluation import MeshEvaluator
 import Utils.custom_mlflow
 
+import networkx as nx
+import matplotlib.pyplot as plt
+
 if __name__ == '__main__':
-    # sensor_verts_path = Path("/home/lukas/rtm/sensor_verts_3d_v2.dump")
+    sensor_verts_path = Path("/home/lukas/rtm/sensor_verts_3d_272.dump")
     sample_file = Path("/home/lukas/rtm/rtm_files_3d/2020-08-24_11-20-27_75_RESULT.erfh5")
 
     Utils.custom_mlflow.logging = False
@@ -44,8 +47,12 @@ if __name__ == '__main__':
         data_root = Path(base_path / "debug")
 
     # Sensorgrid: 17*16 = 272
-    dlm = DataLoaderMesh(sensor_indices=((1, 3), (1, 3)))
+    dlm = DataLoaderMesh(sensor_indices=((1, 3), (1, 3)), sensor_verts_path=sensor_verts_path)
     mesh = dlm.get_batched_mesh_dgl(batch_size, sample_file)
+    # fig, ax = plt.subplots()
+    # nx.draw(mesh.to_networkx(), ax=ax)
+    # plt.show()
+
     model = SensorMeshToFlowFrontModelDGL(mesh, batch_size=batch_size)
 
     m = ModelTrainer(

@@ -185,7 +185,7 @@ def preprocess_3dsim_sensors(sensors: list):
 
 def extract_nearest_mesh_nodes_to_sensors(fn: Path, sensor_indices=((0, 1), (0, 1)), target_size=(38, 30, 2),
                                           third_dim=False):
-    sensor_coords = extract_sensor_coords(Path(str(fn) + "d.out"), third_dim=True)
+    sensor_coords = extract_sensor_coords(Path(str(fn) + "d.out"), third_dim=third_dim)
 
     if third_dim:
         sensor_coords = sensor_coords[25:]

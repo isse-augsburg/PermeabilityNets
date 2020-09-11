@@ -8,7 +8,7 @@ from Utils.data_utils import normalize_coords, extract_nearest_mesh_nodes_to_sen
     get_folder_of_erfh5
 import pickle
 import dgl
-
+import os
 
 class DataLoaderMesh:
     def __init__(self, divide_by_100k=False,
@@ -22,7 +22,9 @@ class DataLoaderMesh:
         self.ignore_useless_states = ignore_useless_states
         self.sensor_indices = sensor_indices
 
-        if sensor_verts_path is not None:
+        self.sensor_verts_path = sensor_verts_path
+
+        if (self.sensor_verts_path is not None) and (os.path.isfile(self.sensor_verts_path)):
             logger = logging.getLogger()
             logger.info('Loading sensor vertices from pickle file.')
             self.sensor_verts = pickle.load(open(sensor_verts_path, 'rb'))
@@ -38,7 +40,9 @@ class DataLoaderMesh:
             print("Calculating sensor vertices from scratch.")
             self.sensor_verts = extract_nearest_mesh_nodes_to_sensors(folder, sensor_indices=self.sensor_indices,
                                                                       target_size=(66, 65, 3), third_dim=True)
-            # pickle.dump(self.sensor_verts, open("/home/lukas/rtm/sensor_verts_3d_v2.dump", 'wb'))
+            if self.sensor_verts is not None:
+                pickle.dump(self.sensor_verts, open(self.sensor_verts_path, 'wb'))
+                print(f"Saved sensor vertices in {self.sensor_verts_path}.")
             self.sensor_verts = self.sensor_verts[:-1]
             print(f"Calculated {len(self.sensor_verts)} sensor vertices.")
 
