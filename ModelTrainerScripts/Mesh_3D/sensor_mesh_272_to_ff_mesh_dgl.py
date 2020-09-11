@@ -8,8 +8,8 @@ from Models.erfh5_DGLMeshModel import SensorMeshToFlowFrontModelDGL
 from Trainer.evaluation import MeshEvaluator
 import Utils.custom_mlflow
 
-import networkx as nx
-import matplotlib.pyplot as plt
+# import networkx as nx
+# import matplotlib.pyplot as plt
 
 if __name__ == '__main__':
     sensor_verts_path = Path("/home/lukas/rtm/sensor_verts_3d_272.dump")
