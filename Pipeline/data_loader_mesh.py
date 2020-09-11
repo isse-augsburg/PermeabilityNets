@@ -26,6 +26,7 @@ class DataLoaderMesh:
             logger = logging.getLogger()
             logger.info('Loading sensor vertices from pickle file.')
             self.sensor_verts = pickle.load(open(sensor_verts_path, 'rb'))
+            self.sensor_verts = self.sensor_verts[:-1]
             logger.info('Loaded sensor vertices.')
 
     def get_sensor_flowfront_mesh(self, filename):
@@ -35,8 +36,11 @@ class DataLoaderMesh:
 
         if self.sensor_verts is None:
             print("Calculating sensor vertices from scratch.")
-            self.sensor_verts = extract_nearest_mesh_nodes_to_sensors(folder, sensor_indices=self.sensor_indices)
-            print("Calculated sensor vertices.")
+            self.sensor_verts = extract_nearest_mesh_nodes_to_sensors(folder, sensor_indices=self.sensor_indices,
+                                                                      target_size=(66, 65, 3), third_dim=True)
+            # pickle.dump(self.sensor_verts, open("/home/lukas/rtm/sensor_verts_3d_v2.dump", 'wb'))
+            self.sensor_verts = self.sensor_verts[:-1]
+            print(f"Calculated {len(self.sensor_verts)} sensor vertices.")
 
         try:
             verts = f["post/constant/entityresults/NODE/COORDINATE/ZONE1_set0/"
@@ -193,8 +197,6 @@ class DataLoaderMesh:
         batch = [dgl_mesh for i in range(batchsize)]
         batched_mesh = dgl.batch(batch)
         return batched_mesh
-
-
 
 
 if __name__ == '__main__':

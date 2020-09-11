@@ -129,18 +129,20 @@ def handle_torch_caching(processing_function, data_source_paths, sampler_func, b
     return load_and_save_path, data_loader_hash
 
 
-def extract_sensor_coords(fn: Path, indices=((0, 1), (0, 1))):
+def extract_sensor_coords(fn: Path, third_dim=False, indices=((0, 1), (0, 1))):
     """
     Extract the sensor coordinates as numpy array from a *d.out file, which exists for every run.
     """
     with fn.open() as f:
         content = f.read()
     sensor_coords = []
-    for triple in re.findall(r"\d+\.\d+ \d+\.\d+ \d+\.\d+", content):
+
+    for triple in re.findall(r"-?\d+\.\d+ -?\d+\.\d+ -?\d+\.\d+", content):
         sensor_coords.append([float(e) for e in triple.split(' ')])
     _s_coords = np.array(sensor_coords)
     # Cut off last column (z), since it is filled with 1s anyway
-    _s_coords = _s_coords[:, :-1]
+    if not third_dim:
+        _s_coords = _s_coords[:, :-1]
     # if indices != ((0, 1), (0, 1)):
     #     _s_coords = _s_coords.reshape(38, 30)
     #     _s_coords = _s_coords[indices[0][0]::indices[0][1], indices[1][0]::indices[1][1]]
@@ -148,17 +150,21 @@ def extract_sensor_coords(fn: Path, indices=((0, 1), (0, 1))):
     return _s_coords
 
 
-def extract_coords_of_mesh_nodes(fn: Path, normalized=True):
+def extract_coords_of_mesh_nodes(fn: Path, normalized=True, third_dim=False):
     """
     Extract the coordinates of the mesh nodes as numpy array from a *RESULT.erfh5 file, which exists for every run.
     """
     with h5py.File(fn, 'r') as f:
         coord_as_np_array = f["post/constant/entityresults/NODE/COORDINATE/ZONE1_set0/erfblock/res"][()]
-    # Cut off last column (z), since it is filled with 1s anyway
-    _coords = coord_as_np_array[:, :-1]
+
+    if not third_dim:
+        # Cut off last column (z), since it is filled with 1s anyway
+        coord_as_np_array = coord_as_np_array[:, :-1]
+
     if normalized:
-        _coords = normalize_coords(_coords)
-    return _coords
+        coord_as_np_array = normalize_coords(coord_as_np_array)
+
+    return coord_as_np_array
 
 
 def get_node_propery_at_states_and_indices(f: h5py.File, node_property: str, states: list, indices: list = []):
@@ -173,20 +179,33 @@ def get_node_propery_at_states_and_indices(f: h5py.File, node_property: str, sta
     return data
 
 
-def extract_nearest_mesh_nodes_to_sensors(fn: Path, sensor_indices=((0, 1), (0, 1))):
-    sensor_coords = extract_sensor_coords(Path(str(fn) + "d.out"))
-    sensor_coords = sensor_coords.reshape(38, 30, 2)
-    sensor_coords = sensor_coords[
-                            sensor_indices[0][0]:: sensor_indices[0][1],
-                            sensor_indices[1][0]:: sensor_indices[1][1]
-                        ]
-    sensor_coords = sensor_coords.reshape(-1, 2)
+def preprocess_3dsim_sensors(sensors: list):
+    pass
 
-    nodes_coords = extract_coords_of_mesh_nodes(Path(str(fn) + "_RESULT.erfh5"), normalized=False)
+
+def extract_nearest_mesh_nodes_to_sensors(fn: Path, sensor_indices=((0, 1), (0, 1)), target_size=(38, 30, 2),
+                                          third_dim=False):
+    sensor_coords = extract_sensor_coords(Path(str(fn) + "d.out"), third_dim=True)
+
+    if third_dim:
+        sensor_coords = sensor_coords[25:]
+        sensor_coords = np.append(sensor_coords, [[0, 0, 0]], axis=0)
+
+    sensor_coords = sensor_coords.reshape(target_size)
+    sensor_coords = sensor_coords[sensor_indices[0][0]:: sensor_indices[0][1],
+                                  sensor_indices[1][0]:: sensor_indices[1][1]]
+
+    if third_dim:
+        sensor_coords = sensor_coords.reshape(-1, 3)
+    else:
+        sensor_coords = sensor_coords.reshape(-1, 2)
+
+    nodes_coords = extract_coords_of_mesh_nodes(Path(str(fn) + "_RESULT.erfh5"), normalized=False, third_dim=False)
+    nodes_coords_3d = extract_coords_of_mesh_nodes(Path(str(fn) + "_RESULT.erfh5"), normalized=False, third_dim=True)
     dists_indeces = []
     for sensor in sensor_coords:
-        dists_indeces.append(spatial.KDTree(nodes_coords).query(sensor))
-        # print(f"Sensor at {sensor} -> NN at {nodes_coords[dists_indeces[-1][-1]]}")
+        dists_indeces.append(spatial.KDTree(nodes_coords).query(sensor[:-1]))
+        print(f"Sensor at {sensor} -> NN at {nodes_coords_3d[dists_indeces[-1][-1]]}")
     dists, indices = zip(*dists_indeces)
     return np.array(indices)
 
@@ -230,14 +249,11 @@ def get_folder_of_erfh5(file):
     folder = Path("_".join(file_string))
     return folder
 
-def insert_missing_sensor_in_3dsim(sensor_values):
-    pass
-
-
 
 if __name__ == '__main__':
     '''extract_nearest_mesh_nodes_to_sensors(
-        Path(r'Y:\data\RTM\Leoben\sim_output\2019-07-23_15-38-08_5000p\0\2019-07-23_15-38-08_0'))'''
+        Path(r'Y:\\data\\RTM\\Leoben\\sim_output\\2019-07-23_15-38-08_5000p\\0\\2019-07-23_15-38-08_0'))
+    '''
 
     extract_nearest_mesh_nodes_to_sensors(
         Path("/home/lukas/rtm/rtm_files/2019-07-24_16-32-40_308")

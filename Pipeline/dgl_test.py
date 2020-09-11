@@ -4,10 +4,8 @@ import logging
 from pathlib import Path
 from pytorch3d.structures import Meshes
 import torch
-from Utils.data_utils import normalize_coords, extract_nearest_mesh_nodes_to_sensors, \
-    get_folder_of_erfh5
-import pickle
-import dgl
+from Utils.data_utils import normalize_coords
+# import dgl
 
 
 def get_batched_mesh_dgl(batchsize, filename):
@@ -34,9 +32,9 @@ def get_batched_mesh_dgl(batchsize, filename):
         mesh = Meshes(verts=verts, faces=faces)
         edges = mesh.edges_packed().numpy()
         src, dst = np.split(edges, 2, axis=1)
-        u = np.squeeze(np.concatenate([src, dst]))
-        v = np.squeeze(np.concatenate([dst, src]))
-        dgl_mesh = dgl.DGLGraph((u, v))
+        # u = np.squeeze(np.concatenate([src, dst]))
+        # v = np.squeeze(np.concatenate([dst, src]))
+        # dgl_mesh = dgl.DGLGraph((u, v))
         f.close()
         return mesh
 

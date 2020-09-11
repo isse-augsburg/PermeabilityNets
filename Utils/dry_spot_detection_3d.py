@@ -45,7 +45,7 @@ def __analyze_image(img: np.ndarray, perm_map: np.ndarray):
     _, threshold = cv2.threshold(img, 70, 190, cv2.THRESH_BINARY)
     # __plot_img(threshold)
     contours, _ = cv2.findContours(threshold, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-    min_size = 17 # previous: 3; best: 75
+    min_size = 10  # previous: 3; best: 75
     dryspots = np.zeros_like(img, dtype=np.float)
     spots = False
     probs = []
@@ -61,7 +61,7 @@ def __analyze_image(img: np.ndarray, perm_map: np.ndarray):
         if size < min_size:
             continue
         # if the contour contains the whole image, it can be ignored as well
-        if size > 273440: #prevoius: 273 440
+        if size > 273440:  # prevoius: 273 440
             continue
 
         empty = np.zeros_like(img, dtype=np.float)
@@ -73,10 +73,10 @@ def __analyze_image(img: np.ndarray, perm_map: np.ndarray):
         perm_cut = np.where((perm_cut <= 120) & (perm_cut >= 110), 0, perm_cut)
         perm_cut = np.where((perm_cut == 0), 0, 255)  # focus on anything other than background
         avg_dryspot_prob = np.sum(perm_cut, dtype=np.float) / size  # normalize with size of contour area
-        print(avg_dryspot_prob, np.sum(perm_cut,dtype=np.float), size) # debug print statement
+        # print(avg_dryspot_prob, np.sum(perm_cut,dtype=np.float), size) # debug print statement
         del perm_cut
         probs.append(avg_dryspot_prob)
-        if avg_dryspot_prob > 257: # prev 250; magic number that works well
+        if avg_dryspot_prob > 257:  # prev 250; magic number that works well
             cv2.fillPoly(dryspots, [np.squeeze(approx)], 255)
             spots = True
     del contours, threshold
@@ -123,8 +123,8 @@ def dry_spot_analysis(file_path, triang: tri.Triangulation, Xi: np.ndarray, Yi: 
     _ = __create_permeability_map(f, triang, colored=True,
                                   path=str(output_dir_imgs / "permeability_map.png"))
     perm_map = __create_permeability_map(f, triang)
-    perm_map = np.where(perm_map == 244, 116, perm_map) # cut out surrounding with high permeability
-    perm_map = np.where(perm_map == 255, 116, perm_map) # otherwise contours on the outside will be classified as DS
+    perm_map = np.where(perm_map == 244, 116, perm_map)  # cut out surrounding with high permeability
+    perm_map = np.where(perm_map == 255, 116, perm_map)  # otherwise contours on the outside will be classified as DS
     spot_list_s = []
     spot_list_e = []
     b_set = False
@@ -143,7 +143,7 @@ def dry_spot_analysis(file_path, triang: tri.Triangulation, Xi: np.ndarray, Yi: 
         zi = __interpolate_flowfront(Xi, Yi, ignore_list, k, triang, z)
         img = __create_flowfront_img(i, output_dir_imgs, save_flowfront_img, xi, yi, zi)
 
-        print(f"### {i} ###")
+        # print(f"### {i} ###")
         spot_b, dryspot_img, probs = __analyze_image(img, perm_map)
         if save_flowfront_img and spot_b:
             cv2.imwrite(str(output_dir_imgs / (f"{i}_permeability_map.png")), perm_map)
@@ -177,6 +177,7 @@ def dry_spot_analysis(file_path, triang: tri.Triangulation, Xi: np.ndarray, Yi: 
 
     if not silent:
         print(ignore_list)
+
     if change_meta_file:
         try:
             meta_file = h5py.File(str(file_path).replace("RESULT.erfh5", "meta_data.hdf5"), "r+")
@@ -186,12 +187,14 @@ def dry_spot_analysis(file_path, triang: tri.Triangulation, Xi: np.ndarray, Yi: 
             return
 
     f.close()
+
     if not silent:
         print(
             f"{output_dir_imgs} Overall time: {time() - t00}. Remember: arrays start at one. "
             f'Dryspots at: {[f"{one} - {two}" for (one, two) in zip(spot_list_s, spot_list_e)]}, {deltas_prob[2:]}, '
             f'num of states {len(keys)}'
         )
+
     return spot_list_s, spot_list_e, deltas_prob
 
 
@@ -215,9 +218,20 @@ def __update_meta_data(meta_file, spot_list_e, spot_list_s, ignore_list, detect_
     if detect_useless:
         try:
             useless_states = meta_file.require_group('useless_states')
-            useless_states.create_dataset('singlestates', data=np.array(ignore_list))
+            # The following 2 try/excepts blocks are used to overwrite existing meta data
+            try:
+                useless_states.create_dataset('singlestates', data=np.array(ignore_list))
+            except OSError:
+                del useless_states['singlestates']
+                useless_states.create_dataset('singlestates', data=np.array(ignore_list))
+
             dry_group = meta_file.require_group('dryspot_states')
-            dry_group.create_dataset('singlestates', data=np.array(states))
+            try:
+                dry_group.create_dataset('singlestates', data=np.array(states))
+            except OSError:
+                del dry_group['singlestates']
+                dry_group.create_dataset('singlestates', data=np.array(states))
+
             meta_file.close()
         except RuntimeError:
             pass
@@ -261,7 +275,7 @@ def __create_permeability_map(f, triang, colored=False, path=None):
     try:
         fvc = f["/post/constant/entityresults/SHELL/FIBER_FRACTION/ZONE1_set0/erfblock/res"][()].flatten()
     except KeyError:
-        print("KeyError")
+        # print("KeyError")
         fvc = f["/post/constant/entityresults/SHELL/FIBER_FRACTION/ZONE1_set1/erfblock/res"][()].flatten()
 
     fig = plt.figure()
@@ -348,18 +362,27 @@ def main():
 
 
 if __name__ == "__main__":
-    # file_path = Path(r"C:\Uni\3D Simulation\Dryspot_Detection_Test\2020-08-26_14-48-19_0_RESULT.erfh5")
-    file_path = Path(r"C:\Uni\3D Simulation\Dryspot_Detection_Test\2020-08-24_11-20-27_1292_RESULT.erfh5")
-    # file_path = Path(r"C:\Uni\3D Simulation\Dryspot_Detection_Test\2020-08-24_11-20-27_2122_RESULT.erfh5")
-    # file_path = Path(r"C:\Uni\3D Simulation\Dryspot_Detection_Test\2020-08-24_11-20-27_3644_RESULT.erfh5")
-    output_path = Path(r"C:\Uni\3D Simulation\Dryspot_Detection_Test\output")
+    if os.name == 'nt':
+        # file_path = Path(r"C:\Uni\3D Simulation\Dryspot_Detection_Test\2020-08-26_14-48-19_0_RESULT.erfh5")
+        file_paths = [Path(r"C:\Uni\3D Simulation\Dryspot_Detection_Test\2020-08-24_11-20-27_1292_RESULT.erfh5")]
+        # file_path = Path(r"C:\Uni\3D Simulation\Dryspot_Detection_Test\2020-08-24_11-20-27_2122_RESULT.erfh5")
+        # file_path = Path(r"C:\Uni\3D Simulation\Dryspot_Detection_Test\2020-08-24_11-20-27_3644_RESULT.erfh5")
+        output_path = Path(r"C:\Uni\3D Simulation\Dryspot_Detection_Test\output")
 
-    files = glob.glob("C:\\Uni\\3D Simulation\\Dryspot_Detection_Test\\output\\*")
+        files = glob.glob("C:\\Uni\\3D Simulation\\Dryspot_Detection_Test\\output\\*")
+    else:
+        file_paths = glob.glob("/home/lukas/rtm/rtm_files_3d/*.erfh5")
+        files = glob.glob("/home/lukas/rtm/dryspot_detection_output/*")
+        output_path = Path("/home/lukas/rtm/dryspot_detection_output")
+
     for f in files:
         os.remove(f)
-
-    Xi, Yi, triang, xi, yi = create_triangle_mesh(file_path)
-    dry_spot_analysis(file_path, triang, Xi, Yi, xi, yi, save_flowfront_img=True,
-                      output_dir_imgs=output_path,
-                      change_meta_file=True,
-                      detect_useless=True)
+    i = 0
+    for file_path in file_paths:
+        local_output_path = output_path / str(i)
+        Xi, Yi, triang, xi, yi = create_triangle_mesh(file_path)
+        dry_spot_analysis(file_path, triang, Xi, Yi, xi, yi, save_flowfront_img=True,
+                          output_dir_imgs=local_output_path,
+                          change_meta_file=True,
+                          detect_useless=True)
+        i += 1

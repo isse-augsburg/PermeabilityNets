@@ -20,7 +20,7 @@ def eval_preparation(save_path):
 
     src_path = Path(sys.argv[0]).parent.parent
 
-    # This check is necessary for ModelTrainerScripts in own packages, e.g. Mesh or TransferLearning
+    # This check is necessary for ModelTrainerScripts in own packages, e.g. Mesh_2D or TransferLearning
     if "ModelTrainerScripts" in str(src_path):
         src_path = Path(sys.argv[0]).parent.parent.parent
 
