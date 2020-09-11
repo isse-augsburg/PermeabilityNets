@@ -439,7 +439,6 @@ class ModelTrainer:
                         f"Loss: {loss.item():12.4f} || Duration of step {step_count:6}: {time_delta:10.2f} s; "
                         f"{progress * 100:.2f}% of epoch done; ETA {hours}{(eta % 3600) // 60:.0f}min {eta % 60:.0f}s"
                     )
-                    print(f"Loss: {loss.item()}")
                     start_time = time.time()
 
                 i += 1
