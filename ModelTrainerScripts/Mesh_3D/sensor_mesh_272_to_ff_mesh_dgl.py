@@ -47,7 +47,7 @@ if __name__ == '__main__':
         data_root = Path(base_path / "debug")
 
     # Sensorgrid: 17*16 = 272
-    dlm = DataLoaderMesh(sensor_indices=((1, 3), (1, 3)), sensor_verts_path=sensor_verts_path)
+    dlm = DataLoaderMesh(sensor_indices=((1, 3), (1, 3)), sensor_verts_path=None)
     mesh = dlm.get_batched_mesh_dgl(batch_size, sample_file)
     # fig, ax = plt.subplots()
     # nx.draw(mesh.to_networkx(), ax=ax)

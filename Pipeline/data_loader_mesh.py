@@ -40,7 +40,7 @@ class DataLoaderMesh:
         if self.sensor_verts is None:
             print("Calculating sensor vertices from scratch.")
             self.sensor_verts = extract_nearest_mesh_nodes_to_sensors(folder, sensor_indices=self.sensor_indices,
-                                                                      target_size=(66, 65, 3), third_dim=True)
+                                                                      target_size=(66, 65, 2), third_dim=True)
             if self.sensor_verts is not None:
                 pickle.dump(self.sensor_verts, open(self.sensor_verts_path, 'wb'))
                 print(f"Saved sensor vertices in {self.sensor_verts_path}.")
