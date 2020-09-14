@@ -1,11 +1,11 @@
 import io
-import socket
+# import socket
 from functools import partial
 from multiprocessing import Pool
 from pathlib import Path
 from time import time
-import os
-import glob
+# import os
+# import glob
 
 import cv2
 import h5py
@@ -314,8 +314,8 @@ def multiprocess_wrapper(triang, Xi, Yi, xi, yi, curr_path, i):
     #     source = Path(r"X:\s\t\stiebesi\data\RTM\Leoben\output\with_shapes")
     #     output = Path(r"Y:\cache\DrySpotDet2")
     # else:
-    source = Path("/cfs/share/data/RTM/Leoben/sim_output/")
-    output = Path("/cfs/share/cache/DrySpotDet2")
+    source = Path("/cfs/home/l/o/lodesluk/Sim_Data/output/with_shapes")
+    output = Path("/cfs/home/l/o/lodesluk/Sim_Data/DryspotDetection")
 
     a, b, c = dry_spot_analysis(source / curr_path / str(i) / f"{stamp}_{i}_RESULT.erfh5",
                                 triang, Xi, Yi, xi, yi,
@@ -346,15 +346,12 @@ def create_triangle_mesh(file_path):
 
 
 def main():
-    if socket.gethostname() == "swtse130":
-        file_path = Path(r"X:\s\t\stiebesi\data\RTM\Leoben\output\with_shapes\2019-09-06_17-03-51_10000p\0"
-                         r"\2019-09-06_17-03-51_0_RESULT.erfh5")
-    else:
-        file_path = Path("/cfs/share/data/RTM/Leoben/sim_output/2019-07-23_15-38-08_5000p/0/"
-                         "2019-07-23_15-38-08_0_RESULT.erfh5")
+
+    file_path = Path("/cfs/home/l/o/lodesluk/Sim_Data/output/with_shapes/"
+                     "2020-08-24_11-20-27_5000p/0/2020-08-24_11-20-27_0_RESULT.erfh5")
     Xi, Yi, triang, xi, yi = create_triangle_mesh(file_path)
 
-    curr_path = "2019-09-06_17-03-51_10000p"
+    curr_path = "2020-08-24_11-20-27_5000p"
     num_runs = int(curr_path.split('_')[-1][:-1])
 
     with Pool() as p:
@@ -362,18 +359,10 @@ def main():
 
 
 if __name__ == "__main__":
-    if os.name == 'nt':
-        # file_path = Path(r"C:\Uni\3D Simulation\Dryspot_Detection_Test\2020-08-26_14-48-19_0_RESULT.erfh5")
-        file_paths = [Path(r"C:\Uni\3D Simulation\Dryspot_Detection_Test\2020-08-24_11-20-27_1292_RESULT.erfh5")]
-        # file_path = Path(r"C:\Uni\3D Simulation\Dryspot_Detection_Test\2020-08-24_11-20-27_2122_RESULT.erfh5")
-        # file_path = Path(r"C:\Uni\3D Simulation\Dryspot_Detection_Test\2020-08-24_11-20-27_3644_RESULT.erfh5")
-        output_path = Path(r"C:\Uni\3D Simulation\Dryspot_Detection_Test\output")
-
-        files = glob.glob("C:\\Uni\\3D Simulation\\Dryspot_Detection_Test\\output\\*")
-    else:
-        file_paths = glob.glob("/home/lukas/rtm/rtm_files_3d/*.erfh5")
-        files = glob.glob("/home/lukas/rtm/dryspot_detection_output/*")
-        output_path = Path("/home/lukas/rtm/dryspot_detection_output")
+    '''
+    file_paths = glob.glob("/home/lukas/rtm/rtm_files_3d/*.erfh5")
+    files = glob.glob("/home/lukas/rtm/dryspot_detection_output/*")
+    output_path = Path("/home/lukas/rtm/dryspot_detection_output")
 
     for f in files:
         os.remove(f)
@@ -385,4 +374,6 @@ if __name__ == "__main__":
                           output_dir_imgs=local_output_path,
                           change_meta_file=True,
                           detect_useless=True)
-        i += 1
+        i += 1'''
+
+    main()
