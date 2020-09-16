@@ -66,7 +66,6 @@ if __name__ == "__main__":
                                                   freeze_nlayers=8
                                                   )
 
-
     def init_trainer():
 
         dlds = DataloaderDryspots()
@@ -97,7 +96,6 @@ if __name__ == "__main__":
         )
 
         return m
-
 
     print("Starting training.")
     m = init_trainer()
