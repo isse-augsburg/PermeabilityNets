@@ -249,8 +249,6 @@ class TestEval(unittest.TestCase):
             lines = f.read().splitlines()
             tokens = lines[-1].split()
             self.assertEqual(dirs[0], Path(tokens[-3]))
-        st.writer.flush()
-        st.writer.close()
 
     def tearDown(self) -> None:
         logging.shutdown()
