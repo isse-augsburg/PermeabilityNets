@@ -41,8 +41,7 @@ class TestSaveDatasetsTorch(unittest.TestCase):
                          data_gather_function=dg.get_filelist_within_folder_blacklisted,
                          loss_criterion=torch.nn.BCELoss(),
                          optimizer_function=lambda params: torch.optim.AdamW(params, lr=1e-4),
-                         classification_evaluator_function=lambda summary_writer:
-                         BinaryClassificationEvaluator(summary_writer=summary_writer),
+                         classification_evaluator_function=lambda: BinaryClassificationEvaluator(),
                          load_test_set_in_training_mode=load_test_set,
                          data_root=test_resources.test_src_dir,
                          torch_datasets_chunk_size=train_set_chunk_size

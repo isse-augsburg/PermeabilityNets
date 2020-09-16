@@ -86,8 +86,7 @@ if __name__ == "__main__":
             loss_criterion=torch.nn.BCELoss(),
             optimizer_function=lambda params: torch.optim.AdamW(
                 params, lr=1e-4),
-            classification_evaluator_function=lambda summary_writer:
-            BinaryClassificationEvaluator(summary_writer=summary_writer),
+            classification_evaluator_function=lambda: BinaryClassificationEvaluator(),
             lr_scheduler_function=lambda optim: ExponentialLR(optim, 0.5),
             caching_torch=False,
             demo_path=None,
@@ -107,7 +106,7 @@ if __name__ == "__main__":
             output_path=home_dir / "TestSet1",
             checkpoint_path=Path(
                 '/cfs/share/cache/output_lodesluk/2020-06-04_11-43-19/checkpoint.pth'),
-            classification_evaluator_function=lambda summary_writer:
+            classification_evaluator_function=lambda:
             BinaryClassificationEvaluator(save_path / "1",
                                           skip_images=True,
                                           with_text_overlay=True)
@@ -119,7 +118,7 @@ if __name__ == "__main__":
             output_path=home_dir / "TestSet2",
             checkpoint_path=Path(
                 '/cfs/share/cache/output_lodesluk/2020-06-04_11-43-19/checkpoint.pth'),
-            classification_evaluator_function=lambda summary_writer:
+            classification_evaluator_function=lambda:
             BinaryClassificationEvaluator(save_path / "2",
                                           skip_images=True,
                                           with_text_overlay=True)

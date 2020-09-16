@@ -38,8 +38,7 @@ if __name__ == "__main__":
         data_gather_function=get_filelist_within_folder_blacklisted,
         loss_criterion=torch.nn.BCELoss(),
         optimizer_function=lambda params: torch.optim.AdamW(params, lr=lr),
-        classification_evaluator_function=lambda summary_writer:
-        BinaryClassificationEvaluator(summary_writer=summary_writer, skip_images=True),
+        classification_evaluator_function=lambda: BinaryClassificationEvaluator(skip_images=True),
         dummy_epoch=False,
         caching_torch=load_from_cache,
         run_name=run_name,
@@ -52,8 +51,7 @@ if __name__ == "__main__":
         m.inference_on_test_set(
             Path(args.eval),
             Path(args.checkpoint_path),
-            lambda summary_writer: BinaryClassificationEvaluator(summary_writer=summary_writer,
-                                                                 save_path=Path(args.eval) / "eval_on_test_set",
-                                                                 skip_images=False,
-                                                                 ),
+            lambda: BinaryClassificationEvaluator(save_path=Path(args.eval) / "eval_on_test_set",
+                                                  skip_images=False,
+                                                  ),
         )

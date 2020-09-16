@@ -30,8 +30,7 @@ if __name__ == "__main__":
         num_test_samples=1048576,
         data_processing_function=dl.get_sensordata_and_flowfront,
         data_gather_function=get_filelist_within_folder_blacklisted,
-        classification_evaluator_function=lambda summary_writer:
-        SensorToFlowfrontEvaluator(summary_writer=summary_writer),
+        classification_evaluator_function=lambda: SensorToFlowfrontEvaluator(),
         produce_torch_datasets_only=True,
         sampler=lambda data_source: torch.utils.data.SequentialSampler(data_source=data_source),
         torch_datasets_chunk_size=75000

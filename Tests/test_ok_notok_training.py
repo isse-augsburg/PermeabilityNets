@@ -36,8 +36,7 @@ class TestOkNotOkTraining(unittest.TestCase):
             num_validation_samples=1,
             num_test_samples=1,
             loss_criterion=torch.nn.BCELoss(),
-            classification_evaluator_function=lambda summary_writer:
-            BinaryClassificationEvaluator(summary_writer=summary_writer),
+            classification_evaluator_function=lambda: BinaryClassificationEvaluator(),
             data_root=test_resources.test_src_dir,
         )
 

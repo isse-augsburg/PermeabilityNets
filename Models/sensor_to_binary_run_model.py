@@ -62,6 +62,7 @@ class SensorToBinaryRunwiseModel(nn.Module):
         out = torch.sigmoid(self.output(out))
         return out
 
+
 if __name__ == "__main__":
     model_inpt = torch.randn(8, 100, 1140).cuda()
     model_target = torch.reshape(torch.tensor([1.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0]).cuda(), (8, 1))

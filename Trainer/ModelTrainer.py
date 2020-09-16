@@ -12,7 +12,6 @@ import torch
 from torch import nn
 from torch.nn import MSELoss
 from torch.utils.data import DataLoader
-from torch.utils.tensorboard import SummaryWriter
 
 import Resources.training as r
 from Pipeline import torch_datagenerator as td
@@ -200,7 +199,6 @@ class ModelTrainer:
         self.checkpointing = checkpointing_strategy
         self.classification_evaluator_function = classification_evaluator_function
         self.classification_evaluator = None
-        self.writer = None
         self.run_eval_step_before_training = run_eval_step_before_training
         self.dont_care_num_samples = dont_care_num_samples
 
@@ -279,24 +277,6 @@ class ModelTrainer:
         self.logger.info(f"Parameter count: {param_count}")
         self.logger.info("###########################################")
 
-        # Tensorboard
-        self.writer.add_text("General/LossCriterion", f"{self.loss_criterion}")
-        self.writer.add_text("General/BatchSize", f"{self.batch_size}")
-        self.writer.add_text("General/MixedPrecision", f"{self.use_mixed_precision}")
-        optim_str = str(self.optimizer).replace("\n", "  \n")
-        self.writer.add_text("Optimizer/Optimizer", f"{optim_str}")
-        self.writer.add_text("Optimizer/LRScheduler", f"{sched_str}")
-        self.writer.add_text("Model/Structure", f"{self.__get_model_def()}")
-        self.writer.add_text("Model/ParamCount", f"{param_count}")
-        if hasattr(self.model, "round_at") and self.model.round_at is not None:
-            self.writer.add_text("Model/Threshold", f"{self.model.round_at}")
-        self.writer.add_text("Data/SourcePaths", f"{[str(p) for p in self.data_source_paths]}")
-        self.writer.add_text("Data/CheckpointSourcePath", f"{self.load_datasets_path}")
-        dl_info = self.data_processing_function.__self__.__dict__
-        dl_info["data_processing_function"] = self.data_processing_function.__name__
-        dl_str = '  \n'.join([f"{k}: {dl_info[k]}" for k in dl_info if dl_info[k] is not None])
-        self.writer.add_text("Data/DataLoader", f"{dl_str}")
-
         # ML Flow
         log_param("General/LossCriterion", f"{self.loss_criterion}")
         log_param("General/BatchSize", f"{self.batch_size}")
@@ -361,8 +341,7 @@ class ModelTrainer:
         if self.demo_path is not None:
             print(f"Running in demo mode. Please refer to {self.save_path} for logs et al.")
         logging_cfg.apply_logging_config(self.save_path)
-        self.writer = SummaryWriter(log_dir=self.save_path)
-        self.classification_evaluator = self.classification_evaluator_function(summary_writer=self.writer)
+        self.classification_evaluator = self.classification_evaluator_function()
 
         logger = logging.getLogger(__name__)
         logger.info("Generating Generator")
@@ -391,7 +370,6 @@ class ModelTrainer:
         if self.run_eval_step_before_training:
             logger.info("Running eval before training to see, if any training happens")
             validation_loss = self.__eval(self.data_generator.get_validation_samples(), 0, 0)
-            self.writer.add_scalar("Validation/Loss", validation_loss, 0)
             log_metric("Validation/Loss", validation_loss, 0)
 
         if self.produce_torch_datasets_only:
@@ -428,7 +406,6 @@ class ModelTrainer:
                 outputs = self.model(inputs)
                 label = self.resize_label_if_necessary(label)
                 loss = self.loss_criterion(outputs, label)
-                self.writer.add_scalar("Training/Loss", loss.item(), step_count)
                 log_metric("Training/Loss", loss.item(), step_count)
                 if not self.use_mixed_precision:
                     loss.backward()
@@ -456,7 +433,6 @@ class ModelTrainer:
                 step_count += 1
 
             validation_loss = self.__eval(self.data_generator.get_validation_samples(), eval_step, step_count)
-            self.writer.add_scalar("Validation/Loss", validation_loss, step_count)
             log_metric("Validation/Loss", validation_loss, step_count)
             if self.lr_scheduler is not None:
                 old_lr = [pg['lr'] for pg in self.optimizer.state_dict()['param_groups']]
@@ -606,7 +582,7 @@ class ModelTrainer:
 
         data_list = data_generator.get_test_samples()
         if classification_evaluator_function is not None:
-            self.classification_evaluator = classification_evaluator_function(summary_writer=None)
+            self.classification_evaluator = classification_evaluator_function()
         logger.info("Starting inference")
         self.__eval(data_list, test_mode=True)
         logger.info("Inference completed.")

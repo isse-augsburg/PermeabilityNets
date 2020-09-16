@@ -30,8 +30,7 @@ if __name__ == "__main__":
         data_gather_function=get_filelist_within_folder_blacklisted,
         loss_criterion=torch.nn.MSELoss(),
         optimizer_function=lambda params: torch.optim.AdamW(params, lr=1e-4),
-        classification_evaluator_function=lambda summary_writer:
-        SensorToFlowfrontEvaluator(summary_writer=summary_writer),
+        classification_evaluator_function=lambda: SensorToFlowfrontEvaluator(),
         dont_care_num_samples=True
     )
 
@@ -41,7 +40,7 @@ if __name__ == "__main__":
         m.inference_on_test_set(
             output_path=Path(args.eval),
             checkpoint_path=Path(args.checkpoint_path),
-            classification_evaluator_function=lambda summary_writer: SensorToFlowfrontEvaluator(
+            classification_evaluator_function=lambda: SensorToFlowfrontEvaluator(
                 Path(args.eval) / "eval_on_test_set",
                 skip_images=False,
                 print_n_images=5000)

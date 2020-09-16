@@ -29,16 +29,14 @@ if __name__ == "__main__":
         data_gather_function=get_filelist_within_folder_blacklisted,
         loss_criterion=torch.nn.MSELoss(),
         optimizer_function=lambda params: torch.optim.AdamW(params, lr=0.0001),
-        classification_evaluator_function=lambda summary_writer:
-        SensorToFlowfrontEvaluator(summary_writer=summary_writer),
+        classification_evaluator_function=lambda: SensorToFlowfrontEvaluator()
     )
 
     adv_output_dir.mkdir(exist_ok=True)
     m.inference_on_test_set(
         output_path=adv_output_dir,
         checkpoint_path=checkpoint_p,
-        classification_evaluator_function=lambda summary_writer:
-        SensorToFlowfrontEvaluator(adv_output_dir,
-                                   skip_images=False,
-                                   print_n_images=5000)
+        classification_evaluator_function=lambda: SensorToFlowfrontEvaluator(adv_output_dir,
+                                                                             skip_images=False,
+                                                                             print_n_images=5000)
     )
