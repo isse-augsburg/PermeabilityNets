@@ -15,13 +15,17 @@ class DataLoaderMesh:
     def __init__(self, divide_by_100k=False,
                  sensor_verts_path=None,
                  ignore_useless_states=False,
-                 sensor_indices=((0, 1), (0, 1))
+                 sensor_indices=((0, 1), (0, 1)),
+                 third_dim=True,
+                 intermediate_target_size=(66, 65, 2)
                  ):
 
         self.divide_by_100k = divide_by_100k
         self.sensor_verts = None
         self.ignore_useless_states = ignore_useless_states
         self.sensor_indices = sensor_indices
+        self.third_dim = third_dim
+        self.intermediate_target_size = intermediate_target_size
 
         self.sensor_verts_path = sensor_verts_path
 
@@ -29,8 +33,9 @@ class DataLoaderMesh:
             logger = logging.getLogger()
             logger.info('Loading sensor vertices from pickle file.')
             self.sensor_verts = pickle.load(open(sensor_verts_path, 'rb'))
-            self.sensor_verts = self.sensor_verts[:-1]
-            logger.info('Loaded sensor vertices.')
+            if self.third_dim:
+                self.sensor_verts = self.sensor_verts[:-1]
+            print(f'Loaded {len(self.sensor_verts)} sensor vertices.')
 
     def get_sensor_flowfront_mesh(self, filename):
         f = h5py.File(filename, 'r')
@@ -40,11 +45,14 @@ class DataLoaderMesh:
         if self.sensor_verts is None:
             print("Calculating sensor vertices from scratch.")
             self.sensor_verts = extract_nearest_mesh_nodes_to_sensors(folder, sensor_indices=self.sensor_indices,
-                                                                      target_size=(66, 65, 2), third_dim=True)
-            if self.sensor_verts is not None:
+                                                                      target_size=self.intermediate_target_size,
+                                                                      third_dim=self.third_dim)
+            if self.sensor_verts_path is not None:
                 pickle.dump(self.sensor_verts, open(self.sensor_verts_path, 'wb'))
                 print(f"Saved sensor vertices in {self.sensor_verts_path}.")
-            self.sensor_verts = self.sensor_verts[:-1]
+
+            if self.third_dim:
+                self.sensor_verts = self.sensor_verts[:-1]
             print(f"Calculated {len(self.sensor_verts)} sensor vertices.")
 
         try:

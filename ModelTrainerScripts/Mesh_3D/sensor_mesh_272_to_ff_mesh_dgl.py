@@ -5,14 +5,14 @@ from Pipeline.data_gather import get_filelist_within_folder_blacklisted
 from Trainer.ModelTrainer import ModelTrainer
 import socket
 from Models.erfh5_DGLMeshModel import SensorMeshToFlowFrontModelDGL
-from Trainer.evaluation import MeshEvaluator
+from Trainer.evaluation import FlowFrontMeshEvaluator
 import Utils.custom_mlflow
 
 # import networkx as nx
 # import matplotlib.pyplot as plt
 
 if __name__ == '__main__':
-    sensor_verts_path = Path("/home/lukas/rtm/sensor_verts_3d_272.dump")
+    sensor_verts_path = Path("/home/lukas/rtm/sensor_verts_3d_272_v2.dump")
     sample_file = Path("/home/lukas/rtm/rtm_files_3d/2020-08-24_11-20-27_75_RESULT.erfh5")
 
     Utils.custom_mlflow.logging = False
@@ -26,10 +26,10 @@ if __name__ == '__main__':
 
         filepaths = [base_path / "rtm_files_3d"]
         save_path = Path(base_path / "output")
-        batch_size = 16
+        batch_size = 4
         train_print_frequency = 100
-        epochs = 5
-        num_workers = 8
+        epochs = 2
+        num_workers = 2
         num_validation_samples = 200
         num_test_samples = 200
         data_root = Path(base_path / "rtm_files_3d")
@@ -47,7 +47,7 @@ if __name__ == '__main__':
         data_root = Path(base_path / "debug")
 
     # Sensorgrid: 17*16 = 272
-    dlm = DataLoaderMesh(sensor_indices=((1, 3), (1, 3)), sensor_verts_path=None)
+    dlm = DataLoaderMesh(sensor_indices=((1, 4), (1, 4)), sensor_verts_path=sensor_verts_path)
     mesh = dlm.get_batched_mesh_dgl(batch_size, sample_file)
     # fig, ax = plt.subplots()
     # nx.draw(mesh.to_networkx(), ax=ax)
@@ -70,10 +70,11 @@ if __name__ == '__main__':
         data_processing_function=dlm.get_sensor_flowfront_mesh,
         data_gather_function=get_filelist_within_folder_blacklisted,
         data_root=data_root,
-        loss_criterion=torch.nn.BCELoss(),
+        loss_criterion=torch.nn.MSELoss(),
         optimizer_function=lambda params: torch.optim.AdamW(params, lr=1e-4),
         classification_evaluator_function=lambda summary_writer:
-        MeshEvaluator(summary_writer=summary_writer),
+        FlowFrontMeshEvaluator(summary_writer=summary_writer, sample_file=sample_file,
+                               save_path=save_path / "FF_Images/FF_272_TAG"),
         lr_scheduler_function=None,
         caching_torch=False,
         demo_path=None,
@@ -81,3 +82,7 @@ if __name__ == '__main__':
     )
 
     m.start_training()
+    print("Training finished. Starting evaluation on test set.")
+    m.inference_on_test_set(classification_evaluator_function=lambda summary_writer:
+                            FlowFrontMeshEvaluator(summary_writer=summary_writer, sample_file=sample_file,
+                                                   save_path=save_path / "FF_Images/FF_272_TAG_eval"))

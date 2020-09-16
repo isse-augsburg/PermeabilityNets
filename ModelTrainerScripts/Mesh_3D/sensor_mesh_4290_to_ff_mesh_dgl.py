@@ -5,7 +5,7 @@ from Pipeline.data_gather import get_filelist_within_folder_blacklisted
 from Trainer.ModelTrainer import ModelTrainer
 import socket
 from Models.erfh5_DGLMeshModel import SensorMeshToFlowFrontModelDGL
-from Trainer.evaluation import MeshEvaluator
+from Trainer.evaluation import FlowFrontMeshEvaluator
 import Utils.custom_mlflow
 
 if __name__ == '__main__':
@@ -23,9 +23,9 @@ if __name__ == '__main__':
 
         filepaths = [base_path / "rtm_files_3d"]
         save_path = Path(base_path / "output")
-        batch_size = 16
+        batch_size = 12
         train_print_frequency = 100
-        epochs = 5
+        epochs = 2
         num_workers = 8
         num_validation_samples = 200
         num_test_samples = 200
@@ -63,10 +63,11 @@ if __name__ == '__main__':
         data_processing_function=dlm.get_sensor_flowfront_mesh,
         data_gather_function=get_filelist_within_folder_blacklisted,
         data_root=data_root,
-        loss_criterion=torch.nn.BCELoss(),
-        optimizer_function=lambda params: torch.optim.AdamW(params, lr=1e-5),
+        loss_criterion=torch.nn.MSELoss(),
+        optimizer_function=lambda params: torch.optim.AdamW(params, lr=1e-4),
         classification_evaluator_function=lambda summary_writer:
-        MeshEvaluator(summary_writer=summary_writer),
+        FlowFrontMeshEvaluator(summary_writer=summary_writer, sample_file=sample_file,
+                               save_path=save_path / "FF_Images/FF_4290_deeper2"),
         lr_scheduler_function=None,
         caching_torch=False,
         demo_path=None,
@@ -74,3 +75,7 @@ if __name__ == '__main__':
     )
 
     m.start_training()
+    print("Training finished. Starting evaluation on test set.")
+    m.inference_on_test_set(classification_evaluator_function=lambda summary_writer:
+                            FlowFrontMeshEvaluator(summary_writer=summary_writer, sample_file=sample_file,
+                                                   save_path=save_path / "FF_Images/FF_4290_eval_deeper2"))
