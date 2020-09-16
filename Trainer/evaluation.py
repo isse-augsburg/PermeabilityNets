@@ -146,7 +146,7 @@ class BinaryClassificationEvaluator(Evaluator):
                  advanced_eval=False):
         super().__init__()
         self.tp, self.fp, self.tn, self.fn = 0, 0, 0, 0
-        self.accuracy, self.precision, self.recall, self.specificity = 0, 0, 0, 0
+        self.accuracy, self.balanced_accuracy, self.precision, self.recall, self.specificity = 0, 0, 0, 0, 0
         self.confusion_matrix = np.zeros((2, 2), dtype=int)
         self.save_path = save_path
         self.skip_images = skip_images
@@ -208,8 +208,8 @@ class BinaryClassificationEvaluator(Evaluator):
         self.num += predictions.size
 
     def print_metrics(self, step_count=0):
-        """Prints the counts of True/False Positives and True/False Negatives, Accuracy, Precision, Recall,
-        Specificity and the confusion matrix.
+        """Prints and logs the counts of True/False Positives and True/False Negatives, (Balanced) Accuracy, Precision,
+        Recall, Specificity and the confusion matrix.
         """
         self.__update_metrics()
 
@@ -235,6 +235,7 @@ class BinaryClassificationEvaluator(Evaluator):
 
         # MLflow
         log_metric("Validation/Accuracy", self.accuracy, step_count)
+        log_metric("Validation/Balanced_Accuracy", self.balanced_accuracy, step_count)
         log_metric("Validation/Precision", self.precision, step_count)
         log_metric("Validation/Recall", self.recall, step_count)
         log_metric("Validation/Specificity", self.specificity, step_count)
@@ -256,7 +257,8 @@ class BinaryClassificationEvaluator(Evaluator):
         conf_mat_allnorm.savefig(mlflow_path / allnorm_str / f"step_{step_count:05}.{save_format}")
         conf_mat_classnorm.savefig(mlflow_path / classnorm_str / f"step_{step_count:05}.{save_format}")
 
-        logger.info(f"Accuracy: {self.accuracy:7.4f}, Precision: {self.precision:7.4f}, Recall: {self.recall:7.4f}, "
+        logger.info(f"Accuracy: {self.accuracy:7.4f}, Balanced Accuracy: {self.balanced_accuracy:7.4f}, "
+                    f"Precision: {self.precision:7.4f}, Recall: {self.recall:7.4f}, "
                     f"Specificity: {self.specificity:7.4f}")
         df = pandas.DataFrame(self.confusion_matrix, columns=[0, 1], index=[0, 1])
         df = df.rename_axis('Pred', axis=0).rename_axis('True', axis=1)
@@ -271,6 +273,7 @@ class BinaryClassificationEvaluator(Evaluator):
         self.precision = self.tp / max((self.tp + self.fp), 1e-8)
         self.recall = self.tp / max((self.tp + self.fn), 1e-8)
         self.specificity = self.tn / max((self.tn + self.fp), 1e-8)
+        self.balanced_accuracy = (self.recall + self.specificity) / 2
 
     def reset(self):
         """Resets the internal counters for the next evaluation loop. 

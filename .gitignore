@@ -282,6 +282,7 @@ Output/
 Images/
 *.out
 *.sh
+*.code-workspace
 
 # Own
 _debug_*
