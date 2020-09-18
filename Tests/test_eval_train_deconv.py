@@ -257,8 +257,8 @@ class TestEval(unittest.TestCase):
             lines = f.read().splitlines()
             print(lines)
             print(dirs[0])
-            tokens = lines[-1].split()
-            self.assertEqual(dirs[0], Path(tokens[-3]))
+            token = [y for y in lines if "PROJECT_ROOT=" in y][0].split('=')[1].strip('"')
+            self.assertEqual(dirs[0], Path(token))
         st.writer.flush()
         st.writer.close()
 
