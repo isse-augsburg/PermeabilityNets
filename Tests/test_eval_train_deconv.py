@@ -255,6 +255,8 @@ class TestEval(unittest.TestCase):
         self.assertTrue(os.path.isfile(slurm_script))
         with open(slurm_script) as f:
             lines = f.read().splitlines()
+            print(lines)
+            print(dirs[0])
             tokens = lines[-1].split()
             self.assertEqual(dirs[0], Path(tokens[-3]))
         st.writer.flush()
