@@ -40,7 +40,8 @@ export PYTHONPATH="${{PYTHONPATH}}:${{PROJECT_ROOT}}/rtm-predictions"
 
 """ \
                 f'singularity exec --nv -B /cfs:/cfs {docker_img} ' \
-                f'python3 -u ${{PROJECT_ROOT}}/rtm-predictions/ModelTrainerScripts/{calling_script} --eval ${{PROJECT_ROOT}} ' \
+                f'python3 -u ${{PROJECT_ROOT}}/rtm-predictions/ModelTrainerScripts/{calling_script} ' \
+                f'--eval ${{PROJECT_ROOT}} ' \
                 f'--checkpoint_path ${{PROJECT_ROOT}}/checkpoint.pth'
     with open(save_path / Path("run_model_eval.sh"), "w") as slurm_script:
         slurm_script.write(slurm_txt)
