@@ -255,8 +255,6 @@ class TestEval(unittest.TestCase):
         self.assertTrue(os.path.isfile(slurm_script))
         with open(slurm_script) as f:
             lines = f.read().splitlines()
-            print(lines)
-            print(dirs[0])
             token = [y for y in lines if "PROJECT_ROOT=" in y][0].split('=')[1].strip('"')
             self.assertEqual(dirs[0], Path(token))
         st.writer.flush()

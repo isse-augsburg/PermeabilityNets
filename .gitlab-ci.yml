@@ -14,8 +14,7 @@ linter:
 test:
   stage: test
   script:
-    - python3 -m unittest Tests.test_eval_train_deconv
-    # - python3 -m unittest discover -s Tests -t Tests
+    - python3 -m unittest discover -s Tests -t Tests
 
 #  tags:
 #    - dgx2
