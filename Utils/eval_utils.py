@@ -52,11 +52,10 @@ def run_eval_w_binary_classificator(output_dir, modeltrainer, chkp_p: Path, ):
     modeltrainer.inference_on_test_set(
         output_path=output_dir,
         checkpoint_path=chkp_p,
-        classification_evaluator_function=lambda summary_writer:
-        BinaryClassificationEvaluator(output_dir,
-                                      skip_images=True,
-                                      with_text_overlay=True,
-                                      advanced_eval=True)
+        classification_evaluator_function=lambda: BinaryClassificationEvaluator(output_dir,
+                                                                                skip_images=True,
+                                                                                with_text_overlay=True,
+                                                                                advanced_eval=True)
     )
     with open(output_dir / "predictions_per_run.p", "wb") as f:
         pickle.dump(modeltrainer.classification_evaluator.origin_tracker, f)
