@@ -44,7 +44,7 @@ def __analyze_image(img: np.ndarray, perm_map: np.ndarray):
        """
     _, threshold = cv2.threshold(img, 70, 190, cv2.THRESH_BINARY)
     # __plot_img(threshold)
-    contours, _ = cv2.findContours(threshold, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    _, contours, _ = cv2.findContours(threshold, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     min_size = 10  # previous: 3; best: 75
     dryspots = np.zeros_like(img, dtype=np.float)
     spots = False
@@ -346,12 +346,10 @@ def create_triangle_mesh(file_path):
 
 
 def main():
-
-    file_path = Path("/cfs/home/l/o/lodesluk/Sim_Data/output/with_shapes/"
-                     "2020-08-24_11-20-27_5000p/0/2020-08-24_11-20-27_0_RESULT.erfh5")
+    file_path = Path("/cfs/home/l/o/lodesluk/Sim_Data/output/with_shapes/2020-08-26_22-08-05_5000p/0/2020-08-26_22-08-05_0_RESULT.erfh5")
     Xi, Yi, triang, xi, yi = create_triangle_mesh(file_path)
 
-    curr_path = "2020-08-24_11-20-27_5000p"
+    curr_path = "2020-08-26_22-08-05_5000p"
     num_runs = int(curr_path.split('_')[-1][:-1])
 
     with Pool() as p:
