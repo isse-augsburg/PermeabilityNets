@@ -4,7 +4,7 @@ from Pipeline.data_loader_mesh import DataLoaderMesh
 from Pipeline.data_gather import get_filelist_within_folder_blacklisted
 from Trainer.ModelTrainer import ModelTrainer
 import socket
-from Models.erfh5_DGLMeshModel import SensorMeshToFlowFrontModelDGL
+from Models.erfh5_DGLMeshModel import SparseSensorMeshToFlowFrontModelDGL
 from Trainer.evaluation import FlowFrontMeshEvaluator
 import Utils.custom_mlflow
 
@@ -26,7 +26,7 @@ if __name__ == '__main__':
 
         filepaths = [base_path / "rtm_files_3d"]
         save_path = Path(base_path / "output")
-        batch_size = 4
+        batch_size = 12
         train_print_frequency = 100
         epochs = 2
         num_workers = 2
@@ -53,7 +53,7 @@ if __name__ == '__main__':
     # nx.draw(mesh.to_networkx(), ax=ax)
     # plt.show()
 
-    model = SensorMeshToFlowFrontModelDGL(mesh, batch_size=batch_size)
+    model = SparseSensorMeshToFlowFrontModelDGL(mesh, batch_size=batch_size)
 
     m = ModelTrainer(
         lambda: model,
