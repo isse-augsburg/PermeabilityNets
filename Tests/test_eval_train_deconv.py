@@ -249,8 +249,6 @@ class TestEval(unittest.TestCase):
             lines = f.read().splitlines()
             token = [y for y in lines if "PROJECT_ROOT=" in y][0].split('=')[1].strip('"')
             self.assertEqual(dirs[0], Path(token))
-        st.writer.flush()
-        st.writer.close()
 
     def tearDown(self) -> None:
         logging.shutdown()
