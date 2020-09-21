@@ -14,6 +14,8 @@ from sklearn.preprocessing import normalize
 
 from mlflow import log_metric
 
+from Utils.dry_spot_detection_3d import create_triangle_mesh, create_flowfront_img, interpolate_flowfront
+
 """ 
 >>>> PLEASE NOTE: <<<<
 Evaluation classes must provide three functions even if not all of them have functionality: 
@@ -298,3 +300,45 @@ class MeshEvaluator(Evaluator):
 
     def reset(self):
         self.bc_evaluator.reset()
+
+
+class FlowFrontMeshEvaluator(Evaluator):
+    def __init__(self, summary_writer=None, sample_file=None, save_path=None):
+        super().__init__()
+        self.summary_writer = summary_writer
+        self.Xi, self.Yi, self.triang, self.xi, self.yi = create_triangle_mesh(sample_file)
+        self.save_path = save_path
+
+        self.save_path.mkdir(exist_ok=True)
+
+        self.batch_counter = 0
+
+        self.me = MeshEvaluator(summary_writer=summary_writer)
+
+    def commit(self, output, label, data, aux):
+        # self.me.commit(output, label, data, aux)
+
+        iteration_counter = 0
+
+        for o, label in zip(output, label):
+            ignore_list = []
+            o = o.numpy()
+            label = label.numpy()
+            zi_output = interpolate_flowfront(self.Xi, self.Yi, ignore_list, iteration_counter, self.triang, o)
+            zi_label = interpolate_flowfront(self.Xi, self.Yi, ignore_list, iteration_counter, self.triang, label)
+
+            fname = str(self.batch_counter) + "_" + str(iteration_counter)
+            _ = create_flowfront_img(fname, self.save_path, True, self.xi, self.yi, zi_output)
+            fname = str(self.batch_counter) + "_" + str(iteration_counter) + "_label"
+            _ = create_flowfront_img(fname, self.save_path, True, self.xi, self.yi, zi_label)
+            iteration_counter += 1
+
+        self.batch_counter += 1
+
+    def print_metrics(self, step_count=0):
+        # self.me.print_metrics(step_count)
+        pass
+
+    def reset(self):
+        # self.me.reset()
+        pass

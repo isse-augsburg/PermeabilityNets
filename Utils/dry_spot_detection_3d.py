@@ -140,8 +140,8 @@ def dry_spot_analysis(file_path, triang: tri.Triangulation, Xi: np.ndarray, Yi: 
         except KeyError:
             print(f"KeyError in state {i}")
             continue
-        zi = __interpolate_flowfront(Xi, Yi, ignore_list, k, triang, z)
-        img = __create_flowfront_img(i, output_dir_imgs, save_flowfront_img, xi, yi, zi)
+        zi = interpolate_flowfront(Xi, Yi, ignore_list, k, triang, z)
+        img = create_flowfront_img(i, output_dir_imgs, save_flowfront_img, xi, yi, zi)
 
         # print(f"### {i} ###")
         spot_b, dryspot_img, probs = __analyze_image(img, perm_map)
@@ -198,7 +198,7 @@ def dry_spot_analysis(file_path, triang: tri.Triangulation, Xi: np.ndarray, Yi: 
     return spot_list_s, spot_list_e, deltas_prob
 
 
-def __interpolate_flowfront(Xi, Yi, ignore_list, current_index, triang, values):
+def interpolate_flowfront(Xi, Yi, ignore_list, current_index, triang, values):
     ones = np.ones_like(values)
     filling_perc = np.sum(values) / np.sum(ones)
     if filling_perc >= 1.0:
@@ -237,7 +237,7 @@ def __update_meta_data(meta_file, spot_list_e, spot_list_s, ignore_list, detect_
             pass
 
 
-def __create_flowfront_img(k, output_dir_imgs, save_flowfront_img, xi, yi, zi):
+def create_flowfront_img(k, output_dir_imgs, save_flowfront_img, xi, yi, zi):
     fig2 = plt.figure()
     ax2 = fig2.add_subplot(111)
     ax2.contourf(xi, yi, zi, levels=10, extend="both")  # cmap="gray")
