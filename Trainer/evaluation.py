@@ -12,7 +12,7 @@ from PIL import Image
 from sklearn.metrics import confusion_matrix
 from sklearn.preprocessing import normalize
 
-from Utils.custom_mlflow import log_metric, get_artifact_uri
+from Utils.custom_mlflow import log_metric
 
 """ 
 >>>> PLEASE NOTE: <<<<
@@ -234,13 +234,13 @@ class BinaryClassificationEvaluator(Evaluator):
 
         # Confusion matrix plots
         save_format = 'png'
-        mlflow_path = Path(get_artifact_uri()) / "confusion_matrix"
+        base_dir = self.save_path / "confusion_matrix"
         class_names = ["Not OK", "OK"]
         cm_types = ['absolute', 'normalized_overall', 'normalized_by_class']
         for cm_type in cm_types:
             cm_abs = self.__plot_confusion_matrix(self.confusion_matrix, class_names, cm_type)
-            mlflow_path.joinpath(cm_type).mkdir(parents=True, exist_ok=True)
-            cm_abs.savefig(mlflow_path / cm_type / f"step_{step_count:05}.{save_format}")
+            base_dir.joinpath(cm_type).mkdir(parents=True, exist_ok=True)
+            cm_abs.savefig(base_dir / cm_type / f"step_{step_count:05}.{save_format}")
 
     def __update_metrics(self):
         self.tn = self.confusion_matrix[0, 0]
