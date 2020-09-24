@@ -12,7 +12,7 @@ from PIL import Image
 from sklearn.metrics import confusion_matrix
 from sklearn.preprocessing import normalize
 
-from mlflow import log_metric, get_artifact_uri
+from Utils.custom_mlflow import log_metric, get_artifact_uri
 
 """ 
 >>>> PLEASE NOTE: <<<<

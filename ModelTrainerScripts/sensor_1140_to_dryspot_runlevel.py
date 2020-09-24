@@ -14,23 +14,28 @@ if __name__ == "__main__":
     args = read_cmd_params()
 
     batch_size = 128
-    dataset_paths = r.get_data_paths()
-    load_from_cache = True
+    dataset_paths = r.get_all_data_paths()
     num_workers = 75
     num_val = 500
     num_test = 500
     lr = 1e-4
-    run_name = ""
+    shrink_factor = 2
+    conv_lstm_sizes = [128, 32]
+    fc_sizes = [2048, 512, 128]
+    run_name = "sf2"
+    # train-test-splits reinschauen
+    # vllt mal slice_start 0 probieren?
 
     dl = DataloaderDryspots()
     m = ModelTrainer(
-        lambda: SensorToBinaryRunwiseModel(slice_start=1, shrink_factor=8),
+        lambda: SensorToBinaryRunwiseModel(slice_start=1, shrink_factor=shrink_factor, conv_lstm_sizes=conv_lstm_sizes,
+                                           fc_sizes=fc_sizes),
         dataset_paths,
         r.save_path,
         dataset_split_path=r.dataset_split,
         cache_path=r.cache_path,
         batch_size=batch_size,
-        epochs=10,
+        epochs=15,
         num_workers=num_workers,
         num_validation_samples=num_val,
         num_test_samples=num_test,
@@ -39,10 +44,11 @@ if __name__ == "__main__":
         loss_criterion=torch.nn.BCELoss(),
         optimizer_function=lambda params: torch.optim.AdamW(params, lr=lr),
         classification_evaluator_function=lambda: BinaryClassificationEvaluator(skip_images=True),
+        # lr_scheduler_function=lambda optim: ExponentialLR(optim, 0.5),
         dummy_epoch=False,
-        caching_torch=load_from_cache,
+        caching_torch=True,
         run_name=run_name,
-        save_in_mlflow_directly=False
+        save_in_mlflow_directly=True
     )
 
     if not args.run_eval:
@@ -51,7 +57,5 @@ if __name__ == "__main__":
         m.inference_on_test_set(
             Path(args.eval),
             Path(args.checkpoint_path),
-            lambda: BinaryClassificationEvaluator(save_path=Path(args.eval) / "eval_on_test_set",
-                                                  skip_images=False,
-                                                  ),
+            lambda: BinaryClassificationEvaluator(save_path=Path(args.eval) / "eval_on_test_set", skip_images=False)
         )
