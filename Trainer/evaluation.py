@@ -238,9 +238,9 @@ class BinaryClassificationEvaluator(Evaluator):
         class_names = ["Not OK", "OK"]
         cm_types = ['absolute', 'normalized_overall', 'normalized_by_class']
         for cm_type in cm_types:
-            cm_abs = self.__plot_confusion_matrix(self.confusion_matrix, class_names, cm_type)
+            cm_plot = self.__plot_confusion_matrix(self.confusion_matrix, class_names, cm_type)
             base_dir.joinpath(cm_type).mkdir(parents=True, exist_ok=True)
-            cm_abs.savefig(base_dir / cm_type / f"step_{step_count:05}.{save_format}")
+            cm_plot.savefig(base_dir / cm_type / f"step_{step_count:05}.{save_format}")
 
     def __update_metrics(self):
         self.tn = self.confusion_matrix[0, 0]
