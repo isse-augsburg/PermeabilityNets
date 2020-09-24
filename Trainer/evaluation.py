@@ -148,9 +148,15 @@ class BinaryClassificationEvaluator(Evaluator):
         self.save_path = save_path
         self.skip_images = skip_images
         if save_path is not None:
+            self.cm_save_path = save_path / "confusion_matrix"
+            self.cm_types = ['absolute', 'normalized_overall', 'normalized_by_class']
+            for cm_type in self.cm_types:
+                self.cm_save_path.joinpath(cm_type).mkdir(parents=True, exist_ok=True)
+
             self.im_save_path = save_path / "images"
             if not self.skip_images:
                 self.im_save_path.mkdir(parents=True, exist_ok=True)
+
         self.num = 0
         self.with_text_overlay = with_text_overlay
         plt.set_loglevel('warning')
@@ -233,14 +239,10 @@ class BinaryClassificationEvaluator(Evaluator):
         log_metric("Confusion_Matrix/TP", self.tp, step_count)
 
         # Confusion matrix plots
-        save_format = 'png'
-        base_dir = self.save_path / "confusion_matrix"
-        class_names = ["Not OK", "OK"]
-        cm_types = ['absolute', 'normalized_overall', 'normalized_by_class']
-        for cm_type in cm_types:
-            cm_plot = self.__plot_confusion_matrix(self.confusion_matrix, class_names, cm_type)
-            base_dir.joinpath(cm_type).mkdir(parents=True, exist_ok=True)
-            cm_plot.savefig(base_dir / cm_type / f"step_{step_count:05}.{save_format}")
+        if self.save_path is not None:
+            for cm_type in self.cm_types:
+                cm_plot = self.__plot_confusion_matrix(self.confusion_matrix, ["Not OK", "OK"], cm_type)
+                cm_plot.savefig(self.cm_save_path / cm_type / f"step_{step_count:05}.png")
 
     def __update_metrics(self):
         self.tn = self.confusion_matrix[0, 0]
