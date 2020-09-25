@@ -42,3 +42,9 @@ def start_run(run_id=None, experiment_id=None, run_name=None, nested=False):
 def end_run():
     if logging:
         mlflow.end_run()
+
+
+def get_artifact_uri():
+    if logging:
+        return mlflow.get_artifact_uri()
+    return None

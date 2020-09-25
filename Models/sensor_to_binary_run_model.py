@@ -1,24 +1,45 @@
+# import numpy as np
 import torch
 import torch.nn.functional as F
 from torch import nn
 from math import ceil
+from Utils.custom_mlflow import log_param
 
 from Models.OurModules import ConvLSTM
 
 
 class SensorToBinaryRunwiseModel(nn.Module):
-    def __init__(self, input_dim=1140, slice_start=0, shrink_factor=1):
+    def __init__(self,
+                 input_dim=1140,
+                 slice_start=0, 
+                 shrink_factor=1, 
+                 conv_lstm_sizes=[128, 32],
+                 fc_sizes=[2048, 512, 128]
+                 ):
         super(SensorToBinaryRunwiseModel, self).__init__()
         self.input_dim = input_dim
         self.slice_start = slice_start
         self.shrink_factor = shrink_factor
-        self.real_input_dim = ceil(((38 - self.slice_start) / self.shrink_factor)) * ceil(
+
+        real_input_dim = ceil(((38 - self.slice_start) / self.shrink_factor)) * ceil(
             ((30 - self.slice_start) / self.shrink_factor))
 
-        self.convlstm = ConvLSTM(input_channels=1, hidden_channels=[128, 32], kernel_size=3, step=100,
-                                 effective_step=[99])
+        # conv_lstm_sizes = [256, 64]
+        # fc_sizes = [2048, 512, 128]
+        dropout = 0.3
 
-        '''num_addlayers = int(np.log2(self.shrink_factor))
+        log_param("Model/ShrinkFactor", f"{self.shrink_factor}")
+        log_param("Model/SliceStart", f"{self.slice_start}")
+        log_param("Model/ConvLSTM_Layers", f"{conv_lstm_sizes}")
+        log_param("Model/FC_layers", f"{fc_sizes}")
+        log_param("Model/Dropout", f"{dropout}")
+
+        self.drop = nn.Dropout(dropout)
+
+        self.convlstm = ConvLSTM(input_channels=1, hidden_channels=conv_lstm_sizes, kernel_size=3, step=100,
+                                 effective_step=[99])
+        ''' 
+        num_addlayers = int(np.log2(self.shrink_factor))
         self.l_add_layers = nn.ModuleList()
         k = 16
 
@@ -31,13 +52,16 @@ class SensorToBinaryRunwiseModel(nn.Module):
 
         self.transpose2 = nn.ConvTranspose2d(k, 1, 5, stride=2, padding=0)
         self.adaptive_pool = nn.AdaptiveAvgPool2d((135, 103))
-        self.fc1 = nn.Linear(135 * 103, 2048)'''
-        self.fc1 = nn.Linear(32 * self.real_input_dim, 2048)
-        self.fc2 = nn.Linear(2048, 512)
-        self.fc3 = nn.Linear(512, 128)
-        self.output = nn.Linear(128, 1)
+        self.fc1 = nn.Linear(135 * 103, 2048)
+        '''
 
-        self.drop = nn.Dropout(0.3)
+        self.fc_layers = nn.ModuleList()
+        fc_input_dim = conv_lstm_sizes[-1] * real_input_dim
+        for fc_output_dim in fc_sizes:
+            self.fc_layers.append(nn.Linear(fc_input_dim, fc_output_dim))
+            fc_input_dim = fc_output_dim
+
+        self.output = nn.Linear(fc_sizes[-1], 1)
 
     def forward(self, x: torch.Tensor):
         # sequence, batch, dim, x,y
@@ -45,20 +69,21 @@ class SensorToBinaryRunwiseModel(nn.Module):
         x = x[:, :, :, self.slice_start::self.shrink_factor, self.slice_start::self.shrink_factor]
         out, _ = self.convlstm(x)
         out = out[0]
-        '''out = F.relu(self.transpose1(out))
+        '''
+        out = F.relu(self.transpose1(out))
         for layer in self.l_add_layers:
             out = F.relu(layer(out))
         out = self.transpose2(out)
         out = torch.squeeze(out, dim=1)
-        out = self.adaptive_pool(out)'''
+        out = self.adaptive_pool(out)
+        '''
         out = self.drop(out)
         out = torch.flatten(out, 1)
-        out = F.relu(self.fc1(out))
-        out = self.drop(out)
-        out = F.relu(self.fc2(out))
-        out = self.drop(out)
-        out = F.relu(self.fc3(out))
-        out = self.drop(out)
+
+        for layer in self.fc_layers:
+            out = F.relu(layer(out))
+            out = self.drop(out)
+
         out = torch.sigmoid(self.output(out))
         return out
 
