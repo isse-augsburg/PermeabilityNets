@@ -12,7 +12,7 @@ import Utils.custom_mlflow
 # import matplotlib.pyplot as plt
 
 if __name__ == '__main__':
-    sensor_verts_path = Path("/home/lukas/rtm/sensor_verts_3d_272_v2.dump")
+    sensor_verts_path = Path("/home/lukas/rtm/sensor_verts_3d_272_70percent.dump")
     sample_file = Path("/home/lukas/rtm/rtm_files_3d/2020-08-24_11-20-27_75_RESULT.erfh5")
 
     Utils.custom_mlflow.logging = False
@@ -48,7 +48,8 @@ if __name__ == '__main__':
 
     # Sensorgrid: 17*16 = 272
     dlm = DataLoaderMesh(sensor_indices=((1, 4), (1, 4)), sensor_verts_path=sensor_verts_path)
-    mesh = dlm.get_batched_mesh_dgl(batch_size, sample_file)
+    mesh = dlm.get_subsampled_batched_mesh_dgl(batch_size, sample_file)
+    subsampled_nodes = dlm.get_subsampled_nodes()
     # fig, ax = plt.subplots()
     # nx.draw(mesh.to_networkx(), ax=ax)
     # plt.show()
@@ -74,7 +75,7 @@ if __name__ == '__main__':
         optimizer_function=lambda params: torch.optim.AdamW(params, lr=1e-4),
         classification_evaluator_function=lambda summary_writer:
         FlowFrontMeshEvaluator(summary_writer=summary_writer, sample_file=sample_file,
-                               save_path=save_path / "FF_Images/FF_272_TAG"),
+                               save_path=save_path / "FF_Images/FF_272_subsampled", subsampled_nodes=subsampled_nodes),
         lr_scheduler_function=None,
         caching_torch=False,
         demo_path=None,
@@ -85,4 +86,5 @@ if __name__ == '__main__':
     print("Training finished. Starting evaluation on test set.")
     m.inference_on_test_set(classification_evaluator_function=lambda summary_writer:
                             FlowFrontMeshEvaluator(summary_writer=summary_writer, sample_file=sample_file,
-                                                   save_path=save_path / "FF_Images/FF_272_TAG_eval"))
+                                                   save_path=save_path / "FF_Images/FF_272_subsampled_eval",
+                                                   subsampled_nodes=subsampled_nodes))

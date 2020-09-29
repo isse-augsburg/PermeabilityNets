@@ -303,11 +303,17 @@ class MeshEvaluator(Evaluator):
 
 
 class FlowFrontMeshEvaluator(Evaluator):
-    def __init__(self, summary_writer=None, sample_file=None, save_path=None):
+    def __init__(self, summary_writer=None,
+                 sample_file=None,
+                 save_path=None,
+                 subsampled_nodes=None,
+                 num_overall_nodes=133143):
         super().__init__()
         self.summary_writer = summary_writer
         self.Xi, self.Yi, self.triang, self.xi, self.yi = create_triangle_mesh(sample_file)
         self.save_path = save_path
+        self.subsampled_nodes = subsampled_nodes
+        self.num_overall_nodes = num_overall_nodes
 
         self.save_path.mkdir(exist_ok=True)
 
@@ -320,11 +326,20 @@ class FlowFrontMeshEvaluator(Evaluator):
 
         iteration_counter = 0
 
-        for o, label in zip(output, label):
+        for output, label in zip(output, label):
             ignore_list = []
-            o = o.numpy()
+            output = output.numpy()
             label = label.numpy()
-            zi_output = interpolate_flowfront(self.Xi, self.Yi, ignore_list, iteration_counter, self.triang, o)
+
+            if self.subsampled_nodes is not None:
+                o_zeros = np.zeros(self.num_overall_nodes)
+                l_zeros = np.zeros(self.num_overall_nodes)
+                o_zeros[self.subsampled_nodes] = output
+                l_zeros[self.subsampled_nodes] = label
+                output = o_zeros
+                label = l_zeros
+
+            zi_output = interpolate_flowfront(self.Xi, self.Yi, ignore_list, iteration_counter, self.triang, output)
             zi_label = interpolate_flowfront(self.Xi, self.Yi, ignore_list, iteration_counter, self.triang, label)
 
             fname = str(self.batch_counter) + "_" + str(iteration_counter)

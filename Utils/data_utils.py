@@ -184,7 +184,7 @@ def preprocess_3dsim_sensors(sensors: list):
 
 
 def extract_nearest_mesh_nodes_to_sensors(fn: Path, sensor_indices=((0, 1), (0, 1)), target_size=(38, 30, 2),
-                                          third_dim=False):
+                                          third_dim=False, subsampled_nodes=None):
     sensor_coords = extract_sensor_coords(Path(str(fn) + "d.out"))
 
     if third_dim:
@@ -198,11 +198,16 @@ def extract_nearest_mesh_nodes_to_sensors(fn: Path, sensor_indices=((0, 1), (0, 
     sensor_coords = sensor_coords.reshape(-1, 2)
 
     nodes_coords = extract_coords_of_mesh_nodes(Path(str(fn) + "_RESULT.erfh5"), normalized=False, third_dim=False)
-    # nodes_coords_3d = extract_coords_of_mesh_nodes(Path(str(fn) + "_RESULT.erfh5"), normalized=False, third_dim=True)
+    nodes_coords_3d = extract_coords_of_mesh_nodes(Path(str(fn) + "_RESULT.erfh5"), normalized=False, third_dim=True)
+
+    if subsampled_nodes is not None:
+        nodes_coords = nodes_coords[subsampled_nodes]
+        nodes_coords_3d = nodes_coords_3d[subsampled_nodes]
+
     dists_indeces = []
     for sensor in sensor_coords:
         dists_indeces.append(spatial.KDTree(nodes_coords).query(sensor))
-        # print(f"Sensor at {sensor} -> NN at {nodes_coords_3d[dists_indeces[-1][-1]]}")
+        print(f"Sensor at {sensor} -> NN at {nodes_coords_3d[dists_indeces[-1][-1]]}")
     dists, indices = zip(*dists_indeces)
     return np.array(indices)
 

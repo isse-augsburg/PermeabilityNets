@@ -29,6 +29,8 @@ class DataLoaderMesh:
 
         self.sensor_verts_path = sensor_verts_path
 
+        self.subsampled_nodes = None
+
         if (self.sensor_verts_path is not None) and (os.path.isfile(self.sensor_verts_path)):
             logger = logging.getLogger()
             logger.info('Loading sensor vertices from pickle file.')
@@ -46,7 +48,8 @@ class DataLoaderMesh:
             print("Calculating sensor vertices from scratch.")
             self.sensor_verts = extract_nearest_mesh_nodes_to_sensors(folder, sensor_indices=self.sensor_indices,
                                                                       target_size=self.intermediate_target_size,
-                                                                      third_dim=self.third_dim)
+                                                                      third_dim=self.third_dim,
+                                                                      subsampled_nodes=self.subsampled_nodes)
             if self.sensor_verts_path is not None:
                 pickle.dump(self.sensor_verts, open(self.sensor_verts_path, 'wb'))
                 print(f"Saved sensor vertices in {self.sensor_verts_path}.")
@@ -58,6 +61,10 @@ class DataLoaderMesh:
         try:
             verts = f["post/constant/entityresults/NODE/COORDINATE/ZONE1_set0/"
                       "erfblock/res"][()]
+
+            if self.subsampled_nodes is not None:
+                verts = verts[self.subsampled_nodes]
+
             verts = normalize_coords(verts)
 
             states = f["post"]["singlestate"]
@@ -74,6 +81,10 @@ class DataLoaderMesh:
                     'FILLING_FACTOR']['ZONE1_set1']['erfblock']['res'][()]
 
                 flowfront = np.squeeze(np.ceil(flowfront))
+
+                if self.subsampled_nodes is not None:
+                    pressure = pressure[self.subsampled_nodes]
+                    flowfront = flowfront[self.subsampled_nodes]
 
                 input_features[self.sensor_verts] = np.squeeze(pressure[self.sensor_verts])
                 if self.divide_by_100k:
@@ -198,6 +209,12 @@ class DataLoaderMesh:
 
     def get_batched_mesh_dgl(self, batchsize, filename):
 
+        dgl_mesh = self.__get_dgl_mesh(filename)
+        batch = [dgl_mesh for i in range(batchsize)]
+        batched_mesh = dgl.batch(batch)
+        return batched_mesh
+
+    def __get_dgl_mesh(self, filename):
         verts, faces = self.__get_mesh_components(filename)
 
         # Using PyTorch3d Meshes because of its transformations, e.g. edges_packed()
@@ -207,16 +224,29 @@ class DataLoaderMesh:
         u = np.squeeze(np.concatenate([src, dst]))
         v = np.squeeze(np.concatenate([dst, src]))
         dgl_mesh = dgl.DGLGraph((u, v))
-        batch = [dgl_mesh for i in range(batchsize)]
+        return dgl_mesh
+
+    def get_subsampled_batched_mesh_dgl(self, batchsize, filename, nodes_percentage=0.7):
+        full_mesh = self.__get_dgl_mesh(filename)
+
+        new_nodes = np.random.choice(full_mesh.number_of_nodes(), int(full_mesh.number_of_nodes() * nodes_percentage), replace=False)
+        self.subsampled_nodes = new_nodes
+        subsampled_mesh = full_mesh.subgraph(new_nodes)
+        subsampled_mesh = dgl.add_self_loop(subsampled_mesh)
+        batch = [subsampled_mesh for i in range(batchsize)]
         batched_mesh = dgl.batch(batch)
+
         return batched_mesh
+
+    def get_subsampled_nodes(self):
+        return self.subsampled_nodes
 
 
 if __name__ == '__main__':
     sensor_verts_path = Path("/home/lukas/rtm/sensor_verts.dump")
     dl = DataLoaderMesh()
     file = Path("/home/lukas/rtm/rtm_files/2019-07-24_16-32-40_308_RESULT.erfh5")
-    # mesh = dl.get_batched_mesh(4, file)
-    instances = dl.get_sensor_flowfront_mesh(file)
+    mesh = dl.get_subsampled_batched_mesh_dgl(1, file)
+    # instances = dl.get_sensor_flowfront_mesh(file)
     # instances = dl.get_sensor_dryspot_mesh(file)
     pass
