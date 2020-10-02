@@ -101,7 +101,7 @@ def handle_torch_caching(processing_function, data_source_paths, sampler_func, b
     data_loader_info = processing_function.__self__.__dict__
     data_loader_info["data_processing_function"] = processing_function.__name__
     data_loader_info["data_loader_name"] = processing_function.__self__.__class__.__name__
-    data_loader_info["data_loader_source"] = inspect.get_source(processing_function.__self__.__class__)
+    data_loader_info["data_loader_source"] = inspect.getsource(processing_function.__self__.__class__)
     data_loader_info["data_source_paths"] = [str(p) for p in data_source_paths]
     data_loader_info["batch_size"] = batch_size
     data_loader_info["num_validation_samples"] = num_val
