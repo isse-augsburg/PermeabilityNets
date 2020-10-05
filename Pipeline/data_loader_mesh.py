@@ -13,7 +13,6 @@ import dgl
 import os
 
 
-
 class DataLoaderMesh:
     def __init__(self, divide_by_100k=False,
                  sensor_verts_path=None,
@@ -240,12 +239,11 @@ class DataLoaderMesh:
 
         return mesh
 
-
-
     def get_subsampled_batched_mesh_dgl(self, batchsize, filename, nodes_percentage=0.7):
         full_mesh = self.__get_dgl_mesh(filename)
 
-        new_nodes = np.random.choice(full_mesh.number_of_nodes(), int(full_mesh.number_of_nodes() * nodes_percentage), replace=False)
+        new_nodes = np.random.choice(full_mesh.number_of_nodes(), int(full_mesh.number_of_nodes() * nodes_percentage),
+                                     replace=False)
         self.subsampled_nodes = new_nodes
         subsampled_mesh = full_mesh.subgraph(new_nodes)
         subsampled_mesh = dgl.add_self_loop(subsampled_mesh)

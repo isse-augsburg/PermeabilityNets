@@ -346,7 +346,8 @@ def create_triangle_mesh(file_path):
 
 
 def main():
-    file_path = Path("/cfs/home/l/o/lodesluk/Sim_Data/output/with_shapes/2020-08-26_22-08-05_5000p/0/2020-08-26_22-08-05_0_RESULT.erfh5")
+    file_path = Path("/cfs/home/l/o/lodesluk/Sim_Data/output/with_shapes/2020-08-26_22-08-05_5000p/"
+                     "0/2020-08-26_22-08-05_0_RESULT.erfh5")
     Xi, Yi, triang, xi, yi = create_triangle_mesh(file_path)
 
     curr_path = "2020-08-26_22-08-05_5000p"

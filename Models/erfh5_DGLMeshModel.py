@@ -157,4 +157,3 @@ class SparseSensorMeshToFlowFrontModelDGL(nn.Module):
 
         x = x.view(self.batch_size, -1)
         return x
-
