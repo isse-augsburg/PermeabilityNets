@@ -4,7 +4,7 @@ from Pipeline.data_loader_mesh import DataLoaderMesh
 from Pipeline.data_gather import get_filelist_within_folder_blacklisted
 from Trainer.ModelTrainer import ModelTrainer
 import socket
-from Models.erfh5_DGLMeshModel import SparseSensorMeshToFlowFrontModelDGL
+from Models.erfh5_DGLMeshModel import SparseSensorMeshToFlowFrontModelDGL, SensorMeshToFlowFrontModelDGL
 from Trainer.evaluation import FlowFrontMeshEvaluator
 import Utils.custom_mlflow
 import Resources.training as r
@@ -49,7 +49,7 @@ if __name__ == '__main__':
 
         filepaths = [base_path / "rtm_files_3d"]
         save_path = Path(base_path / "output")
-        batch_size = 12
+        batch_size = 8
         train_print_frequency = 100
         epochs = 2
         num_workers = 2
@@ -71,13 +71,18 @@ if __name__ == '__main__':
 
     # Sensorgrid: 17*16 = 272
     dlm = DataLoaderMesh(sensor_indices=((1, 4), (1, 4)), sensor_verts_path=sensor_verts_path)
-    mesh = dlm.get_subsampled_batched_mesh_dgl(batch_size, sample_file)
-    subsampled_nodes = dlm.get_subsampled_nodes()
+    # mesh = dlm.get_subsampled_batched_mesh_dgl(batch_size, sample_file, nodes_percentage=1.0)
+    # subsampled_nodes = dlm.get_subsampled_nodes()
+
+    mesh = dlm.get_batched_mesh_dgl(batch_size, sample_file)
+    subsampled_nodes = None
+
     # fig, ax = plt.subplots()
     # nx.draw(mesh.to_networkx(), ax=ax)
     # plt.show()
 
     model = SparseSensorMeshToFlowFrontModelDGL(mesh, batch_size=batch_size)
+    # model = SensorMeshToFlowFrontModelDGL(mesh, batch_size=batch_size)
 
     m = ModelTrainer(
         lambda: model,
@@ -109,5 +114,5 @@ if __name__ == '__main__':
     print("Training finished. Starting evaluation on test set.")
     m.inference_on_test_set(classification_evaluator_function=lambda summary_writer:
                             FlowFrontMeshEvaluator(summary_writer=summary_writer, sample_file=sample_file,
-                                                   save_path=save_path / "FF_Images/FF_272_subsampled_eval",
+                                                   save_path=save_path / "FF_Images/FF_272_normalized_eval",
                                                    subsampled_nodes=subsampled_nodes))

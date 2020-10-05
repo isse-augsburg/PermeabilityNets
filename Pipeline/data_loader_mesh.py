@@ -1,5 +1,6 @@
 import h5py
 import numpy as np
+import open3d
 import logging
 from pathlib import Path
 from pytorch3d.structures import Meshes
@@ -10,6 +11,7 @@ from Utils.data_utils import normalize_coords, extract_nearest_mesh_nodes_to_sen
 import pickle
 import dgl
 import os
+
 
 
 class DataLoaderMesh:
@@ -66,7 +68,7 @@ class DataLoaderMesh:
             if self.subsampled_nodes is not None:
                 verts = verts[self.subsampled_nodes]
 
-            verts = normalize_coords(verts)
+            verts = normalize_coords(verts, third_dim=True)
 
             states = f["post"]["singlestate"]
             all_inputs = []
@@ -121,7 +123,7 @@ class DataLoaderMesh:
         try:
             verts = f["post/constant/entityresults/NODE/COORDINATE/ZONE1_set0/"
                       "erfblock/res"][()]
-            verts = normalize_coords(verts)
+            verts = normalize_coords(verts, third_dim=True)
 
             array_of_states = meta_file["dryspot_states/singlestates"][()]
             if self.ignore_useless_states:
@@ -170,7 +172,7 @@ class DataLoaderMesh:
         try:
             verts = f["post/constant/entityresults/NODE/COORDINATE/ZONE1_set0/"
                       "erfblock/res"][()]
-            verts = normalize_coords(verts)
+            verts = normalize_coords(verts, third_dim=True)
             # Get internal indices of nodes
             hashes = f["post/constant/entityresults/NODE/COORDINATE/ZONE1_set0/"
                        "erfblock/entid"][()]
@@ -224,8 +226,21 @@ class DataLoaderMesh:
         src, dst = np.split(edges, 2, axis=1)
         u = np.squeeze(np.concatenate([src, dst]))
         v = np.squeeze(np.concatenate([dst, src]))
-        dgl_mesh = dgl.DGLGraph((u, v))
+        dgl_mesh = dgl.graph((u, v))
         return dgl_mesh
+
+    def get_open3d_mesh(self, filename):
+        verts, faces = self.__get_mesh_components(filename)
+        verts, faces = np.squeeze(verts.numpy()), np.squeeze(faces.numpy())
+
+        verts = open3d.utility.Vector3dVector(verts)
+        faces = open3d.utility.Vector3iVector(faces)
+
+        mesh = open3d.geometry.TriangleMesh(verts, faces)
+
+        return mesh
+
+
 
     def get_subsampled_batched_mesh_dgl(self, batchsize, filename, nodes_percentage=0.7):
         full_mesh = self.__get_dgl_mesh(filename)
@@ -246,8 +261,12 @@ class DataLoaderMesh:
 if __name__ == '__main__':
     sensor_verts_path = Path("/home/lukas/rtm/sensor_verts.dump")
     dl = DataLoaderMesh()
-    file = Path("/home/lukas/rtm/rtm_files/2019-07-24_16-32-40_308_RESULT.erfh5")
-    mesh = dl.get_subsampled_batched_mesh_dgl(1, file)
+    # file = Path("/home/lukas/rtm/rtm_files/2019-07-24_16-32-40_308_RESULT.erfh5")
+    file = Path("/home/lukas/rtm/rtm_files_3d/2020-08-24_11-20-27_111_RESULT.erfh5")
+    # mesh = dl.get_subsampled_batched_mesh_dgl(1, file)
     # instances = dl.get_sensor_flowfront_mesh(file)
     # instances = dl.get_sensor_dryspot_mesh(file)
+    mesh = dl.get_open3d_mesh(file)
+    mesh = mesh.simplify_quadric_decimation(target_number_of_triangles=90000)
+    open3d.visualization.draw_geometries([mesh])
     pass

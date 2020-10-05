@@ -222,7 +222,7 @@ def scale_coords_leoben(input_coords):
     return scaled_coords
 
 
-def normalize_coords(coords):
+def normalize_coords(coords, third_dim=False):
     coords = np.array(coords)
     max_c = np.max(coords[:, 0])
     min_c = np.min(coords[:, 0])
@@ -232,6 +232,10 @@ def normalize_coords(coords):
     min_c = np.min(coords[:, 1])
     coords[:, 1] = coords[:, 1] - min_c
     coords[:, 1] = coords[:, 1] / (max_c - min_c)
+
+    if third_dim:
+        coords[:, 2] = coords[:, 2] - min_c
+        coords[:, 2] = coords[:, 2] / (max_c - min_c)
     return coords
 
 
