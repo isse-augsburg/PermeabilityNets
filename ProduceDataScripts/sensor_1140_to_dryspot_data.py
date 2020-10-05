@@ -30,8 +30,7 @@ if __name__ == "__main__":
         num_test_samples=1048576,
         data_processing_function=dlds.get_sensor_bool_dryspot,
         data_gather_function=get_filelist_within_folder_blacklisted,
-        classification_evaluator_function=lambda summary_writer:
-        BinaryClassificationEvaluator(summary_writer=summary_writer),
+        classification_evaluator_function=lambda: BinaryClassificationEvaluator(),
         produce_torch_datasets_only=True,
         sampler=lambda data_source: torch.utils.data.SequentialSampler(data_source=data_source),
         torch_datasets_chunk_size=300000

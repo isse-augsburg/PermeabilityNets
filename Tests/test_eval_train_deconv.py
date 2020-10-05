@@ -56,10 +56,9 @@ class TestEval(unittest.TestCase):
             data_processing_function=dl.get_sensordata_and_flowfront,
             data_gather_function=get_filelist_within_folder_blacklisted,
             loss_criterion=torch.nn.BCELoss(),
-            classification_evaluator_function=lambda summary_writer: SensorToFlowfrontEvaluator(
+            classification_evaluator_function=lambda: SensorToFlowfrontEvaluator(
                 self.eval_output_path / "eval_on_test_set",
-                skip_images=False,
-                summary_writer=summary_writer
+                skip_images=False
             ),
             data_root=test_resources.test_src_dir,
         )
@@ -67,10 +66,9 @@ class TestEval(unittest.TestCase):
         st.inference_on_test_set(
             self.eval_output_path,
             self.checkpoint,
-            classification_evaluator_function=lambda summary_writer: SensorToFlowfrontEvaluator(
+            classification_evaluator_function=lambda: SensorToFlowfrontEvaluator(
                 self.eval_output_path / "eval_on_test_set",
-                skip_images=False,
-                summary_writer=summary_writer
+                skip_images=False
             )
         )
 
@@ -101,8 +99,7 @@ class TestEval(unittest.TestCase):
             data_processing_function=dl.get_sensordata_and_flowfront,
             data_gather_function=get_filelist_within_folder_blacklisted,
             loss_criterion=torch.nn.BCELoss(),
-            classification_evaluator_function=lambda summary_writer:
-            SensorToFlowfrontEvaluator(summary_writer=summary_writer),
+            classification_evaluator_function=lambda: SensorToFlowfrontEvaluator(),
             data_root=test_resources.test_src_dir,
         )
         st.start_training()
@@ -135,8 +132,7 @@ class TestEval(unittest.TestCase):
             data_processing_function=dl.get_sensordata_and_flowfront,
             data_gather_function=get_filelist_within_folder_blacklisted,
             loss_criterion=torch.nn.BCELoss(),
-            classification_evaluator_function=lambda summary_writer:
-            SensorToFlowfrontEvaluator(summary_writer=summary_writer),
+            classification_evaluator_function=lambda: SensorToFlowfrontEvaluator(),
             use_mixed_precision=True,
             data_root=test_resources.test_src_dir,
         )
@@ -169,8 +165,7 @@ class TestEval(unittest.TestCase):
             data_processing_function=dl.get_sensordata_and_flowfront,
             data_gather_function=get_filelist_within_folder_blacklisted,
             loss_criterion=torch.nn.BCELoss(),
-            classification_evaluator_function=lambda summary_writer: SensorToFlowfrontEvaluator(
-                summary_writer=summary_writer),
+            classification_evaluator_function=lambda: SensorToFlowfrontEvaluator(),
             data_root=test_resources.test_src_dir,
         )
         st.start_training()
@@ -193,8 +188,7 @@ class TestEval(unittest.TestCase):
             data_processing_function=dl.get_sensordata_and_flowfront,
             data_gather_function=get_filelist_within_folder_blacklisted,
             loss_criterion=torch.nn.BCELoss(),
-            classification_evaluator_function=lambda summary_writer: SensorToFlowfrontEvaluator(
-                summary_writer=summary_writer),
+            classification_evaluator_function=lambda: SensorToFlowfrontEvaluator(),
             data_root=test_resources.test_src_dir,
         )
         st.start_training()
@@ -218,8 +212,7 @@ class TestEval(unittest.TestCase):
             data_gather_function=get_filelist_within_folder_blacklisted,
             loss_criterion=torch.nn.BCELoss(),
             optimizer_path=self.checkpoint,
-            classification_evaluator_function=lambda summary_writer:
-            SensorToFlowfrontEvaluator(summary_writer=summary_writer),
+            classification_evaluator_function=lambda: SensorToFlowfrontEvaluator(),
             data_root=test_resources.test_src_dir,
         )
         st.start_training()
@@ -243,8 +236,7 @@ class TestEval(unittest.TestCase):
             num_test_samples=self.num_test_samples,
             data_processing_function=dl.get_sensordata_and_flowfront,
             data_gather_function=get_filelist_within_folder_blacklisted,
-            classification_evaluator_function=lambda summary_writer:
-            SensorToFlowfrontEvaluator(summary_writer=summary_writer),
+            classification_evaluator_function=lambda: SensorToFlowfrontEvaluator(),
             data_root=test_resources.test_src_dir,
         )
         st.start_training()
@@ -255,10 +247,8 @@ class TestEval(unittest.TestCase):
         self.assertTrue(os.path.isfile(slurm_script))
         with open(slurm_script) as f:
             lines = f.read().splitlines()
-            tokens = lines[-1].split()
-            self.assertEqual(dirs[0], Path(tokens[-3]))
-        st.writer.flush()
-        st.writer.close()
+            token = [y for y in lines if "PROJECT_ROOT=" in y][0].split('=')[1].strip('"')
+            self.assertEqual(dirs[0], Path(token))
 
     def tearDown(self) -> None:
         logging.shutdown()

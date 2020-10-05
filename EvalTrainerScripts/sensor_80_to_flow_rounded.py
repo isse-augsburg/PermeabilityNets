@@ -33,15 +33,14 @@ if __name__ == "__main__":
         data_gather_function=get_filelist_within_folder_blacklisted,
         loss_criterion=torch.nn.MSELoss(),
         optimizer_function=lambda params: torch.optim.AdamW(params, lr=0.0001),
-        classification_evaluator_function=lambda summary_writer:
-        SensorToFlowfrontEvaluator(summary_writer=summary_writer),
+        classification_evaluator_function=lambda: SensorToFlowfrontEvaluator(),
     )
 
     output_path = r.chkp_S80_to_ff2.parent
     m.inference_on_test_set(
         output_path / "eval_on_test_set_rounded.5",
         r.chkp_S80_to_ff2,
-        lambda summary_writer: SensorToFlowfrontEvaluator(
+        lambda: SensorToFlowfrontEvaluator(
             output_path / "eval_on_test_set_rounded.5",
             skip_images=False,
             sensors_shape=(10, 8),

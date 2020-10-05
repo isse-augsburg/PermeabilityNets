@@ -88,8 +88,7 @@ if __name__ == "__main__":
             loss_criterion=torch.nn.BCELoss(),
             optimizer_function=lambda params: torch.optim.AdamW(
                 params, lr=1e-4),
-            classification_evaluator_function=lambda summary_writer:
-            BinaryClassificationEvaluator(summary_writer=summary_writer),
+            classification_evaluator_function=lambda: BinaryClassificationEvaluator(),
             lr_scheduler_function=lambda optim: ExponentialLR(optim, 0.5),
             caching_torch=False,
             demo_path=None,
@@ -103,8 +102,7 @@ if __name__ == "__main__":
     m.start_training()
     print("Training finished. Starting evaluation")
     m.inference_on_test_set(
-        classification_evaluator_function=lambda summary_writer:
-        BinaryClassificationEvaluator(save_path / "eval_on_test_set",
-                                      skip_images=True,
-                                      with_text_overlay=True)
+        classification_evaluator_function=lambda: BinaryClassificationEvaluator(save_path / "eval_on_test_set",
+                                                                                skip_images=True,
+                                                                                with_text_overlay=True)
     )
