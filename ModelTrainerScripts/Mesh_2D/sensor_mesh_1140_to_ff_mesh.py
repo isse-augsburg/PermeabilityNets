@@ -66,8 +66,7 @@ if __name__ == '__main__':
         data_root=data_root,
         loss_criterion=torch.nn.BCELoss(),
         optimizer_function=lambda params: torch.optim.AdamW(params, lr=1e-5),
-        classification_evaluator_function=lambda summary_writer:
-        MeshEvaluator(summary_writer=summary_writer),
+        classification_evaluator_function=lambda: MeshEvaluator(),
         lr_scheduler_function=None,
         caching_torch=False,
         demo_path=None,

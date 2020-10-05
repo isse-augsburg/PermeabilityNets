@@ -101,8 +101,8 @@ if __name__ == '__main__':
         data_root=data_root,
         loss_criterion=torch.nn.MSELoss(),
         optimizer_function=lambda params: torch.optim.AdamW(params, lr=1e-4),
-        classification_evaluator_function=lambda summary_writer:
-        FlowFrontMeshEvaluator(summary_writer=summary_writer, sample_file=sample_file,
+        classification_evaluator_function=lambda:
+        FlowFrontMeshEvaluator(sample_file=sample_file,
                                save_path=save_path / "FF_Images/FF_272_DGX"),
         lr_scheduler_function=None,
         caching_torch=False,
@@ -113,6 +113,6 @@ if __name__ == '__main__':
     m.start_training()
     print("Training finished. Starting evaluation on test set.")
     m.inference_on_test_set(classification_evaluator_function=lambda summary_writer:
-                            FlowFrontMeshEvaluator(summary_writer=summary_writer, sample_file=sample_file,
+                            FlowFrontMeshEvaluator(sample_file=sample_file,
                                                    save_path=save_path / "FF_Images/FF_272_normalized_eval",
                                                    subsampled_nodes=subsampled_nodes))

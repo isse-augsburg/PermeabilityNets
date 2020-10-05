@@ -288,9 +288,9 @@ class BinaryClassificationEvaluator(Evaluator):
 
 
 class MeshEvaluator(Evaluator):
-    def __init__(self, summary_writer=None):
+    def __init__(self):
         super().__init__()
-        self.bc_evaluator = BinaryClassificationEvaluator(summary_writer=summary_writer)
+        self.bc_evaluator = BinaryClassificationEvaluator()
 
     def commit(self, output, label, data, aux):
         output = output.view(-1, 1)
@@ -305,13 +305,12 @@ class MeshEvaluator(Evaluator):
 
 
 class FlowFrontMeshEvaluator(Evaluator):
-    def __init__(self, summary_writer=None,
+    def __init__(self,
                  sample_file=None,
                  save_path=None,
                  subsampled_nodes=None,
                  num_overall_nodes=133143):
         super().__init__()
-        self.summary_writer = summary_writer
         self.Xi, self.Yi, self.triang, self.xi, self.yi = create_triangle_mesh(sample_file)
         self.save_path = save_path
         self.subsampled_nodes = subsampled_nodes
@@ -321,7 +320,7 @@ class FlowFrontMeshEvaluator(Evaluator):
 
         self.batch_counter = 0
 
-        self.me = MeshEvaluator(summary_writer=summary_writer)
+        self.me = MeshEvaluator()
 
     def commit(self, output, label, data, aux):
         # self.me.commit(output, label, data, aux)
