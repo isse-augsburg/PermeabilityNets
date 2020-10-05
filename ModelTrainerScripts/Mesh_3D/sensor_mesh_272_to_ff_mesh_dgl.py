@@ -114,5 +114,5 @@ if __name__ == '__main__':
     print("Training finished. Starting evaluation on test set.")
     m.inference_on_test_set(classification_evaluator_function=lambda summary_writer:
                             FlowFrontMeshEvaluator(summary_writer=summary_writer, sample_file=sample_file,
-                                                   save_path=save_path / "FF_Images/FF_272_normalized_eval",
+                                                   save_path=save_path / "FF_Images/FF_272_DGX_eval",
                                                    subsampled_nodes=subsampled_nodes))

@@ -1,6 +1,6 @@
 import h5py
 import numpy as np
-import open3d
+# import open3d
 import logging
 from pathlib import Path
 from pytorch3d.structures import Meshes
@@ -228,7 +228,7 @@ class DataLoaderMesh:
         dgl_mesh = dgl.graph((u, v))
         return dgl_mesh
 
-    def get_open3d_mesh(self, filename):
+    '''def get_open3d_mesh(self, filename):
         verts, faces = self.__get_mesh_components(filename)
         verts, faces = np.squeeze(verts.numpy()), np.squeeze(faces.numpy())
 
@@ -237,7 +237,7 @@ class DataLoaderMesh:
 
         mesh = open3d.geometry.TriangleMesh(verts, faces)
 
-        return mesh
+        return mesh'''
 
     def get_subsampled_batched_mesh_dgl(self, batchsize, filename, nodes_percentage=0.7):
         full_mesh = self.__get_dgl_mesh(filename)
@@ -264,7 +264,7 @@ if __name__ == '__main__':
     # mesh = dl.get_subsampled_batched_mesh_dgl(1, file)
     # instances = dl.get_sensor_flowfront_mesh(file)
     # instances = dl.get_sensor_dryspot_mesh(file)
-    mesh = dl.get_open3d_mesh(file)
-    mesh = mesh.simplify_quadric_decimation(target_number_of_triangles=90000)
-    open3d.visualization.draw_geometries([mesh])
+    # mesh = dl.get_open3d_mesh(file)
+    # mesh = mesh.simplify_quadric_decimation(target_number_of_triangles=90000)
+    # open3d.visualization.draw_geometries([mesh])
     pass
