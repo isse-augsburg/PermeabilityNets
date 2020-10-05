@@ -7,20 +7,43 @@ import socket
 from Models.erfh5_DGLMeshModel import SparseSensorMeshToFlowFrontModelDGL
 from Trainer.evaluation import FlowFrontMeshEvaluator
 import Utils.custom_mlflow
+import Resources.training as r
 
 # import networkx as nx
 # import matplotlib.pyplot as plt
 
 if __name__ == '__main__':
-    sensor_verts_path = Path("/home/lukas/rtm/sensor_verts_3d_272_v2.dump")
-    sample_file = Path("/home/lukas/rtm/rtm_files_3d/2020-08-24_11-20-27_75_RESULT.erfh5")
 
-    Utils.custom_mlflow.logging = False
     debug = False
 
     if "swt-dgx" in socket.gethostname():
-        pass
+        Utils.custom_mlflow.logging = False
+
+        home_folder = Path("/cfs/share/cache/output_lodesluk/files")
+        # TODO EDIT SAMPLE PATHS
+        sensor_verts_path = home_folder / "sensor_verts_3d_272_v2.dump"
+        sample_file = home_folder / "2020-08-24_11-20-27_75_RESULT.erfh5"
+
+        base_data_dir = Path("/cfs/share/data/RTM/Lautern/3D_sim_convex_concave/sim_output")
+        data_directories = [base_data_dir / "2020-08-24_11-20-27_5000p",
+                            base_data_dir / "2020-08-26_22-08-05_5000p"]
+        print("Running on DGX")
+
+        filepaths = data_directories
+        save_path = r.save_path
+        batch_size = 256
+        train_print_frequency = 100
+        epochs = 5
+        num_workers = 75
+        num_validation_samples = 2500
+        num_test_samples = 2500
+        data_root = base_data_dir
+        cache_path = None
     elif "pop-os" in socket.gethostname():
+        Utils.custom_mlflow.logging = False
+
+        sensor_verts_path = Path("/home/lukas/rtm/sensor_verts_3d_272_v2.dump")
+        sample_file = Path("/home/lukas/rtm/rtm_files_3d/2020-08-24_11-20-27_75_RESULT.erfh5")
         print("Running local mode.")
         base_path = Path("/home/lukas/rtm/")
 
@@ -74,7 +97,7 @@ if __name__ == '__main__':
         optimizer_function=lambda params: torch.optim.AdamW(params, lr=1e-4),
         classification_evaluator_function=lambda summary_writer:
         FlowFrontMeshEvaluator(summary_writer=summary_writer, sample_file=sample_file,
-                               save_path=save_path / "FF_Images/FF_272_TAG"),
+                               save_path=save_path / "FF_Images/FF_272_DGX"),
         lr_scheduler_function=None,
         caching_torch=False,
         demo_path=None,
@@ -85,4 +108,4 @@ if __name__ == '__main__':
     print("Training finished. Starting evaluation on test set.")
     m.inference_on_test_set(classification_evaluator_function=lambda summary_writer:
                             FlowFrontMeshEvaluator(summary_writer=summary_writer, sample_file=sample_file,
-                                                   save_path=save_path / "FF_Images/FF_272_TAG_eval"))
+                                                   save_path=save_path / "FF_Images/FF_272_DGX_eval"))
