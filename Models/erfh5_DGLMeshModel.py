@@ -10,6 +10,10 @@ class SensorMeshToFlowFrontModelDGL(nn.Module):
 
         self.batch_size = batch_size
 
+        if torch.cuda.device_count() > 1:
+            self.batch_size = int(self.batch_size / torch.cuda.device_count())
+            print(f"Internal batch size: {self.batch_size}")
+
         self.mesh = mesh
 
         # This part worked best
@@ -90,6 +94,10 @@ class SparseSensorMeshToFlowFrontModelDGL(nn.Module):
         super(SparseSensorMeshToFlowFrontModelDGL, self).__init__()
 
         self.batch_size = batch_size
+
+        if torch.cuda.device_count() > 1:
+            self.batch_size = int(self.batch_size / torch.cuda.device_count())
+            print(f"Internal batch size: {self.batch_size}")
 
         self.mesh = mesh
 

@@ -17,7 +17,6 @@ if __name__ == '__main__':
     debug = False
 
     if "swt-dgx" in socket.gethostname():
-        Utils.custom_mlflow.logging = False
 
         home_folder = Path("/cfs/share/cache/output_lodesluk/files")
         # TODO EDIT SAMPLE PATHS
@@ -26,12 +25,13 @@ if __name__ == '__main__':
 
         base_data_dir = Path("/cfs/share/data/RTM/Lautern/3D_sim_convex_concave/sim_output")
         data_directories = [base_data_dir / "2020-08-24_11-20-27_5000p",
-                            base_data_dir / "2020-08-26_22-08-05_5000p"]
+                            # base_data_dir / "2020-08-26_22-08-05_5000p"
+                            ]
         print("Running on DGX")
 
         filepaths = data_directories
         save_path = r.save_path
-        batch_size = 256
+        batch_size = 56
         train_print_frequency = 100
         epochs = 5
         num_workers = 75
@@ -101,8 +101,8 @@ if __name__ == '__main__':
         data_root=data_root,
         loss_criterion=torch.nn.MSELoss(),
         optimizer_function=lambda params: torch.optim.AdamW(params, lr=1e-4),
-        classification_evaluator_function=lambda summary_writer:
-        FlowFrontMeshEvaluator(summary_writer=summary_writer, sample_file=sample_file,
+        classification_evaluator_function=lambda:
+        FlowFrontMeshEvaluator(sample_file=sample_file,
                                save_path=save_path / "FF_Images/FF_272_DGX"),
         lr_scheduler_function=None,
         caching_torch=False,
@@ -112,7 +112,7 @@ if __name__ == '__main__':
 
     m.start_training()
     print("Training finished. Starting evaluation on test set.")
-    m.inference_on_test_set(classification_evaluator_function=lambda summary_writer:
-                            FlowFrontMeshEvaluator(summary_writer=summary_writer, sample_file=sample_file,
+    m.inference_on_test_set(classification_evaluator_function=lambda:
+                            FlowFrontMeshEvaluator(sample_file=sample_file,
                                                    save_path=save_path / "FF_Images/FF_272_DGX_eval",
                                                    subsampled_nodes=subsampled_nodes))

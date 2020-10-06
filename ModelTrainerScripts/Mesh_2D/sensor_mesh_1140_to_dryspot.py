@@ -89,8 +89,7 @@ if __name__ == '__main__':
         data_root=data_root,
         loss_criterion=torch.nn.BCELoss(),
         optimizer_function=lambda params: torch.optim.SGD(params, lr=0.001),
-        classification_evaluator_function=lambda summary_writer:
-        BinaryClassificationEvaluator(summary_writer=summary_writer),
+        classification_evaluator_function=lambda: BinaryClassificationEvaluator(),
         lr_scheduler_function=None,
         caching_torch=False,
         demo_path=None,
