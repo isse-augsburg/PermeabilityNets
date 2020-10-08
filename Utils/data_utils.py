@@ -183,10 +183,6 @@ def get_node_propery_at_states_and_indices(f: h5py.File, node_property: str, sta
     return data
 
 
-def preprocess_3dsim_sensors(sensors: list):
-    pass
-
-
 def extract_nearest_mesh_nodes_to_sensors(fn: Path, sensor_indices=((0, 1), (0, 1)), target_size=(38, 30, 2),
                                           third_dim=False, subsampled_nodes=None):
     sensor_coords = extract_sensor_coords(Path(str(fn) + "d.out"))
