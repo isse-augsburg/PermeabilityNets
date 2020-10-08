@@ -8,6 +8,7 @@ from Models.erfh5_MeshModel import SensorMeshToDryspotResnet
 from Trainer.evaluation import BinaryClassificationEvaluator
 import Utils.custom_mlflow
 import Resources.training as r
+from Utils.mesh_utils import MeshCreator
 
 if __name__ == '__main__':
 
@@ -68,7 +69,8 @@ if __name__ == '__main__':
         data_root = Path(base_path / "debug")
 
     dlm = DataLoaderMesh(sensor_verts_path=sensor_verts_path)
-    mesh = dlm.get_batched_mesh_torch(batch_size, sample_file)
+    mc = MeshCreator(batch_size)
+    mesh = mc.batched_mesh_torch(batch_size)
     # model = SensorMeshToDryspotModel(mesh, batch_size=batch_size, weights_path=weights_path)
     model = SensorMeshToDryspotResnet(mesh, batch_size=batch_size, weights_path=weights_path)
 

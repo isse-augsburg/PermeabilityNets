@@ -7,6 +7,7 @@ import socket
 from Models.erfh5_DGLMeshModel import SensorMeshToFlowFrontModelDGL
 from Trainer.evaluation import FlowFrontMeshEvaluator
 import Utils.custom_mlflow
+from Utils.mesh_utils import MeshCreator
 
 if __name__ == '__main__':
     sample_file = Path("/home/lukas/rtm/rtm_files/2019-07-24_16-32-40_308_RESULT.erfh5")
@@ -43,7 +44,8 @@ if __name__ == '__main__':
         data_root = Path(base_path / "debug")
 
     dlm = DataLoaderMesh(sensor_indices=((1, 4), (1, 4)), third_dim=False, intermediate_target_size=(38, 30, 2))
-    mesh = dlm.get_batched_mesh_dgl(batch_size, sample_file)
+    mc = MeshCreator(sample_file)
+    mesh = mc.batched_mesh_dgl(batch_size)
     model = SensorMeshToFlowFrontModelDGL(mesh, batch_size=batch_size)
 
     m = ModelTrainer(

@@ -1,6 +1,7 @@
 from pathlib import Path
 import torch
 from Pipeline.data_loader_mesh import DataLoaderMesh
+from Utils.mesh_utils import MeshCreator
 from Pipeline.data_gather import get_filelist_within_folder_blacklisted
 from Trainer.ModelTrainer import ModelTrainer
 import socket
@@ -9,8 +10,6 @@ from Trainer.evaluation import FlowFrontMeshEvaluator
 import Utils.custom_mlflow
 import Resources.training as r
 
-# import networkx as nx
-# import matplotlib.pyplot as plt
 
 if __name__ == '__main__':
 
@@ -19,7 +18,6 @@ if __name__ == '__main__':
     if "swt-dgx" in socket.gethostname():
 
         home_folder = Path("/cfs/share/cache/output_lodesluk/files")
-        # TODO EDIT SAMPLE PATHS
         sensor_verts_path = home_folder / "sensor_verts_3d_272_v2.dump"
         sample_file = home_folder / "2020-08-24_11-20-27_75_RESULT.erfh5"
 
@@ -42,7 +40,7 @@ if __name__ == '__main__':
     elif "pop-os" in socket.gethostname():
         Utils.custom_mlflow.logging = False
 
-        sensor_verts_path = Path("/home/lukas/rtm/sensor_verts_3d_272_v2.dump")
+        sensor_verts_path = Path("/home/lukas/rtm/sensor_verts_3d_272_subsampled.dump")
         sample_file = Path("/home/lukas/rtm/rtm_files_3d/2020-08-24_11-20-27_75_RESULT.erfh5")
         print("Running local mode.")
         base_path = Path("/home/lukas/rtm/")
@@ -71,15 +69,11 @@ if __name__ == '__main__':
 
     # Sensorgrid: 17*16 = 272
     dlm = DataLoaderMesh(sensor_indices=((1, 4), (1, 4)), sensor_verts_path=sensor_verts_path)
-    # mesh = dlm.get_subsampled_batched_mesh_dgl(batch_size, sample_file, nodes_percentage=1.0)
-    # subsampled_nodes = dlm.get_subsampled_nodes()
 
-    mesh = dlm.get_batched_mesh_dgl(batch_size, sample_file)
+    mc = MeshCreator(sample_file)
+    # mesh = mc.batched_mesh_dgl(batch_size)
+    mesh = mc.subsampled_batched_mesh_dgl(batch_size, faces_percentage=0.8)
     subsampled_nodes = None
-
-    # fig, ax = plt.subplots()
-    # nx.draw(mesh.to_networkx(), ax=ax)
-    # plt.show()
 
     model = SparseSensorMeshToFlowFrontModelDGL(mesh, batch_size=batch_size)
     # model = SensorMeshToFlowFrontModelDGL(mesh, batch_size=batch_size)
@@ -103,7 +97,7 @@ if __name__ == '__main__':
         optimizer_function=lambda params: torch.optim.AdamW(params, lr=1e-4),
         classification_evaluator_function=lambda:
         FlowFrontMeshEvaluator(sample_file=sample_file,
-                               save_path=save_path / "FF_Images/FF_272_DGX"),
+                               save_path=save_path / "FF_Images/FF_272_facessampled"),
         lr_scheduler_function=None,
         caching_torch=False,
         demo_path=None,
@@ -114,5 +108,5 @@ if __name__ == '__main__':
     print("Training finished. Starting evaluation on test set.")
     m.inference_on_test_set(classification_evaluator_function=lambda:
                             FlowFrontMeshEvaluator(sample_file=sample_file,
-                                                   save_path=save_path / "FF_Images/FF_272_DGX_eval",
+                                                   save_path=save_path / "FF_Images/FF_272_facessampled_eval",
                                                    subsampled_nodes=subsampled_nodes))
