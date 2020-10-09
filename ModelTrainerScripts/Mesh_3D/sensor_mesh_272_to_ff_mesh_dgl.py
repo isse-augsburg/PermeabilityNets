@@ -51,8 +51,8 @@ if __name__ == '__main__':
         save_path = Path(base_path / "output")
         batch_size = 8
         train_print_frequency = 100
-        looping_strategy = None
-        epochs = 2
+        looping_strategy = NoOpLoopingStrategy()  # TODO change back
+        epochs = 5
         num_workers = 2
         num_validation_samples = 200
         num_test_samples = 200
@@ -101,16 +101,17 @@ if __name__ == '__main__':
         optimizer_function=lambda params: torch.optim.AdamW(params, lr=1e-4),
         classification_evaluator_function=lambda:
         FlowFrontMeshEvaluator(sample_file=sample_file,
-                               save_path=save_path / "FF_Images/FF_272_facessampled"),
+                               save_path=save_path / "FF_Images/FF_272_loopingtest"),
         lr_scheduler_function=None,
         caching_torch=False,
         demo_path=None,
-        drop_last_batch=True
+        drop_last_batch=True,
+        hold_samples_in_memory=False
     )
 
     m.start_training()
     print("Training finished. Starting evaluation on test set.")
     m.inference_on_test_set(classification_evaluator_function=lambda:
                             FlowFrontMeshEvaluator(sample_file=sample_file,
-                                                   save_path=save_path / "FF_Images/FF_272_facessampled_eval",
+                                                   save_path=save_path / "FF_Images/FF_272_loopingtest",
                                                    subsampled_nodes=subsampled_nodes))
