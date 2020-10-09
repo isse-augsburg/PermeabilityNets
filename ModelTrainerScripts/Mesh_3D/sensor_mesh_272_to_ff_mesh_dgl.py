@@ -8,6 +8,7 @@ from Models.erfh5_DGLMeshModel import SparseSensorMeshToFlowFrontModelDGL
 from Trainer.evaluation import FlowFrontMeshEvaluator
 import Utils.custom_mlflow
 import Resources.training as r
+from Pipeline.TorchDataGeneratorUtils.looping_strategies import NoOpLoopingStrategy
 
 # import networkx as nx
 # import matplotlib.pyplot as plt
@@ -31,8 +32,9 @@ if __name__ == '__main__':
 
         filepaths = data_directories
         save_path = r.save_path
-        batch_size = 56
+        batch_size = 32
         train_print_frequency = 100
+        looping_strategy = NoOpLoopingStrategy()
         epochs = 5
         num_workers = 75
         num_validation_samples = 2500
@@ -51,6 +53,7 @@ if __name__ == '__main__':
         save_path = Path(base_path / "output")
         batch_size = 8
         train_print_frequency = 100
+        looping_strategy = None
         epochs = 2
         num_workers = 2
         num_validation_samples = 200
@@ -98,6 +101,7 @@ if __name__ == '__main__':
         num_test_samples=num_test_samples,
         data_processing_function=dlm.get_sensor_flowfront_mesh,
         data_gather_function=get_filelist_within_folder_blacklisted,
+        looping_strategy=looping_strategy,
         data_root=data_root,
         loss_criterion=torch.nn.MSELoss(),
         optimizer_function=lambda params: torch.optim.AdamW(params, lr=1e-4),
