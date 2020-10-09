@@ -7,6 +7,7 @@ import socket
 from Models.erfh5_MeshModel import SensorMeshToFlowFrontModel
 from Trainer.evaluation import MeshEvaluator
 import Utils.custom_mlflow
+from Utils.mesh_utils import MeshCreator
 
 
 if __name__ == '__main__':
@@ -47,7 +48,8 @@ if __name__ == '__main__':
         data_root = Path(base_path / "debug")
 
     dlm = DataLoaderMesh(sensor_verts_path=sensor_verts_path)
-    mesh = dlm.get_batched_mesh_torch(batch_size, sample_file)
+    mc = MeshCreator(sample_file)
+    mesh = mc.batched_mesh_dgl(batch_size)
     model = SensorMeshToFlowFrontModel(mesh, batch_size=batch_size)
 
     m = ModelTrainer(

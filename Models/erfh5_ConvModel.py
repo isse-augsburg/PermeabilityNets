@@ -1066,11 +1066,10 @@ class S20Channel4toDrySpot(nn.Module):
 
 
 if __name__ == "__main__":
-    # model = S80Deconv2ToDrySpotEff(freeze_nlayers=9)
-    model = SensorDeconvToDryspotTransferLearning()
+    model = S80Deconv2ToDrySpotEff(freeze_nlayers=9)
     print('param count:', count_parameters(model))
     m = model.cuda()
-    em = torch.randn((1, 1140)).cuda()
+    em = torch.randn((1, 80)).cuda()
     out = m(em)
 
     print('end', out.shape)

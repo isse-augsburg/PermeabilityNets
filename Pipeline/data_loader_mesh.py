@@ -3,17 +3,25 @@ import numpy as np
 # import open3d
 import logging
 from pathlib import Path
-from pytorch3d.structures import Meshes
-# import pytorch3d.structures.Meshes
-import torch
 from Utils.data_utils import normalize_coords, extract_nearest_mesh_nodes_to_sensors, \
     get_folder_of_erfh5
 import pickle
-import dgl
 import os
 
 
 class DataLoaderMesh:
+    """Data Loader for training directly on meshes. The functions extract features for each node.
+
+    Args:
+        divide_by_100k (Bool): Should the data processing functions divide the sensor values by 100 000?
+        sensor_verts_path (Path-like): Path to a pickle dump that contains the indices of all vertices in the mesh that
+                                       are nearest neighbors to a sensor
+        ignore_useless_states (Bool): Should useless states for dryspot detection be ignored?
+        sensor_indices: Used to increase distance between sensors. E.g. ((1, 4), (1, 4)) means every 4th sensor is used.
+        third_dim (Bool): Should internal functions like extract_nearest_mesh_nodes_to_sensors use the 3rd dim of
+                          coordinates?
+        intermediate_target_size (triple): Intermediate shape of sensor grid used for calculating the final sensors.
+    """
     def __init__(self, divide_by_100k=False,
                  sensor_verts_path=None,
                  ignore_useless_states=False,
@@ -42,6 +50,10 @@ class DataLoaderMesh:
             print(f'Loaded {len(self.sensor_verts)} sensor vertices.')
 
     def get_sensor_flowfront_mesh(self, filename):
+        """Returns samples of shape (num_vertices, 1)  with following values:
+           if nearest neighbor of sensor: sensorvalue else: 0
+           The label is of shape (num_vertices, 1) containing the filling factor on each node.
+        """
         f = h5py.File(filename, 'r')
         folder = get_folder_of_erfh5(filename)
         instances = []
@@ -108,6 +120,11 @@ class DataLoaderMesh:
             return None
 
     def get_sensor_dryspot_mesh(self, filename):
+        """Returns samples of shape (num_vertices, 1)  with following values:
+           if nearest neighbor of sensor: sensorvalue else: 0
+           The label is either 0 or 1, whether the sample contains a dryspot or not.
+        """
+
         f = h5py.File(filename, 'r')
         meta_file = h5py.File(str(filename).replace("RESULT.erfh5", "meta_data.hdf5"), 'r')
         folder = get_folder_of_erfh5(filename)
@@ -165,106 +182,11 @@ class DataLoaderMesh:
             f.close()
             return None
 
-    def __get_mesh_components(self, filename):
-        f = h5py.File(filename, 'r')
-
-        try:
-            verts = f["post/constant/entityresults/NODE/COORDINATE/ZONE1_set0/"
-                      "erfblock/res"][()]
-            verts = normalize_coords(verts, third_dim=True)
-            # Get internal indices of nodes
-            hashes = f["post/constant/entityresults/NODE/COORDINATE/ZONE1_set0/"
-                       "erfblock/entid"][()]
-            hashes = {h: i for i, h in enumerate(hashes)}
-
-            # Calculate faces based on internal indices
-            faces = f["post/constant/connectivities/SHELL/erfblock/ic"][()]
-            faces = faces[:, :-1]
-            faces = np.vectorize(hashes.__getitem__)(faces)
-
-            faces = torch.unsqueeze(torch.Tensor(faces), dim=0)
-            verts = torch.unsqueeze(torch.tensor(verts), dim=0)
-
-            f.close()
-            return verts, faces
-
-        except KeyError:
-            logger = logging.getLogger()
-            logger.warning(f'KeyError: Calculation of mesh failed.')
-            f.close()
-            raise Exception('Calculation of mesh failed because of a KeyError')
-        except IndexError:
-            logger = logging.getLogger()
-            logger.warning(f'KeyError: Calculation of mesh failed.')
-            f.close()
-            raise Exception('Calculation of mesh failed because of a IndexError')
-
-    def get_batched_mesh_torch(self, batchsize, filename):
-
-        verts, faces = self.__get_mesh_components(filename)
-
-        faces = faces.repeat(batchsize, 1, 1)
-        verts = verts.repeat(batchsize, 1, 1)
-        mesh = Meshes(verts=verts, faces=faces)
-
-        return mesh
-
-    def get_batched_mesh_dgl(self, batchsize, filename):
-
-        dgl_mesh = self.__get_dgl_mesh(filename)
-        batch = [dgl_mesh for i in range(batchsize)]
-        batched_mesh = dgl.batch(batch)
-        return batched_mesh
-
-    def __get_dgl_mesh(self, filename):
-        verts, faces = self.__get_mesh_components(filename)
-
-        # Using PyTorch3d Meshes because of its transformations, e.g. edges_packed()
-        mesh = Meshes(verts=verts, faces=faces)
-        edges = mesh.edges_packed().numpy()
-        src, dst = np.split(edges, 2, axis=1)
-        u = np.squeeze(np.concatenate([src, dst]))
-        v = np.squeeze(np.concatenate([dst, src]))
-        dgl_mesh = dgl.graph((u, v))
-        return dgl_mesh
-
-    '''def get_open3d_mesh(self, filename):
-        verts, faces = self.__get_mesh_components(filename)
-        verts, faces = np.squeeze(verts.numpy()), np.squeeze(faces.numpy())
-
-        verts = open3d.utility.Vector3dVector(verts)
-        faces = open3d.utility.Vector3iVector(faces)
-
-        mesh = open3d.geometry.TriangleMesh(verts, faces)
-
-        return mesh'''
-
-    def get_subsampled_batched_mesh_dgl(self, batchsize, filename, nodes_percentage=0.7):
-        full_mesh = self.__get_dgl_mesh(filename)
-
-        new_nodes = np.random.choice(full_mesh.number_of_nodes(), int(full_mesh.number_of_nodes() * nodes_percentage),
-                                     replace=False)
-        self.subsampled_nodes = new_nodes
-        subsampled_mesh = full_mesh.subgraph(new_nodes)
-        subsampled_mesh = dgl.add_self_loop(subsampled_mesh)
-        batch = [subsampled_mesh for i in range(batchsize)]
-        batched_mesh = dgl.batch(batch)
-
-        return batched_mesh
-
-    def get_subsampled_nodes(self):
-        return self.subsampled_nodes
-
 
 if __name__ == '__main__':
     sensor_verts_path = Path("/home/lukas/rtm/sensor_verts.dump")
     dl = DataLoaderMesh()
     # file = Path("/home/lukas/rtm/rtm_files/2019-07-24_16-32-40_308_RESULT.erfh5")
     file = Path("/home/lukas/rtm/rtm_files_3d/2020-08-24_11-20-27_111_RESULT.erfh5")
-    # mesh = dl.get_subsampled_batched_mesh_dgl(1, file)
     # instances = dl.get_sensor_flowfront_mesh(file)
     # instances = dl.get_sensor_dryspot_mesh(file)
-    # mesh = dl.get_open3d_mesh(file)
-    # mesh = mesh.simplify_quadric_decimation(target_number_of_triangles=90000)
-    # open3d.visualization.draw_geometries([mesh])
-    pass

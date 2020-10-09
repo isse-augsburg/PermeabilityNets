@@ -8,6 +8,7 @@ from Models.erfh5_DGLMeshModel import SensorMeshToFlowFrontModelDGL
 from Trainer.evaluation import FlowFrontMeshEvaluator
 import Utils.custom_mlflow
 import Resources.training as r
+from Utils.mesh_utils import MeshCreator
 
 if __name__ == '__main__':
     sensor_verts_path = Path("/home/lukas/rtm/sensor_verts_3d_v2.dump")
@@ -66,7 +67,8 @@ if __name__ == '__main__':
         data_root = Path(base_path / "debug")
 
     dlm = DataLoaderMesh(sensor_verts_path=sensor_verts_path)
-    mesh = dlm.get_batched_mesh_dgl(batch_size, sample_file)
+    mc = MeshCreator(sample_file)
+    mesh = mc.batched_mesh_dgl(batch_size)
     model = SensorMeshToFlowFrontModelDGL(mesh, batch_size=batch_size)
 
     m = ModelTrainer(
