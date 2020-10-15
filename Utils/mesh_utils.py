@@ -9,9 +9,13 @@ from pathlib import Path
 from Utils.data_utils import normalize_coords
 from vedo import *
 import matplotlib.pyplot as plt
+import time
+from multiprocessing import Pool
 
 
-def show_vedo_mesh(verts, faces, filling_factors):
+def show_vedo_mesh_old(verts, faces, filling_factors):
+    start = time.time()
+
     mesh = Mesh([verts, faces])
 
     mesh.backColor('blue').lineColor('white').lineWidth(0)
@@ -23,7 +27,7 @@ def show_vedo_mesh(verts, faces, filling_factors):
 
     # show(mesh, labs, __doc__, viewup='z', axes=1)
 
-    colors, alphas = [], []
+    colors = []
     all_cells = mesh.faces()
     for i in range(mesh.NCells()):
         points = all_cells[i]
@@ -33,10 +37,55 @@ def show_vedo_mesh(verts, faces, filling_factors):
 
         c = int((ff_sum / 3) * 200)
         colors.append((c, 0, 0))
-        alphas.append(0.7)
 
     mesh.cellIndividualColors(colors)
-    show(mesh, __doc__).screenshot()
+    show(mesh, __doc__, viewup='z', interactive=False, camera={'pos':(-1,-1,2)}) # isometric: 2 2 2
+    screenshot()
+    end = time.time()
+    print(f"Calculation took {end - start} seconds.")
+
+
+class VedoMeshSaver:
+    def __init__(self, verts, faces, filling_factors):
+        mesh = Mesh([verts, faces])
+        self.filling_factors = filling_factors
+
+        self.all_cells = mesh.faces()
+        self.n_cells = mesh.NCells()
+
+    def calc_color(self, cell):
+
+        points = self.all_cells[cell]
+        ff_sum = 0
+        for p in points:
+            ff_sum += self.filling_factors[p]
+
+        c = int((ff_sum / 3) * 200)
+        return (c, 0, 0)
+
+    def show_vedo_mesh(self):
+        start = time.time()
+
+
+        # retrieve them as numpy arrays
+        # printc('points():\n', mesh.points(), c=3)
+        # printc('faces(): \n', mesh.faces(), c=3)
+
+        # show(mesh, labs, __doc__, viewup='z', axes=1)
+
+
+        with Pool(processes=8) as pool:
+            colors = pool.map(self.calc_color, range(self.n_cells))
+
+        mesh = Mesh([verts, faces])
+        mesh.backColor('blue').lineColor('white').lineWidth(0)
+        labs = mesh.labels('id')
+        mesh.cellIndividualColors(colors)
+        show(mesh, __doc__, viewup='z', interactive=False, camera={'pos':(-1,-1,2)}) # isometric: 2 2 2
+        screenshot()
+        end = time.time()
+        print(f"Calculation took {end - start} seconds.")
+
 
 
 def save_p3d_mesh(verts, faces, filling_factors):
@@ -54,7 +103,7 @@ def save_p3d_mesh(verts, faces, filling_factors):
 
     # Initialize a camera.
     # Rotate the object by increasing the elevation and azimuth angles
-    R, T = look_at_view_transform(dist=2.7, elev=10, azim=-150)
+    R, T = look_at_view_transform(dist=2.0, elev=-50, azim=-90)
     cameras = FoVPerspectiveCameras(device=device, R=R, T=T)
 
     # Define the settings for rasterization and shading. Here we set the output image to be of size
@@ -64,7 +113,7 @@ def save_p3d_mesh(verts, faces, filling_factors):
     # explanations of these parameters. Refer to docs/notes/renderer.md for an explanation of
     # the difference between naive and coarse-to-fine rasterization.
     raster_settings = RasterizationSettings(
-        image_size=512,
+        image_size=1024,
         blur_radius=0.0,
         faces_per_pixel=1,
     )
@@ -223,6 +272,7 @@ if __name__ == '__main__':
     mc = MeshCreator(file)
     # m = mc.subsampled_batched_mesh_dgl(4)
     verts, faces, _ = mc.get_mesh_components()
-    # show_vedo_mesh(verts, faces, sample)
-    save_p3d_mesh(verts, faces, sample)
+
+    show_vedo_mesh_old(verts, faces, sample)
+    # save_p3d_mesh(verts, faces, sample)
     pass
