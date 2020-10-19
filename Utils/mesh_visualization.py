@@ -4,7 +4,7 @@ from pytorch3d.renderer import look_at_view_transform, FoVPerspectiveCameras, Ra
     MeshRenderer, MeshRasterizer, SoftPhongShader, TexturesVertex
 from vedo.mesh import Mesh
 from vedo.io import screenshot
-from vedo.plotter import show
+from vedo.plotter import show, Plotter
 import matplotlib.pyplot as plt
 import time
 from multiprocessing import Pool
@@ -37,7 +37,12 @@ def show_vedo_mesh_old(verts, faces, filling_factors):
         colors.append((c, 0, 0))
 
     mesh.cellIndividualColors(colors)
-    show(mesh, __doc__, viewup='z', interactive=False, camera={'pos': (-1, -1, 2)})  # isometric: 2 2 2
+    # show(mesh, __doc__, viewup='z', interactive=False, camera={'pos': (-1, -1, 2)})  # isometric: 2 2 2
+    plotter = Plotter(size=(1024, 1024), interactive=False)
+    plotter += mesh
+    plotter += __doc__
+    plotter.show(viewup='z', camera={'pos': (-1, -1, 2)})
+
     screenshot()
     end = time.time()
     print(f"Calculation took {end - start} seconds.")

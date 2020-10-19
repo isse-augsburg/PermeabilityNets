@@ -41,6 +41,7 @@ class LoopingDataGenerator:
         load_torch_dataset_path (Path): Load a saved Dataset from this Path. This can improve loading times in the
             first epoch. Note that this should only be used with the DataLoaderListLoopingStrategy.
         hold_samples_in_memory (Bool): Flag whether the DataGenerator should keep the processed samples in memory.
+        drop_last_batch (bool): Should the last batch be dropped if its size is < batch_size?
         torch_datasets_chunk_size (int): If >0, the train and testset will be saved in multiple .pt chunks. Specifies
             how many samples are stored in a chunk. If <=0, saving and loading of torch datasets will not be changed.
     """

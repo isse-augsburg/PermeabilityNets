@@ -74,6 +74,7 @@ class ModelTrainer:
         hold_samples_in_memory: Flag whether the DataGenerator should keep the processed samples in memory.
         run_name: String used as run name for mlflow tracking (makes identifying specific runs in mlflow easier)
         save_in_mlflow_directly: sets save_path to the mlflow artifact directory (instead of making a copy at the end)
+        drop_last_batch (bool): Should the last batch be dropped if its size is < batch_size?
         torch_datasets_chunk_size (int): If >0, the train and testset will be saved in multiple .pt chunks. Specifies
                                          how many samples are stored in a chunk. If <=0, saving and loading of torch
                                          datasets will not be changed.
