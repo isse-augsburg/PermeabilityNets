@@ -74,6 +74,7 @@ class ModelTrainer:
         hold_samples_in_memory: Flag whether the DataGenerator should keep the processed samples in memory.
         run_name: String used as run name for mlflow tracking (makes identifying specific runs in mlflow easier)
         save_in_mlflow_directly: sets save_path to the mlflow artifact directory (instead of making a copy at the end)
+        drop_last_batch (bool): Should the last batch be dropped if its size is < batch_size?
         torch_datasets_chunk_size (int): If >0, the train and testset will be saved in multiple .pt chunks. Specifies
                                          how many samples are stored in a chunk. If <=0, saving and loading of torch
                                          datasets will not be changed.
@@ -116,6 +117,7 @@ class ModelTrainer:
         hold_samples_in_memory=True,
         run_name='',
         save_in_mlflow_directly=False,
+        drop_last_batch=False,
         torch_datasets_chunk_size=0
     ):
         # Visit the following URL to check the MLFlow dashboard.
@@ -200,6 +202,7 @@ class ModelTrainer:
         self.classification_evaluator = None
         self.run_eval_step_before_training = run_eval_step_before_training
         self.dont_care_num_samples = dont_care_num_samples
+        self.drop_last_batch = drop_last_batch
 
         self.use_mixed_precision = use_mixed_precision
         self.resize_label = resize_label_to
@@ -232,6 +235,7 @@ class ModelTrainer:
                 test_mode=test_mode,
                 sampler=self.sampler,
                 load_test_set_in_training_mode=self.load_test_set_in_training_mode,
+                drop_last_batch=self.drop_last_batch,
                 hold_samples_in_memory=self.hold_samples_in_memory,
                 torch_datasets_chunk_size=self.torch_datasets_chunk_size
             )
@@ -419,7 +423,7 @@ class ModelTrainer:
                     if len(self.data_generator) == 0:
                         progress = 0
                     else:
-                        progress = i / (len(self.data_generator) / self.batch_size)                        
+                        progress = i / (len(self.data_generator) / self.batch_size)
                     eta = (len(self.data_generator) / self.batch_size - i) * ((time.time() - epoch_start) / i)
 
                     hours = f"{eta // 3600}h " if eta // 3600 > 0 else ""
@@ -543,7 +547,7 @@ class ModelTrainer:
         return epoch, loss
 
     def __batched(self, data_l: list, batch_size: int):
-        return DataLoader(data_l, batch_size=batch_size, shuffle=False)
+        return DataLoader(data_l, batch_size=batch_size, shuffle=False, drop_last=self.drop_last_batch)
 
     def inference_on_test_set(self,
                               output_path: Path = None,
