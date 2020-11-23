@@ -30,8 +30,8 @@ if __name__ == "__main__":
                      loss_criterion=torch.nn.BCELoss(),
                      optimizer_function=lambda params: torch.optim.AdamW(params, lr=1e-4),
                      classification_evaluator_function=lambda: BinaryClassificationEvaluator(),
-                     save_torch_dataset_path=r.datasets_dryspots_torch / Path(__file__).stem,
-                     load_torch_dataset_path=r.datasets_dryspots_torch / Path(__file__).stem,
+                     save_torch_dataset_path=r.cache_datasets_torch / Path(__file__).stem,
+                     load_torch_dataset_path=r.cache_datasets_torch / Path(__file__).stem,
                      # lr_scheduler_function=lambda optim: ExponentialLR(optim, 0.1),
                      )
 

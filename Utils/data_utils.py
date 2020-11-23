@@ -113,7 +113,7 @@ def handle_torch_caching(processing_function, data_source_paths, sampler_func, b
         data_loader_info["sampler"] = sampler_func(None).__dict__
     data_loader_str = str(data_loader_info).encode("utf-8")
     data_loader_hash = hashlib.md5(data_loader_str).hexdigest()
-    load_and_save_path = r.datasets_dryspots_torch / data_loader_hash
+    load_and_save_path = r.cache_datasets_torch / data_loader_hash
     # logger = logging.getLogger(__name__)
     # if load_and_save_path.exists():
     #     logger.debug("Existing caches: ")
@@ -122,13 +122,13 @@ def handle_torch_caching(processing_function, data_source_paths, sampler_func, b
     #     logger.debug("No existing caches.")
     load_and_save_path.mkdir(exist_ok=True)
 
-    if (r.datasets_dryspots_torch / "info.json").is_file():
-        with open(r.datasets_dryspots_torch / "info.json", "r") as f:
+    if (r.cache_datasets_torch / "info.json").is_file():
+        with open(r.cache_datasets_torch / "info.json", "r") as f:
             data = json.load(f)
     else:
         data = {}
     data.update({data_loader_hash: data_loader_info})
-    with open(r.datasets_dryspots_torch / "info.json", "w") as f:
+    with open(r.cache_datasets_torch / "info.json", "w") as f:
         json.dump(data, f, cls=NumpyEncoder)
 
     return load_and_save_path, data_loader_hash

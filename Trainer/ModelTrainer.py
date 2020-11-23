@@ -178,7 +178,7 @@ class ModelTrainer:
                 self.load_torch_dataset_path = load_and_save_path
 
             self.save_torch_dataset_path = load_and_save_path
-            self.save_torch_dataset_path.mkdir(exist_ok=True)
+            self.save_torch_dataset_path.mkdir(exist_ok=True, parents=True)
         else:
             self.data_loader_hash = "NOT_CACHING"
             self.load_torch_dataset_path = None

@@ -30,7 +30,8 @@ _ij_densenet_baselines = _ijcai / "densenet_baseline"
 plots_output = _ijcai / "plots"
 
 dataset_split = _share_path / 'data/RTM/Leoben/reference_datasets/general_purpose_dataset_split'
-datasets_dryspots_torch = _share_path / 'data/RTM/Leoben/reference_datasets_torch'
+cache_datasets_torch = _share_path / 'cache/reference_datasets_torch'
+# datasets_dryspots_torch = Path(r"C:\Users\stiebesi\CACHE\torch_datasets")
 chkp = "checkpoint.pth"
 
 # chkp_S1140_to_ff_deconv = _results / "4_three_week_run/2019-09-25_16-42-53" / chkp
