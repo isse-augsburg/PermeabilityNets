@@ -19,6 +19,11 @@ def eval_preparation(save_path):
     """
 
     src_path = Path(sys.argv[0]).parent.parent
+
+    # This check is necessary for ModelTrainerScripts in own packages, e.g. Mesh_2D or TransferLearning
+    if "ModelTrainerScripts" in str(src_path):
+        src_path = Path(sys.argv[0]).parent.parent.parent
+
     calling_script = Path(sys.argv[0]).parts[-1]
     shutil.copytree(src_path, save_path / "rtm-predictions",
                     ignore=shutil.ignore_patterns('.git*', 'env*', '.idea*', '.vscode*', '__pycache__*',

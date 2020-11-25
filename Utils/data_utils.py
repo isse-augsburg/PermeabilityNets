@@ -101,7 +101,8 @@ def handle_torch_caching(processing_function, data_source_paths, sampler_func, b
     data_loader_info = processing_function.__self__.__dict__
     data_loader_info["data_processing_function"] = processing_function.__name__
     data_loader_info["data_loader_name"] = processing_function.__self__.__class__.__name__
-    data_loader_info["data_loader_source"] = inspect.getsource(processing_function.__self__.__class__)
+    source_str = inspect.getsource(processing_function.__self__.__class__)
+    data_loader_info["data_loader_source"] = hashlib.md5(source_str.encode("utf-8")).hexdigest()
     data_loader_info["data_source_paths"] = [str(p) for p in data_source_paths]
     data_loader_info["batch_size"] = batch_size
     data_loader_info["num_validation_samples"] = num_val
@@ -112,7 +113,7 @@ def handle_torch_caching(processing_function, data_source_paths, sampler_func, b
         data_loader_info["sampler"] = sampler_func(None).__dict__
     data_loader_str = str(data_loader_info).encode("utf-8")
     data_loader_hash = hashlib.md5(data_loader_str).hexdigest()
-    load_and_save_path = r.datasets_dryspots_torch / data_loader_hash
+    load_and_save_path = r.cache_datasets_torch / data_loader_hash
     # logger = logging.getLogger(__name__)
     # if load_and_save_path.exists():
     #     logger.debug("Existing caches: ")
@@ -121,30 +122,32 @@ def handle_torch_caching(processing_function, data_source_paths, sampler_func, b
     #     logger.debug("No existing caches.")
     load_and_save_path.mkdir(exist_ok=True)
 
-    if (r.datasets_dryspots_torch / "info.json").is_file():
-        with open(r.datasets_dryspots_torch / "info.json", "r") as f:
+    if (r.cache_datasets_torch / "info.json").is_file():
+        with open(r.cache_datasets_torch / "info.json", "r") as f:
             data = json.load(f)
     else:
         data = {}
     data.update({data_loader_hash: data_loader_info})
-    with open(r.datasets_dryspots_torch / "info.json", "w") as f:
+    with open(r.cache_datasets_torch / "info.json", "w") as f:
         json.dump(data, f, cls=NumpyEncoder)
 
     return load_and_save_path, data_loader_hash
 
 
-def extract_sensor_coords(fn: Path, indices=((0, 1), (0, 1))):
+def extract_sensor_coords(fn: Path, third_dim=False, indices=((0, 1), (0, 1))):
     """
     Extract the sensor coordinates as numpy array from a *d.out file, which exists for every run.
     """
     with fn.open() as f:
         content = f.read()
     sensor_coords = []
-    for triple in re.findall(r"\d+\.\d+ \d+\.\d+ \d+\.\d+", content):
+
+    for triple in re.findall(r"-?\d+\.\d+ -?\d+\.\d+ -?\d+\.\d+", content):
         sensor_coords.append([float(e) for e in triple.split(' ')])
     _s_coords = np.array(sensor_coords)
     # Cut off last column (z), since it is filled with 1s anyway
-    _s_coords = _s_coords[:, :-1]
+    if not third_dim:
+        _s_coords = _s_coords[:, :-1]
     # if indices != ((0, 1), (0, 1)):
     #     _s_coords = _s_coords.reshape(38, 30)
     #     _s_coords = _s_coords[indices[0][0]::indices[0][1], indices[1][0]::indices[1][1]]
@@ -152,17 +155,21 @@ def extract_sensor_coords(fn: Path, indices=((0, 1), (0, 1))):
     return _s_coords
 
 
-def extract_coords_of_mesh_nodes(fn: Path, normalized=True):
+def extract_coords_of_mesh_nodes(fn: Path, normalized=True, third_dim=False):
     """
     Extract the coordinates of the mesh nodes as numpy array from a *RESULT.erfh5 file, which exists for every run.
     """
     with h5py.File(fn, 'r') as f:
         coord_as_np_array = f["post/constant/entityresults/NODE/COORDINATE/ZONE1_set0/erfblock/res"][()]
-    # Cut off last column (z), since it is filled with 1s anyway
-    _coords = coord_as_np_array[:, :-1]
+
+    if not third_dim:
+        # Cut off last column (z), since it is filled with 1s anyway
+        coord_as_np_array = coord_as_np_array[:, :-1]
+
     if normalized:
-        _coords = normalize_coords(_coords)
-    return _coords
+        coord_as_np_array = normalize_coords(coord_as_np_array)
+
+    return coord_as_np_array
 
 
 def get_node_propery_at_states_and_indices(f: h5py.File, node_property: str, states: list, indices: list = []):
@@ -177,12 +184,31 @@ def get_node_propery_at_states_and_indices(f: h5py.File, node_property: str, sta
     return data
 
 
-def extract_nearest_mesh_nodes_to_sensors(fn: Path):
+def extract_nearest_mesh_nodes_to_sensors(fn: Path, sensor_indices=((0, 1), (0, 1)), target_size=(38, 30, 2),
+                                          third_dim=False, subsampled_nodes=None):
     sensor_coords = extract_sensor_coords(Path(str(fn) + "d.out"))
-    nodes_coords = extract_coords_of_mesh_nodes(Path(str(fn) + "_RESULT.erfh5"), normalized=False)
+
+    if third_dim:
+        sensor_coords = sensor_coords[25:]
+        sensor_coords = np.append(sensor_coords, [[0, 0]], axis=0)
+
+    sensor_coords = sensor_coords.reshape(target_size)
+    sensor_coords = sensor_coords[sensor_indices[0][0]:: sensor_indices[0][1],
+                                  sensor_indices[1][0]:: sensor_indices[1][1]]
+
+    sensor_coords = sensor_coords.reshape(-1, 2)
+
+    nodes_coords = extract_coords_of_mesh_nodes(Path(str(fn) + "_RESULT.erfh5"), normalized=False, third_dim=False)
+    nodes_coords_3d = extract_coords_of_mesh_nodes(Path(str(fn) + "_RESULT.erfh5"), normalized=False, third_dim=True)
+
+    if subsampled_nodes is not None:
+        nodes_coords = nodes_coords[subsampled_nodes]
+        nodes_coords_3d = nodes_coords_3d[subsampled_nodes]
+
     dists_indeces = []
     for sensor in sensor_coords:
         dists_indeces.append(spatial.KDTree(nodes_coords).query(sensor))
+        print(f"Sensor at {sensor} -> NN at {nodes_coords_3d[dists_indeces[-1][-1]]}")
     dists, indices = zip(*dists_indeces)
     return np.array(indices)
 
@@ -197,7 +223,7 @@ def scale_coords_leoben(input_coords):
     return scaled_coords
 
 
-def normalize_coords(coords):
+def normalize_coords(coords, third_dim=False):
     coords = np.array(coords)
     max_c = np.max(coords[:, 0])
     min_c = np.min(coords[:, 0])
@@ -207,6 +233,10 @@ def normalize_coords(coords):
     min_c = np.min(coords[:, 1])
     coords[:, 1] = coords[:, 1] - min_c
     coords[:, 1] = coords[:, 1] / (max_c - min_c)
+
+    if third_dim:
+        coords[:, 2] = coords[:, 2] - min_c
+        coords[:, 2] = coords[:, 2] / (max_c - min_c)
     return coords
 
 
@@ -218,6 +248,20 @@ def change_win_to_unix_path_if_needed(_str):
     return _str
 
 
+def get_folder_of_erfh5(file):
+    file_string = str(file)
+    file_string = file_string.split(".")[0]
+    file_string = file_string.split("_")
+    del file_string[-1]
+    folder = Path("_".join(file_string))
+    return folder
+
+
 if __name__ == '__main__':
+    '''extract_nearest_mesh_nodes_to_sensors(
+        Path(r'Y:\\data\\RTM\\Leoben\\sim_output\\2019-07-23_15-38-08_5000p\\0\\2019-07-23_15-38-08_0'))
+    '''
+
     extract_nearest_mesh_nodes_to_sensors(
-        Path(r'Y:\data\RTM\Leoben\sim_output\2019-07-23_15-38-08_5000p\0\2019-07-23_15-38-08_0'))
+        Path("/home/lukas/rtm/rtm_files/2019-07-24_16-32-40_308")
+    )

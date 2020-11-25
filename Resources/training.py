@@ -30,7 +30,8 @@ _ij_densenet_baselines = _ijcai / "densenet_baseline"
 plots_output = _ijcai / "plots"
 
 dataset_split = _share_path / 'data/RTM/Leoben/reference_datasets/general_purpose_dataset_split'
-datasets_dryspots_torch = _share_path / 'data/RTM/Leoben/reference_datasets_torch'
+cache_datasets_torch = _share_path / 'cache/reference_datasets_torch'
+# datasets_dryspots_torch = Path(r"C:\Users\stiebesi\CACHE\torch_datasets")
 chkp = "checkpoint.pth"
 
 # chkp_S1140_to_ff_deconv = _results / "4_three_week_run/2019-09-25_16-42-53" / chkp
@@ -77,7 +78,7 @@ chkp_S80_to_ff_standardized = _ij_S80_deconv_conv / "standardized/2020-03-09_18-
 
 data_root = _share_path / 'data/RTM/Leoben/sim_output'
 data_root_every_step = _share_path / 'data/RTM/Leoben/sim_output_every_step'
-nearest_nodes_to_sensors = _share_path / "data/RTM/Leoben/Mesh/nearest_nodes_to_sensors.p"
+nearest_nodes_to_sensors = _share_path / "data/RTM/Leoben/Mesh_2D/nearest_nodes_to_sensors.p"
 mean_std_20_flowfront_sensors = _share_path / "data/RTM/Leoben/aux_data/mean_std_20_flowfront_sensors.p"
 mean_std_1140_pressure_sensors = _share_path / "data/RTM/Leoben/aux_data/mean_std_1140_pressure_sensors.p"
 

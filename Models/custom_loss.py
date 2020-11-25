@@ -43,19 +43,3 @@ class FocalLoss(nn.Module):
         string = "Focal Loss with gamma = " + str(
             self.gamma) + " and reduction = " + str(self.reduction)
         return string
-
-
-if __name__ == "__main__":
-    # out = np.array([[0.9, 0.1], [0.01, 0.99]])
-    out = np.array([[0.85, 0.15], [0.99, 0.01]])
-    # label = np.array([[1.0, 0.0], [1.0, 0.0]])
-    label = np.array([[1.0, 0.0], [0.0, 1.0]])
-
-    out = torch.from_numpy(out)
-    label = torch.from_numpy(label)
-
-    focalloss = FocalLoss()
-    # focalloss = focal_loss(0.85, 1.0)
-    fl = focalloss(out, label)
-
-    print(fl)

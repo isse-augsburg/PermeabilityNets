@@ -22,7 +22,7 @@ class TestSaveDatasetsTorch(unittest.TestCase):
     def setUp(self) -> None:
         self.torch_dataset_resources = test_resources.torch_datasets
         self.torch_all_datasets = self.torch_dataset_resources / "all"
-        self.reference_datasets_torch = tr_resources.datasets_dryspots_torch
+        self.reference_datasets_torch = tr_resources.cache_datasets_torch
         self.load_and_save_path = None
 
     def create_trainer_and_start(self, out_path, epochs=1, load_test_set=False, train_set_chunk_size=0):
