@@ -3,6 +3,8 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 from math import ceil
+
+from Utils.dicts.sensor_dicts import sensor_shape
 from Utils.custom_mlflow import log_param
 
 from Models.OurModules import ConvLSTM
@@ -11,25 +13,15 @@ from Models.OurModules import ConvLSTM
 class SensorToBinaryRunwiseModel(nn.Module):
     def __init__(self,
                  input_dim=1140,
-                 slice_start=0, 
-                 shrink_factor=1, 
                  conv_lstm_sizes=[128, 32],
-                 fc_sizes=[2048, 512, 128]
+                 fc_sizes=[2048, 512, 128],
+                 dropout=0.3
                  ):
         super(SensorToBinaryRunwiseModel, self).__init__()
         self.input_dim = input_dim
-        self.slice_start = slice_start
-        self.shrink_factor = shrink_factor
+        self.input_shape = sensor_shape[str(input_dim)]
 
-        real_input_dim = ceil(((38 - self.slice_start) / self.shrink_factor)) * ceil(
-            ((30 - self.slice_start) / self.shrink_factor))
-
-        # conv_lstm_sizes = [256, 64]
-        # fc_sizes = [2048, 512, 128]
-        dropout = 0.3
-
-        log_param("Model/ShrinkFactor", f"{self.shrink_factor}")
-        log_param("Model/SliceStart", f"{self.slice_start}")
+        log_param("Model/Input_dim", f"{input_dim}")
         log_param("Model/ConvLSTM_Layers", f"{conv_lstm_sizes}")
         log_param("Model/FC_layers", f"{fc_sizes}")
         log_param("Model/Dropout", f"{dropout}")
@@ -56,7 +48,7 @@ class SensorToBinaryRunwiseModel(nn.Module):
         '''
 
         self.fc_layers = nn.ModuleList()
-        fc_input_dim = conv_lstm_sizes[-1] * real_input_dim
+        fc_input_dim = conv_lstm_sizes[-1] * input_dim
         for fc_output_dim in fc_sizes:
             self.fc_layers.append(nn.Linear(fc_input_dim, fc_output_dim))
             fc_input_dim = fc_output_dim
@@ -65,8 +57,8 @@ class SensorToBinaryRunwiseModel(nn.Module):
 
     def forward(self, x: torch.Tensor):
         # sequence, batch, dim, x,y
-        x = x.permute(1, 0, 2).reshape((100, -1, 1, 38, 30))
-        x = x[:, :, :, self.slice_start::self.shrink_factor, self.slice_start::self.shrink_factor]
+        x = x.permute(1, 0, 2).reshape((100, -1, 1, self.input_shape[0], self.input_shape[1]))
+        #x = x[:, :, :, self.slice_start::self.shrink_factor, self.slice_start::self.shrink_factor]
         out, _ = self.convlstm(x)
         out = out[0]
         '''
