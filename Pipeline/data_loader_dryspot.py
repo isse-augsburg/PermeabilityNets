@@ -161,7 +161,7 @@ class DataloaderDryspots:
         and determines a runwise label ("ok"/"not ok") based on consecutive dryspots counted
 
         Args:
-            filename: full path (pathlib object) to an ERFH5-file containing sensor data
+            filename (pathlib.Path): full path to an ERFH5-file containing sensor data
             threshold_min_counted_dryspots: min. number of consecutive dryspots to turn the runlevel label to "not ok"
 
         Returns: List of a single tuple containing
@@ -180,7 +180,6 @@ class DataloaderDryspots:
             activated_sensors = np.count_nonzero(multi_states, axis=1)
             percentage_of_all_sensors = activated_sensors / 1140
             len_wanted_seq = 100
-            per_step = 1 / len_wanted_seq
             current = 0
             sequence = np.zeros((len_wanted_seq, self.num_sensors))
             frame_labels = []
@@ -284,7 +283,17 @@ class DataloaderDryspots:
         return coords, flat_fillings
 
     def load_aux_info_only(self, filename, single_state_indices):
-        # TODO doc
+        """
+        Loads aux-info (currently only flowfronts) for all given timesteps of a given run.
+        Intended for loading aux-info on demand during evaluation.
+
+        Args:
+            filename (pathlib.Path) : full path to an ERFH5-file to load aux-info from
+            single_state_indices (1D torch.Tensor [int]): which time steps to load aux-info from
+
+        Returns:
+            flowfronts (3D ndarray): array of flowfront images
+        """
         file = h5py.File(filename, "r")
         meta_file = h5py.File(str(filename).replace("RESULT.erfh5", "meta_data.hdf5"), 'r')
         output_len = single_state_indices.size()[0]
@@ -296,7 +305,7 @@ class DataloaderDryspots:
         flowfronts = np.zeros((output_len, self.image_size[0], self.image_size[1]))
         for i, ss_idx in enumerate(single_state_indices):
             flowfronts[i, :, :] = create_np_image(target_shape=self.image_size,
-                                                  norm_coords=_coords, data=flat_fillings[ff_idx])
+                                                  norm_coords=_coords, data=flat_fillings[ss_idx])
 
         file.close()
         meta_file.close()

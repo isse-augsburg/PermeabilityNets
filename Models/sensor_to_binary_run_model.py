@@ -2,7 +2,6 @@
 import torch
 import torch.nn.functional as F
 from torch import nn
-from math import ceil
 
 from Utils.dicts.sensor_dicts import sensor_shape
 from Utils.custom_mlflow import log_param
@@ -58,7 +57,7 @@ class SensorToBinaryRunwiseModel(nn.Module):
     def forward(self, x: torch.Tensor):
         # sequence, batch, dim, x,y
         x = x.permute(1, 0, 2).reshape((100, -1, 1, self.input_shape[0], self.input_shape[1]))
-        #x = x[:, :, :, self.slice_start::self.shrink_factor, self.slice_start::self.shrink_factor]
+        # x = x[:, :, :, self.slice_start::self.shrink_factor, self.slice_start::self.shrink_factor]
         out, _ = self.convlstm(x)
         out = out[0]
         '''

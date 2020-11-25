@@ -15,7 +15,7 @@ if __name__ == "__main__":
     args = read_cmd_params()
 
     batch_size = 128
-    dataset_paths = [r.get_regular_sampled_data_paths()[1]] # r.get_all_data_paths()
+    dataset_paths = [r.get_regular_sampled_data_paths()[1]]  # r.get_all_data_paths()
     num_workers = 75
     use_cache = False
     num_val = 50
