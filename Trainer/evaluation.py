@@ -16,8 +16,8 @@ from torch.utils.tensorboard import SummaryWriter
 
 from Utils.dicts.sensor_dicts import sensor_shape
 from Utils.custom_mlflow import log_metric, get_artifact_uri
-
 from Utils.dry_spot_detection_3d import create_triangle_mesh, create_flowfront_img, interpolate_flowfront
+from Analysis_Visualisations.evaluation_plots import plot_confusion_matrix, plot_sample_eval
 
 """ 
 >>>> PLEASE NOTE: <<<<
@@ -202,15 +202,16 @@ class BinaryClassificationEvaluator(Evaluator):
             # run-level classification (inputs has shape [#validation_samples, #frames, #sensors])
             if len(list(inputs.shape)) == 3 and self.epoch == self.max_epochs - 1:
 
-                false_samples = np.where(predictions != label)
+                # false_samples = np.where(predictions != label)
                 num_sensors = inputs[0, 0].shape[0]
 
                 logger = logging.getLogger(__name__)
-                logger.info(f"False Samples: {false_samples[0]}")
+                # logger.info(f"False Samples: {false_samples[0]}")
                 plt_vmax = np.amax(inputs)
                 logger.info(f"Batch plt_vmax: {plt_vmax}")
+                max_plots_per_batch = 25
 
-                for sample_idx in range(min(25, len(list(predictions)))):  # false_samples[0]:
+                for sample_idx in range(min(max_plots_per_batch, len(list(predictions)))):  # false_samples[0]:
                     sample = inputs[sample_idx]
                     sample = np.squeeze(sample)
                     aux_sample = aux[sample_idx] if aux else {}
@@ -221,12 +222,11 @@ class BinaryClassificationEvaluator(Evaluator):
                         label_str = self.class_names[int(label[sample_idx])]
                         pred_str = self.class_names[int(predictions[sample_idx])]
                         aux_info = self.__get_aux_info(aux_sample, i)
-
-                        frame_plot = self.plot_sensor_frame(frame, label_str, pred_str, aux_info, flowfronts[i], 0,
-                                                            plt_vmax)
-                        self.writer.add_figure(f"FalseClassified/{sample_idx + self.evaluated_samples_epoch}",
+                        frame_plot = plot_sample_eval([frame, flowfronts[i]], ['Sensor values', 'Flowfront'],
+                                                      label_str=label_str, pred_str=pred_str, additional_info=aux_info,
+                                                      vmin=[0, None], vmax=[plt_vmax, None])
+                        self.writer.add_figure(f"Plots/{sample_idx + self.evaluated_samples_epoch}",
                                                frame_plot, i + 1)
-                        plt.close(frame_plot)
 
             # frame-level classification (inputs has shape [#validation_samples, #sensors])
             if len(list(inputs.shape)) == 2:
@@ -288,10 +288,8 @@ class BinaryClassificationEvaluator(Evaluator):
             base_dir = Path(get_artifact_uri()) / "confusion_matrix"
             cm_types = ['absolute', 'normalized_overall', 'normalized_by_class']
             for cm_type in cm_types:
-                cm_plot = self.__plot_confusion_matrix(self.confusion_matrix, self.class_names, cm_type)
-                base_dir.joinpath(cm_type).mkdir(parents=True, exist_ok=True)
-                cm_plot.savefig(base_dir / cm_type / f"epoch_{self.epoch:02}.png")
-                plt.close(cm_plot)
+                save_as = base_dir / cm_type / f"epoch_{self.epoch:02}.png"
+                plot_confusion_matrix(self.confusion_matrix, self.class_names, cm_type, False, save_as)
 
     def __update_metrics(self):
         self.tn = self.confusion_matrix[0, 0]
@@ -322,86 +320,6 @@ class BinaryClassificationEvaluator(Evaluator):
             aux_info.append(f"Sensors filled: {aux['percent_of_sensors_filled'][idx] * 100:.2f}%")
             aux_info.append(f"{aux['sourcefile']}")
         return aux_info
-
-    @staticmethod
-    def __plot_confusion_matrix(cm, class_names, norm=''):
-        plt.rcParams['figure.constrained_layout.use'] = True
-        fig = plt.figure(figsize=(len(class_names) + 1, len(class_names) + 1), dpi=150)
-
-        if norm == 'normalized_by_class':
-            cm = np.around(normalize(cm, norm='l1', axis=1), decimals=2)
-        elif norm == 'normalized_overall':
-            cm = np.around(cm / max(cm.sum(), 1e-8), decimals=2)
-
-        plt.imshow(cm, interpolation='nearest', cmap=plt.cm.Blues, vmin=0, vmax=np.sum(cm, 1).max())
-        tick_marks = np.arange(len(class_names))
-        plt.xticks(tick_marks, class_names, rotation=45)
-        plt.yticks(tick_marks, class_names)
-        plt.ylabel('True label')
-        plt.xlabel('Predicted label')
-
-        # Use white text if squares are dark; otherwise black
-        threshold = 0.5 * np.sum(cm, 1).max()
-        for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
-            color = "white" if cm[i, j] > threshold else "black"
-            plt.text(j, i, cm[i, j], horizontalalignment="center", color=color)
-
-        return fig
-
-    @staticmethod
-    def plot_sensor_frame(frame_sensors,
-                          label=None, prediction=None,
-                          additional_info=None, frame_flowfront=None,
-                          vmin=None, vmax=None):
-        # TODO Doc
-        plt.rcParams['figure.constrained_layout.use'] = True
-
-        ratio = frame_sensors.shape[0] / frame_sensors.shape[1]
-        base_size = 4
-        text_space = 0.7 if label is not None or prediction is not None else 0
-        text_space += 0.35 * len(additional_info) if additional_info is not None else 0
-        num_plots = 2 if frame_flowfront is not None else 1
-        figsize = (base_size * num_plots, base_size * ratio + text_space)
-        fig, axs = plt.subplots(1, num_plots, figsize=figsize)
-
-        ax1 = axs[0] if num_plots == 2 else axs
-        ax1.imshow(frame_sensors, vmin=vmin, vmax=vmax)
-        ax1.set(xticks=[], yticks=[], title='Sensor values')
-
-        if num_plots == 2:
-            ax2 = axs[1]
-            ax2.imshow(frame_flowfront)
-            ax2.set(xticks=[], yticks=[], title='Flowfront (label)')
-
-        text = ""
-        color = 'black'
-
-        if label is not None and prediction is not None:
-            color = 'green' if label == prediction else 'red'
-            text = f"{'Label: ':8}{label}\n{'Pred: ':8}{prediction}"
-        elif label is not None:
-            text = f"{'Label: ':8}{label}"
-        elif prediction is not None:
-            text = f"{'Pred: ':8}{prediction}"
-
-        if additional_info is not None:
-            for info in additional_info:
-                text += f"\n{info}"
-
-        plt.figtext(0.01, 0.01, text, c=color, ha='left')
-
-        return fig
-
-
-if __name__ == "__main__":
-    test_sensors = np.random.rand(38, 30)
-    test_flowfront = np.random.rand(143, 111)
-    # print(test_sensors)
-    aux_info = []
-    aux_info.append(f"Original num of states: 475 (250 with dryspot info)")
-    aux_info.append(f"Original num of states: 475 (250 with dryspot info)")
-    plot = BinaryClassificationEvaluator.plot_sensor_frame(test_sensors, "OK", "OK", aux_info, test_flowfront)
-    # plot.savefig("testplot.png", bbox_inches='tight')
 
 
 class MeshEvaluator(Evaluator):

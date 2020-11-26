@@ -15,7 +15,8 @@ if __name__ == "__main__":
     args = read_cmd_params()
 
     batch_size = 128
-    dataset_paths = [r.get_regular_sampled_data_paths()[1]]  # r.get_all_data_paths()
+    data_root = Path('/cfs/share/data/RTM/Leoben/sim_output_every_step')  # r.data_root
+    dataset_paths = r.get_regular_sampled_data_paths()  # r.get_all_data_paths()
     num_workers = 75
     use_cache = False
     num_val = 50
@@ -26,14 +27,15 @@ if __name__ == "__main__":
     conv_lstm_sizes = [128, 32]
     fc_sizes = [2048, 512, 128]
     create_data_plots = True
-    run_name = "new data 5000p only"
+    run_name = "new data (split path None)"
 
     dl = DataloaderDryspots(sensor_indizes=sensor_indices[str(num_sensors)], aux_info=True, image_size=(143, 111))
     m = ModelTrainer(
         lambda: SensorToBinaryRunwiseModel(num_sensors, conv_lstm_sizes, fc_sizes),
         dataset_paths,
         r.save_path,
-        dataset_split_path=r.dataset_split,
+        dataset_split_path=None,  # r.dataset_split,
+        data_root=data_root,
         cache_path=r.cache_path,
         batch_size=batch_size,
         epochs=num_epochs,

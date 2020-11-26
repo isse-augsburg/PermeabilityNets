@@ -292,7 +292,7 @@ class DataloaderDryspots:
             single_state_indices (1D torch.Tensor [int]): which time steps to load aux-info from
 
         Returns:
-            flowfronts (3D ndarray): array of flowfront images
+            flowfronts (3D numpy.ndarray): array of flowfront images
         """
         file = h5py.File(filename, "r")
         meta_file = h5py.File(str(filename).replace("RESULT.erfh5", "meta_data.hdf5"), 'r')
