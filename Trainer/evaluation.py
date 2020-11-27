@@ -1,4 +1,3 @@
-import itertools
 import logging
 import os
 from functools import partial
@@ -11,7 +10,6 @@ import numpy as np
 import pandas
 from PIL import Image
 from sklearn.metrics import confusion_matrix
-from sklearn.preprocessing import normalize
 from torch.utils.tensorboard import SummaryWriter
 
 from Utils.dicts.sensor_dicts import sensor_shape
