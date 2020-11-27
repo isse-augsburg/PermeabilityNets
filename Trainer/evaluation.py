@@ -286,7 +286,7 @@ class BinaryClassificationEvaluator(Evaluator):
         # Confusion matrix plots for MLflow
         if get_artifact_uri() is not None:
             base_dir = Path(get_artifact_uri()) / "confusion_matrix"
-            cm_types = ['absolute', 'normalized_overall', 'normalized_by_class']
+            cm_types = ['absolute', 'norm_overall', 'norm_by_class']
             for cm_type in cm_types:
                 save_as = base_dir / cm_type / f"epoch_{self.epoch:02}.png"
                 plot_confusion_matrix(self.confusion_matrix, self.class_names, cm_type, False, save_as)

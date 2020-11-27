@@ -12,20 +12,19 @@ def plot_confusion_matrix(cm, class_names, norm='', show_plot=False, save_as=Non
     Args:
         cm (2D numpy.ndarray [int]): array that represents the confusion matrix to plot (unnormalized)
         class_names (list [str]): list of corresponding class names
-        norm: type of normalization to apply {'by_class', 'overall', default: no normalization}
+        norm: type of normalization to apply {'norm_by_class', 'norm_overall', default: no normalization}
         show_plot: if True, display plot in a window during runtime
         save_as (pathlib.Path or str): full path, including filename and type (e.g. '/cfs/example/confmat.png')
 
     """
     assert cm.shape[0] == cm.shape[1] and cm.shape[0] == len(class_names)
-    assert norm in ['', 'by_class', 'overall']
 
     plt.rcParams['figure.constrained_layout.use'] = True
     fig = plt.figure(figsize=(len(class_names) + 1, len(class_names) + 1), dpi=150)
 
-    if norm == 'by_class':
+    if norm == 'norm_by_class':
         cm = np.around(normalize(cm, norm='l1', axis=1), decimals=2)
-    elif norm == 'overall':
+    elif norm == 'norm_overall':
         cm = np.around(cm / max(cm.sum(), 1e-8), decimals=2)
 
     plt.imshow(cm, interpolation='nearest', cmap=plt.cm.Blues, vmin=0, vmax=np.sum(cm, 1).max())
