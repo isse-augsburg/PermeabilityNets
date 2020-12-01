@@ -103,9 +103,9 @@ class DataloaderImages:
             self.fftriang = tri.Triangulation(x, y, triangles=triangles)
 
         # Fiber fraction map creation with tripcolor
-        fvc = f[
-            "/post/constant/entityresults/SHELL/FIBER_FRACTION/ZONE1_set1/erfblock/res"
-        ][()].flatten()
+        fvc_old = f["/post/constant/entityresults/SHELL/FIBER_FRACTION/ZONE1_set1/erfblock/res"][()].flatten()
+        fvc = f["/post/constant/entityresults/SHELL/PERMEABILITY1/ZONE1_set1/erfblock/res"][()][:,0]
+
         fig = plt.figure()
         ax = fig.add_subplot(111)
         ax.tripcolor(self.fftriang, fvc, cmap="gray")
@@ -403,6 +403,12 @@ class DataloaderImageSequences(DataloaderImages):
     def __init__(self, image_size=(135, 103), wanted_frames=10):
         super().__init__(image_size=image_size)
         self.wanted_frames = wanted_frames
+        self.coords = None
+    
+    def get_coords(self,f):
+        if self.coords is None:
+           self.coords = extract_coords_of_mesh_nodes(f)
+        return self.coords
 
     def get_sensor_to_perm_map(self, filename):
         try:
@@ -449,7 +455,7 @@ class DataloaderImageSequences(DataloaderImages):
             ][()]
             m = multi_state_pressure.squeeze()
             states = list(f["post"]["singlestate"])
-            f = [int(r.replace("state", "0")) - 1 for r in states]
+            
             fillings = []
             for state in states:
                 try:
@@ -458,18 +464,20 @@ class DataloaderImageSequences(DataloaderImages):
                             "FILLING_FACTOR"
                         ]["ZONE1_set1"]["erfblock"]["res"][()]
                     )
-                except KeyError:
+                except KeyError as e:
                     return None
-            activated_sensors = np.count_nonzero(m, axis=1)
-            percentage_of_all_sensors = activated_sensors / 1140  # Number of sensors
-            sequence = np.zeros((100, 1140))
+            fillings = np.stack(fillings).squeeze()
+            activated_pixels = np.count_nonzero(fillings, axis=1)
+            percentage_of_all_sensors = activated_pixels / 28464  # Number individual points
+            sequence = np.zeros((100, 143, 111))
             current = 0
+            coords = self.get_coords(filename)
             for i, sample in enumerate(percentage_of_all_sensors):
                 if sample >= current:
-                    sequence[int(current * 100), :] = m[i, :]
+                    sequence[int(current * 100), :, :] = create_np_image((143,111), coords, fillings[i, :])
                     current += per_step
             return [(sequence, np.array(perm_map))]
-        except Exception:
+        except Exception as e:
             return None
 
     def get_images_of_flow_front_and_permeability_map(self, filename):
@@ -506,10 +514,10 @@ class DataloaderImageSequences(DataloaderImages):
 
 if __name__ == "__main__":
     dl = DataloaderImageSequences()
-    root = tr_resources.data_root / "2019-07-23_15-38-08_5000p"
+    root = tr_resources.data_root / "2019-11-29_16-56-17_10000p"
     for num in range(10):
 
-        p = Path(root / f"{num}/2019-07-23_15-38-08_{num}_RESULT.erfh5")
+        p = Path(root / f"{num}/2019-11-29_16-56-17_{num}_RESULT.erfh5")
 
         ret = dl.get_flowfront_to_perm_map(p)
         # dl.plot_times(p, num, save_to_file=False)
