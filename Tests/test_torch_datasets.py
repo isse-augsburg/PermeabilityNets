@@ -15,21 +15,23 @@ from Pipeline.data_loader_flowfront_sensor import DataloaderFlowfrontSensor
 from Trainer.ModelTrainer import ModelTrainer
 from Trainer.evaluation import BinaryClassificationEvaluator
 from Utils.data_utils import change_win_to_unix_path_if_needed
+import Utils.custom_mlflow
 
 
 class TestSaveDatasetsTorch(unittest.TestCase):
     def setUp(self) -> None:
         self.torch_dataset_resources = test_resources.torch_datasets
         self.torch_all_datasets = self.torch_dataset_resources / "all"
-        self.reference_datasets_torch = tr_resources.datasets_dryspots_torch
+        self.reference_datasets_torch = tr_resources.cache_datasets_torch
         self.load_and_save_path = None
 
-    def create_trainer_and_start(self, out_path, epochs=1, load_test_set=False):
+    def create_trainer_and_start(self, out_path, epochs=1, load_test_set=False, train_set_chunk_size=0):
         dlds = DataloaderFlowfrontSensor(sensor_indizes=((1, 8), (1, 8)))
+        Utils.custom_mlflow.logging = False
         m = ModelTrainer(lambda: S20DryspotModelFCWide(),
                          data_source_paths=tr_resources.get_data_paths_debug(),
                          save_path=out_path,
-                         load_datasets_path=self.torch_dataset_resources / "reference_datasets",
+                         dataset_split_path=self.torch_dataset_resources / "reference_datasets",
                          cache_path=None,
                          num_validation_samples=8,
                          num_test_samples=8,
@@ -39,10 +41,10 @@ class TestSaveDatasetsTorch(unittest.TestCase):
                          data_gather_function=dg.get_filelist_within_folder_blacklisted,
                          loss_criterion=torch.nn.BCELoss(),
                          optimizer_function=lambda params: torch.optim.AdamW(params, lr=1e-4),
-                         classification_evaluator_function=lambda summary_writer:
-                         BinaryClassificationEvaluator(summary_writer=summary_writer),
+                         classification_evaluator_function=lambda: BinaryClassificationEvaluator(),
                          load_test_set_in_training_mode=load_test_set,
                          data_root=test_resources.test_src_dir,
+                         torch_datasets_chunk_size=train_set_chunk_size
                          )
         return m
 
@@ -66,15 +68,43 @@ class TestSaveDatasetsTorch(unittest.TestCase):
             m = self.create_trainer_and_start(out_path, epochs=2)
             m.start_training()
             self.load_and_save_path = self.reference_datasets_torch / m.data_loader_hash
-            print(self.reference_datasets_torch / m.data_loader_hash)
             self.assertTrue((self.reference_datasets_torch / m.data_loader_hash / "train_set_torch.p").is_file())
             self.assertTrue((self.reference_datasets_torch / m.data_loader_hash / "val_set_torch.p").is_file())
             m.inference_on_test_set()
             self.assertTrue((self.reference_datasets_torch / m.data_loader_hash / "test_set_torch.p").is_file())
 
+    def test_save_data_chunks(self):
+        with tempfile.TemporaryDirectory(prefix="TorchDataSetsSavingChunks") as tempdir:
+            out_path = Path(tempdir)
+            m = self.create_trainer_and_start(out_path, epochs=2, train_set_chunk_size=1000)
+            m.start_training()
+            self.load_and_save_path = self.reference_datasets_torch / m.data_loader_hash
+            self.assertTrue((self.reference_datasets_torch / m.data_loader_hash / "train_set_torch").is_dir())
+            self.assertTrue((self.reference_datasets_torch / m.data_loader_hash / "val_set_torch.p").is_file())
+            m.inference_on_test_set()
+            self.assertTrue((self.reference_datasets_torch / m.data_loader_hash / "test_set_torch").is_dir())
+
+    def test_load_data_chunks(self):
+        with tempfile.TemporaryDirectory(prefix="TorchDataSetsLoadingChunks") as tempdir:
+            m = self.create_trainer_and_start(Path(tempdir), load_test_set=True, train_set_chunk_size=1000)
+            all_datasets = self.torch_all_datasets
+            self.torch_all_datasets = Path('/cfs/home/s/t/stiebesi/code/tests/test_data/TorchDatasetsChunks/')
+            load_and_save_path = self.reference_datasets_torch / m.data_loader_hash
+
+            shutil.copytree(self.torch_all_datasets / "train_set_torch", load_and_save_path / "train_set_torch")
+            shutil.copytree(self.torch_all_datasets / "test_set_torch", load_and_save_path / "test_set_torch")
+            shutil.copy(self.torch_all_datasets / "val_set_torch.p", load_and_save_path)
+
+            m.start_training()
+            self.load_and_save_path = self.reference_datasets_torch / m.data_loader_hash
+            self.assertTrue(m.data_generator.loaded_train_set)
+            self.assertTrue(m.data_generator.loaded_val_set)
+            self.assertTrue(m.data_generator.loaded_test_set)
+            self.torch_all_datasets = all_datasets
+
     def test_load_all_data_sets(self):
         with tempfile.TemporaryDirectory(prefix="TorchDataSetsLoading") as tempdir:
-            m = self.create_trainer_and_start(Path(tempdir))
+            m = self.create_trainer_and_start(Path(tempdir), load_test_set=True)
             self.copy_list_of_files_to_load_and_save_path([self.torch_all_datasets / "train_set_torch.p",
                                                            self.torch_all_datasets / "val_set_torch.p",
                                                            self.torch_all_datasets / "test_set_torch.p"],
@@ -83,7 +113,7 @@ class TestSaveDatasetsTorch(unittest.TestCase):
             self.load_and_save_path = self.reference_datasets_torch / m.data_loader_hash
             self.assertTrue(m.data_generator.loaded_train_set)
             self.assertTrue(m.data_generator.loaded_val_set)
-            self.assertTrue(m.data_generator.loaded_train_set)
+            self.assertTrue(m.data_generator.loaded_test_set)
 
     def test_load_train_set_only(self):
         """ Check if the splits are produced the same way if only the training set is loaded and if the the

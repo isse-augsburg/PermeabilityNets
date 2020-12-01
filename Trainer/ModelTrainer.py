@@ -5,13 +5,13 @@ import time
 from collections import OrderedDict
 from datetime import datetime
 from pathlib import Path
+import sys
 
 import numpy as np
 import torch
 from torch import nn
 from torch.nn import MSELoss
 from torch.utils.data import DataLoader
-from torch.utils.tensorboard import SummaryWriter
 
 import Resources.training as r
 from Pipeline import torch_datagenerator as td
@@ -19,6 +19,9 @@ from Utils import logging_cfg
 from Utils.data_utils import handle_torch_caching
 from Utils.eval_utils import eval_preparation
 from Utils.training_utils import count_parameters, CheckpointingStrategy
+import getpass
+from Utils.custom_mlflow import log_metric, log_param, log_artifacts, set_tag, set_tracking_uri, set_experiment, \
+    start_run, end_run, get_artifact_uri
 
 try:
     from apex import amp
@@ -38,7 +41,7 @@ class ModelTrainer:
         data_source_paths: List of file paths containing the files for
                            training.
         save_path: Path for saving outputs.
-        load_datasets_path: Path containing dedidacted Datasets in a pickled
+        dataset_split_path: Path containing dedicated Datasets in a pickled
                             format.
         cache_path: Path containing cached objects.
         batch_size: Batch size for training.
@@ -68,6 +71,13 @@ class ModelTrainer:
                                   models performance.
         checkpointing_strategy: From enum CheckpointingStrategy in Pipeline.TorchDataGeneratorUtils.torch_internal.py.
                                 Specifies which checkpoints are stored during training.
+        hold_samples_in_memory: Flag whether the DataGenerator should keep the processed samples in memory.
+        run_name: String used as run name for mlflow tracking (makes identifying specific runs in mlflow easier)
+        save_in_mlflow_directly: sets save_path to the mlflow artifact directory (instead of making a copy at the end)
+        drop_last_batch (bool): Should the last batch be dropped if its size is < batch_size?
+        torch_datasets_chunk_size (int): If >0, the train and testset will be saved in multiple .pt chunks. Specifies
+                                         how many samples are stored in a chunk. If <=0, saving and loading of torch
+                                         datasets will not be changed.
     """
 
     def __init__(
@@ -75,7 +85,7 @@ class ModelTrainer:
         model_creation_function,
         data_source_paths: list,
         save_path,
-        load_datasets_path=None,
+        dataset_split_path=None,
         cache_path=None,
         batch_size: int = 1,
         train_print_frequency: int = 10,
@@ -103,17 +113,34 @@ class ModelTrainer:
         caching_torch=True,
         demo_path=None,
         resize_label_to=(0, 0),
-        load_test_set_in_training_mode=False
+        load_test_set_in_training_mode=False,
+        hold_samples_in_memory=True,
+        run_name='',
+        save_in_mlflow_directly=False,
+        drop_last_batch=False,
+        torch_datasets_chunk_size=0
     ):
-        initial_timestamp = str(datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
-        self.save_path = save_path / initial_timestamp
-        self.save_path.mkdir(parents=True, exist_ok=True)
+        # Visit the following URL to check the MLFlow dashboard.
+        set_tracking_uri("http://swt-clustermanager.informatik.uni-augsburg.de:5000")
+        # Setting the experiment: normally, it is the Slurm jobname, if the script is not called with slurm,
+        #  it is the name of calling script, which should help categorizing experiments as well.
+        set_experiment(f"{Path(os.getenv('SLURM_JOB_NAME', Path(sys.argv[0]))).stem}")
+        start_run(run_name=run_name)
+        set_tag("User", getpass.getuser())
 
+        if save_in_mlflow_directly and get_artifact_uri() is not None:
+            self.save_path = Path(get_artifact_uri())
+        else:
+            initial_timestamp = str(datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
+            self.save_path = save_path / initial_timestamp
+
+        self.save_path.mkdir(parents=True, exist_ok=True)
+        self.save_in_mlflow_directly = save_in_mlflow_directly
         self.cache_path = cache_path
         self.train_print_frequency = train_print_frequency
         self.data_source_paths = data_source_paths
         self.batch_size = batch_size
-        self.load_datasets_path = load_datasets_path
+        self.load_datasets_path = dataset_split_path
         self.epochs = epochs
         self.dummy_epoch = dummy_epoch
         self.produce_torch_datasets_only = produce_torch_datasets_only
@@ -139,11 +166,19 @@ class ModelTrainer:
             caching_torch = False
 
         if caching_torch:
-            load_and_save_path, data_loader_hash = handle_torch_caching(
-                self.data_processing_function, self.data_source_paths, self.sampler, self.batch_size)
+            load_and_save_path, data_loader_hash = handle_torch_caching(self.data_processing_function,
+                                                                        self.data_source_paths, self.sampler,
+                                                                        self.batch_size, self.num_validation_samples,
+                                                                        self.num_test_samples)
             self.data_loader_hash = data_loader_hash
-            self.load_torch_dataset_path = load_and_save_path
+
+            if produce_torch_datasets_only:
+                self.load_torch_dataset_path = None
+            else:
+                self.load_torch_dataset_path = load_and_save_path
+
             self.save_torch_dataset_path = load_and_save_path
+            self.save_torch_dataset_path.mkdir(exist_ok=True, parents=True)
         else:
             self.data_loader_hash = "NOT_CACHING"
             self.load_torch_dataset_path = None
@@ -165,13 +200,16 @@ class ModelTrainer:
         self.checkpointing = checkpointing_strategy
         self.classification_evaluator_function = classification_evaluator_function
         self.classification_evaluator = None
-        self.writer = None
         self.run_eval_step_before_training = run_eval_step_before_training
         self.dont_care_num_samples = dont_care_num_samples
+        self.drop_last_batch = drop_last_batch
 
         self.use_mixed_precision = use_mixed_precision
         self.resize_label = resize_label_to
         self.load_test_set_in_training_mode = load_test_set_in_training_mode
+
+        self.hold_samples_in_memory = hold_samples_in_memory
+        self.torch_datasets_chunk_size = torch_datasets_chunk_size
 
         self.data_root = data_root
 
@@ -197,6 +235,9 @@ class ModelTrainer:
                 test_mode=test_mode,
                 sampler=self.sampler,
                 load_test_set_in_training_mode=self.load_test_set_in_training_mode,
+                drop_last_batch=self.drop_last_batch,
+                hold_samples_in_memory=self.hold_samples_in_memory,
+                torch_datasets_chunk_size=self.torch_datasets_chunk_size
             )
         except Exception:
             logger = logging.getLogger(__name__)
@@ -227,6 +268,8 @@ class ModelTrainer:
         param_count = count_parameters(self.model)
         sched_str = self.lr_scheduler.__class__.__name__ + f"  \n{self.lr_scheduler.state_dict()}" \
             if self.lr_scheduler is not None else "None"
+
+        # Log file
         self.logger.info("###########################################")
         self.logger.info(">>> Model Trainer INFO <<<")
         self.logger.info(f"Loss criterion: {self.loss_criterion}")
@@ -236,22 +279,25 @@ class ModelTrainer:
         self.logger.info(f"Model: {self.model}")
         self.logger.info(f"Parameter count: {param_count}")
         self.logger.info("###########################################")
-        self.writer.add_text("General/LossCriterion", f"{self.loss_criterion}")
-        self.writer.add_text("General/BatchSize", f"{self.batch_size}")
-        self.writer.add_text("General/MixedPrecision", f"{self.use_mixed_precision}")
+
+        # ML Flow
+        log_param("General/LossCriterion", f"{self.loss_criterion}")
+        log_param("General/BatchSize", f"{self.batch_size}")
+        log_param("General/Epochs", f"{self.epochs}")
+        log_param("General/MixedPrecision", f"{self.use_mixed_precision}")
         optim_str = str(self.optimizer).replace("\n", "  \n")
-        self.writer.add_text("Optimizer/Optimizer", f"{optim_str}")
-        self.writer.add_text("Optimizer/LRScheduler", f"{sched_str}")
-        self.writer.add_text("Model/Structure", f"{self.__get_model_def()}")
-        self.writer.add_text("Model/ParamCount", f"{param_count}")
+        log_param("Optimizer/Optimizer", f"{optim_str}")
+        log_param("Optimizer/LRScheduler", f"{sched_str}")
+        log_param("Model/Structure", f"{self.__get_model_def()}")
+        log_param("Model/ParamCount", f"{param_count}")
         if hasattr(self.model, "round_at") and self.model.round_at is not None:
-            self.writer.add_text("Model/Threshold", f"{self.model.round_at}")
-        self.writer.add_text("Data/SourcePaths", f"{[str(p) for p in self.data_source_paths]}")
-        self.writer.add_text("Data/CheckpointSourcePath", f"{self.load_datasets_path}")
+            log_param("Model/Threshold", f"{self.model.round_at}")
+        log_param("Data/SourcePaths", f"{[str(p) for p in self.data_source_paths]}")
+        log_param("Data/CheckpointSourcePath", f"{self.load_datasets_path}")
         dl_info = self.data_processing_function.__self__.__dict__
         dl_info["data_processing_function"] = self.data_processing_function.__name__
         dl_str = '  \n'.join([f"{k}: {dl_info[k]}" for k in dl_info if dl_info[k] is not None])
-        self.writer.add_text("Data/DataLoader", f"{dl_str}")
+        log_param("Data/DataLoader", f"{dl_str}")
 
     def __create_model_and_optimizer(self):
         logger = logging.getLogger(__name__)
@@ -299,11 +345,10 @@ class ModelTrainer:
         if self.demo_path is not None:
             print(f"Running in demo mode. Please refer to {self.save_path} for logs et al.")
         logging_cfg.apply_logging_config(self.save_path)
-        self.writer = SummaryWriter(log_dir=self.save_path)
-        self.classification_evaluator = self.classification_evaluator_function(summary_writer=self.writer)
+        self.classification_evaluator = self.classification_evaluator_function()
 
         logger = logging.getLogger(__name__)
-        logger.info(f"Generating Generator")
+        logger.info("Generating Generator")
 
         self.data_generator = self.__create_datagenerator()
         if self.data_generator.loaded_train_set:
@@ -329,7 +374,7 @@ class ModelTrainer:
         if self.run_eval_step_before_training:
             logger.info("Running eval before training to see, if any training happens")
             validation_loss = self.__eval(self.data_generator.get_validation_samples(), 0, 0)
-            self.writer.add_scalar("Validation/Loss", validation_loss, 0)
+            log_metric("Validation/Loss", validation_loss, 0)
 
         if self.produce_torch_datasets_only:
             logger.info(f"Triggering caching, saving all datasets to {self.save_torch_dataset_path}")
@@ -343,7 +388,11 @@ class ModelTrainer:
             logger.info("The Training Will Start Shortly")
             self.__train_loop()
 
+        if not self.save_in_mlflow_directly:
+            log_artifacts(self.save_path)
+
         logging.shutdown()
+        end_run()
 
     def __train_loop(self):
         start_time = time.time()
@@ -361,7 +410,7 @@ class ModelTrainer:
                 outputs = self.model(inputs)
                 label = self.resize_label_if_necessary(label)
                 loss = self.loss_criterion(outputs, label)
-                self.writer.add_scalar("Training/Loss", loss.item(), step_count)
+                log_metric("Training/Loss", loss.item(), step_count)
                 if not self.use_mixed_precision:
                     loss.backward()
                 else:
@@ -371,7 +420,10 @@ class ModelTrainer:
                 if i % self.train_print_frequency == 0 and i != 0:
                     time_delta = time.time() - start_time
 
-                    progress = i / (len(self.data_generator) / self.batch_size)
+                    if len(self.data_generator) == 0:
+                        progress = 0
+                    else:
+                        progress = i / (len(self.data_generator) / self.batch_size)
                     eta = (len(self.data_generator) / self.batch_size - i) * ((time.time() - epoch_start) / i)
 
                     hours = f"{eta // 3600}h " if eta // 3600 > 0 else ""
@@ -385,7 +437,7 @@ class ModelTrainer:
                 step_count += 1
 
             validation_loss = self.__eval(self.data_generator.get_validation_samples(), eval_step, step_count)
-            self.writer.add_scalar("Validation/Loss", validation_loss, step_count)
+            log_metric("Validation/Loss", validation_loss, step_count)
             if self.lr_scheduler is not None:
                 old_lr = [pg['lr'] for pg in self.optimizer.state_dict()['param_groups']]
                 self.lr_scheduler.step()
@@ -495,7 +547,7 @@ class ModelTrainer:
         return epoch, loss
 
     def __batched(self, data_l: list, batch_size: int):
-        return DataLoader(data_l, batch_size=batch_size, shuffle=False)
+        return DataLoader(data_l, batch_size=batch_size, shuffle=False, drop_last=self.drop_last_batch)
 
     def inference_on_test_set(self,
                               output_path: Path = None,
@@ -534,7 +586,7 @@ class ModelTrainer:
 
         data_list = data_generator.get_test_samples()
         if classification_evaluator_function is not None:
-            self.classification_evaluator = classification_evaluator_function(summary_writer=None)
+            self.classification_evaluator = classification_evaluator_function()
         logger.info("Starting inference")
         self.__eval(data_list, test_mode=True)
         logger.info("Inference completed.")

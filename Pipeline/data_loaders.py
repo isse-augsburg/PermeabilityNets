@@ -90,7 +90,7 @@ def __get_fillings_at_times(filename, t_start, t_finish, t_delta, t_target):
     except OSError:
         logger = logging.getLogger(__name__)
         logger.error(">>> ERROR: FILE", filename,
-                     "COULD NOT BE OPEND BY H5PY. THIS IS BAD. BIG OOooOF")
+                     "COULD NOT BE OPENED BY H5PY. THIS IS BAD. BIG OOooOF")
         return None
 
     all_states = f['post']['singlestate']

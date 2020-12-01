@@ -1,4 +1,4 @@
-image: nvcr.io/isse/pytorch_extended:20.02
+image: nvcr.io/isse/pytorch_extended:20.03
 
 stages:
   - lint
@@ -16,8 +16,8 @@ test:
   script:
     - python3 -m unittest discover -s Tests -t Tests
 
-  tags:
-    - dgx2
+#  tags:
+#    - dgx2
 
 documentation:
   stage: docs

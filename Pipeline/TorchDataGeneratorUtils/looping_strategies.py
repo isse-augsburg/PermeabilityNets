@@ -1,5 +1,6 @@
 import random
 from abc import ABC, abstractmethod
+from Pipeline.TorchDataGeneratorUtils.torch_internal import save_data_chunks, load_data_chunks
 
 import torch
 
@@ -123,27 +124,33 @@ class DataLoaderListLoopingStrategy(LoopingStrategy, torch.utils.data.Dataset):
     """ This strategy shuffles on a sample basis like the ComplexListLoopingStrategy,
     but it relies on the torch DataLoader for shuffling.
     It seems to have slightly better performance than the ComplexList approach.
+
+    Args:
+        batch_size: Batchsize
+        sampler: Sampler
+        chunk_size: Size of data chunks. If <= 0, the whole dataset will be saved in one chunk.
     """
 
-    def __init__(self, batch_size, sampler=None):
+    def __init__(self, batch_size, sampler=None, chunk_size=0):
         super().__init__()
         self.sampler = sampler
         self.batch_size = batch_size
         self.samples = []
+        self.data_chunk_size = chunk_size
 
     def store(self, batch):
         super().store(batch)
         features, labels, aux = batch
 
         self.samples.extend(zip((f.squeeze(0) for f in torch.split(features, 1)),
-                                (l.squeeze(0) for l in torch.split(labels, 1)),
+                                (label.squeeze(0) for label in torch.split(labels, 1)),
                                 split_aux_dicts(aux)))
 
     def get_new_iterator(self):
         if not hasattr(self, "sampler") or self.sampler is None:
             return iter(torch.utils.data.DataLoader(self, shuffle=True, batch_size=self.batch_size))
         else:
-            sampler = self.sampler((self.features, self.labels, self.aux))
+            sampler = self.sampler(self.samples)
             return iter(torch.utils.data.DataLoader(self, sampler=sampler, batch_size=self.batch_size))
 
     def __getitem__(self, index):
@@ -153,10 +160,16 @@ class DataLoaderListLoopingStrategy(LoopingStrategy, torch.utils.data.Dataset):
         return len(self.samples)
 
     def dump_content(self, f):
-        torch.save(self.samples, f)
+        if self.data_chunk_size > 0:
+            save_data_chunks(chunk_size=self.data_chunk_size, all_items=self.samples, save_path=f)
+        else:
+            torch.save(self.samples, f)
 
     def load_content(self, f):
-        self.samples = torch.load(f)
+        if self.data_chunk_size > 0:
+            self.samples = load_data_chunks(f)
+        else:
+            self.samples = torch.load(f)
 
 
 class NoOpLoopingStrategy(LoopingStrategy):

@@ -12,6 +12,10 @@ from PIL import Image
 from sklearn.metrics import confusion_matrix
 from sklearn.preprocessing import normalize
 
+from Utils.custom_mlflow import log_metric, get_artifact_uri
+
+from Utils.dry_spot_detection_3d import create_triangle_mesh, create_flowfront_img, interpolate_flowfront
+
 """ 
 >>>> PLEASE NOTE: <<<<
 Evaluation classes must provide three functions even if not all of them have functionality: 
@@ -86,7 +90,6 @@ class SensorToFlowfrontEvaluator(Evaluator):
     def __init__(self, save_path: Path = None,
                  sensors_shape=(38, 30),
                  skip_images=True,
-                 summary_writer=None,
                  print_n_images=-1,
                  ignore_inp=False):
         super().__init__()
@@ -99,7 +102,6 @@ class SensorToFlowfrontEvaluator(Evaluator):
             if not self.skip_images:
                 self.im_save_path.mkdir(parents=True, exist_ok=True)
         self.sensors_shape = sensors_shape
-        self.summary_writer = summary_writer
         self.print_n_images = print_n_images
 
     def commit(self, net_output, label, inputs, aux, *args):
@@ -140,11 +142,10 @@ class BinaryClassificationEvaluator(Evaluator):
     def __init__(self, save_path: Path = None,
                  skip_images=True,
                  with_text_overlay=False,
-                 summary_writer=None,
                  advanced_eval=False):
         super().__init__()
         self.tp, self.fp, self.tn, self.fn = 0, 0, 0, 0
-        self.accuracy, self.precision, self.recall, self.specificity = 0, 0, 0, 0
+        self.accuracy, self.balanced_accuracy, self.precision, self.recall, self.specificity = 0, 0, 0, 0, 0
         self.confusion_matrix = np.zeros((2, 2), dtype=int)
         self.save_path = save_path
         self.skip_images = skip_images
@@ -154,7 +155,6 @@ class BinaryClassificationEvaluator(Evaluator):
                 self.im_save_path.mkdir(parents=True, exist_ok=True)
         self.num = 0
         self.with_text_overlay = with_text_overlay
-        self.summary_writer = summary_writer
         plt.set_loglevel('warning')
         if advanced_eval:
             self.origin_tracker = {}
@@ -206,33 +206,43 @@ class BinaryClassificationEvaluator(Evaluator):
         self.num += predictions.size
 
     def print_metrics(self, step_count=0):
-        """Prints the counts of True/False Positives and True/False Negatives, Accuracy, Precision, Recall,
-        Specificity and the confusion matrix.
+        """Prints and logs the counts of True/False Positives and True/False Negatives, (Balanced) Accuracy, Precision,
+        Recall, Specificity and the confusion matrix.
         """
         self.__update_metrics()
 
+        # Logger
         logger = logging.getLogger(__name__)
         logger.info(f"True positives: {self.tp}, False positives: {self.fp}, True negatives: {self.tn}, "
                     f"False negatives: {self.fn}")
-
-        if self.summary_writer is not None:
-            self.summary_writer.add_scalar("Validation/Accuracy", self.accuracy, step_count)
-            self.summary_writer.add_scalar("Validation/Precision", self.precision, step_count)
-            self.summary_writer.add_scalar("Validation/Recall", self.recall, step_count)
-            self.summary_writer.add_scalar("Validation/Specificity", self.specificity, step_count)
-            class_names = ["Not OK", "OK"]
-            conf_mat_abs = self.__plot_confusion_matrix(self.confusion_matrix, class_names)
-            conf_mat_classnorm = self.__plot_confusion_matrix(self.confusion_matrix, class_names, 'class')
-            conf_mat_allnorm = self.__plot_confusion_matrix(self.confusion_matrix, class_names, 'all')
-            self.summary_writer.add_figure("Confusion_Matrix/Absolute", conf_mat_abs, step_count)
-            self.summary_writer.add_figure("Confusion_Matrix/Normalized_overall", conf_mat_allnorm, step_count)
-            self.summary_writer.add_figure("Confusion_Matrix/Normalized_by_class", conf_mat_classnorm, step_count)
-
-        logger.info(f"Accuracy: {self.accuracy:7.4f}, Precision: {self.precision:7.4f}, Recall: {self.recall:7.4f}, "
+        logger.info(f"Accuracy: {self.accuracy:7.4f}, Balanced Accuracy: {self.balanced_accuracy:7.4f}, "
+                    f"Precision: {self.precision:7.4f}, Recall: {self.recall:7.4f}, "
                     f"Specificity: {self.specificity:7.4f}")
         df = pandas.DataFrame(self.confusion_matrix, columns=[0, 1], index=[0, 1])
         df = df.rename_axis('Pred', axis=0).rename_axis('True', axis=1)
         logger.info(f'Confusion matrix:\n{df}')
+
+        # MLflow
+        log_metric("Validation/Accuracy", self.accuracy, step_count)
+        log_metric("Validation/Balanced_Accuracy", self.balanced_accuracy, step_count)
+        log_metric("Validation/Precision", self.precision, step_count)
+        log_metric("Validation/Recall", self.recall, step_count)
+        log_metric("Validation/Specificity", self.specificity, step_count)
+
+        log_metric("Confusion_Matrix/TN", self.tn, step_count)
+        log_metric("Confusion_Matrix/FP", self.fp, step_count)
+        log_metric("Confusion_Matrix/FN", self.fn, step_count)
+        log_metric("Confusion_Matrix/TP", self.tp, step_count)
+
+        # Confusion matrix plots for MLflow
+        if get_artifact_uri() is not None:
+            base_dir = Path(get_artifact_uri()) / "confusion_matrix"
+            class_names = ["Not OK", "OK"]
+            cm_types = ['absolute', 'normalized_overall', 'normalized_by_class']
+            for cm_type in cm_types:
+                cm_plot = self.__plot_confusion_matrix(self.confusion_matrix, class_names, cm_type)
+                base_dir.joinpath(cm_type).mkdir(parents=True, exist_ok=True)
+                cm_plot.savefig(base_dir / cm_type / f"step_{step_count:05}.png")
 
     def __update_metrics(self):
         self.tn = self.confusion_matrix[0, 0]
@@ -243,6 +253,7 @@ class BinaryClassificationEvaluator(Evaluator):
         self.precision = self.tp / max((self.tp + self.fp), 1e-8)
         self.recall = self.tp / max((self.tp + self.fn), 1e-8)
         self.specificity = self.tn / max((self.tn + self.fp), 1e-8)
+        self.balanced_accuracy = (self.recall + self.specificity) / 2
 
     def reset(self):
         """Resets the internal counters for the next evaluation loop. 
@@ -255,9 +266,9 @@ class BinaryClassificationEvaluator(Evaluator):
         plt.rcParams['figure.constrained_layout.use'] = True
         figure = plt.figure(figsize=(len(class_names) + 1, len(class_names) + 1), dpi=150)
 
-        if norm == 'class':
+        if norm == 'normalized_by_class':
             cm = np.around(normalize(cm, norm='l1', axis=1), decimals=2)
-        elif norm == 'all':
+        elif norm == 'normalized_overall':
             cm = np.around(cm / max(cm.sum(), 1e-8), decimals=2)
 
         plt.imshow(cm, interpolation='nearest', cmap=plt.cm.Oranges, vmin=0, vmax=np.sum(cm, 1).max())
@@ -274,3 +285,76 @@ class BinaryClassificationEvaluator(Evaluator):
             plt.text(j, i, cm[i, j], horizontalalignment="center", color=color)
 
         return figure
+
+
+class MeshEvaluator(Evaluator):
+    def __init__(self):
+        super().__init__()
+        self.bc_evaluator = BinaryClassificationEvaluator()
+
+    def commit(self, output, label, data, aux):
+        output = output.view(-1, 1)
+        label = label.view(-1, 1)
+        self.bc_evaluator.commit(output, label, data, aux)
+
+    def print_metrics(self, step_count=0):
+        self.bc_evaluator.print_metrics(step_count)
+
+    def reset(self):
+        self.bc_evaluator.reset()
+
+
+class FlowFrontMeshEvaluator(Evaluator):
+    def __init__(self,
+                 sample_file=None,
+                 save_path=None,
+                 subsampled_nodes=None,
+                 num_overall_nodes=133143):
+        super().__init__()
+        self.Xi, self.Yi, self.triang, self.xi, self.yi = create_triangle_mesh(sample_file)
+        self.save_path = save_path
+        self.subsampled_nodes = subsampled_nodes
+        self.num_overall_nodes = num_overall_nodes
+
+        self.save_path.mkdir(exist_ok=True)
+
+        self.batch_counter = 0
+
+        self.me = MeshEvaluator()
+
+    def commit(self, output, label, data, aux):
+        # self.me.commit(output, label, data, aux)
+
+        iteration_counter = 0
+
+        for output, label in zip(output, label):
+            ignore_list = []
+            output = output.numpy()
+            label = label.numpy()
+
+            if self.subsampled_nodes is not None:
+                o_zeros = np.zeros(self.num_overall_nodes)
+                l_zeros = np.zeros(self.num_overall_nodes)
+                o_zeros[self.subsampled_nodes] = output
+                l_zeros[self.subsampled_nodes] = label
+                output = o_zeros
+                label = l_zeros
+
+            zi_output = interpolate_flowfront(self.Xi, self.Yi, ignore_list, iteration_counter, self.triang, output)
+            zi_label = interpolate_flowfront(self.Xi, self.Yi, ignore_list, iteration_counter, self.triang, label)
+
+            fname = str(self.batch_counter) + "_" + str(iteration_counter)
+            _ = create_flowfront_img(fname, self.save_path, True, self.xi, self.yi, zi_output)
+            fname = str(self.batch_counter) + "_" + str(iteration_counter) + "_label"
+            _ = create_flowfront_img(fname, self.save_path, True, self.xi, self.yi, zi_label)
+            iteration_counter += 1
+
+        self.batch_counter += 1
+
+    def print_metrics(self, step_count=0):
+        # self.me.print_metrics(step_count)
+        pass
+
+    def reset(self):
+        # self.me.reset()
+        pass

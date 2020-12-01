@@ -30,10 +30,9 @@ class TestTrainingDryspotFF(unittest.TestCase):
             data_gather_function=dg.get_filelist_within_folder,
             data_processing_function=dlds.get_flowfront_bool_dryspot,
             loss_criterion=torch.nn.BCELoss(),
-            classification_evaluator_function=lambda summary_writer:
-            BinaryClassificationEvaluator(summary_writer=summary_writer,
-                                          save_path=self.training_save_path,
-                                          skip_images=True),
+            classification_evaluator_function=lambda: BinaryClassificationEvaluator(
+                save_path=self.training_save_path,
+                skip_images=True),
             data_root=resources.test_src_dir,
         )
 

@@ -7,7 +7,7 @@ import h5py
 import numpy as np
 
 import Resources.training as r
-from Utils.data_utils import extract_nearest_mesh_nodes_to_sensors, get_node_propery_at_states, \
+from Utils.data_utils import extract_nearest_mesh_nodes_to_sensors, get_node_propery_at_states_and_indices, \
     extract_coords_of_mesh_nodes
 from Utils.img_utils import create_np_image
 
@@ -51,8 +51,8 @@ class DataloaderFlowfrontSensor:
                 states = f["post"]["singlestate"]
                 states = list(states)[self.skip_indizes[0]:self.skip_indizes[1]:self.skip_indizes[2]]
 
-                filling_factors_at_certain_times = get_node_propery_at_states(f, "FILLING_FACTOR", states)
-                velocity_at_certain_times = get_node_propery_at_states(f, "VELOCITY", states)
+                filling_factors_at_certain_times = get_node_propery_at_states_and_indices(f, "FILLING_FACTOR", states)
+                velocity_at_certain_times = get_node_propery_at_states_and_indices(f, "VELOCITY", states)
                 fillings = np.squeeze(filling_factors_at_certain_times)
                 velocities = np.squeeze(velocity_at_certain_times)
                 self.extract_coords_data(f)
