@@ -13,15 +13,14 @@ if __name__ == "__main__":
     batch_size = 2
     dataset_paths = r.get_data_paths_debug()
     num_workers = 4
-    num_val = 20
-    num_test = 20
+    num_val = 1
+    num_test = 1
 
     dl = DataloaderImageSequences()
     m = ModelTrainer(
         lambda: FFTFF(),
         dataset_paths,
         r.save_path,
-        load_datasets_path=r.datasets_dryspots,
         cache_path=r.cache_path,
         batch_size=batch_size,
         epochs=10,
@@ -31,7 +30,7 @@ if __name__ == "__main__":
         data_processing_function=dl.get_flowfront_to_perm_map,
         data_gather_function=get_filelist_within_folder_blacklisted,
         loss_criterion=torch.nn.MSELoss(),
-        classification_evaluator_function=None,
+        classification_evaluator_function=lambda: None,
         dummy_epoch=False
     )
 
