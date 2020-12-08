@@ -77,6 +77,7 @@ chkp_S80_to_ds_thres_longer_train = \
 chkp_S80_to_ff_standardized = _ij_S80_deconv_conv / "standardized/2020-03-09_18-14-25_S80_to_ff_standardized" / chkp
 
 data_root = _share_path / 'data/RTM/Leoben/sim_output'
+data_root_every_step = _share_path / 'data/RTM/Leoben/sim_output_every_step'
 nearest_nodes_to_sensors = _share_path / "data/RTM/Leoben/Mesh_2D/nearest_nodes_to_sensors.p"
 mean_std_20_flowfront_sensors = _share_path / "data/RTM/Leoben/aux_data/mean_std_20_flowfront_sensors.p"
 mean_std_1140_pressure_sensors = _share_path / "data/RTM/Leoben/aux_data/mean_std_1140_pressure_sensors.p"
@@ -178,3 +179,11 @@ def get_data_paths_new_test_set():
 
 def get_example_erfh5():
     return data_root / "2019-07-24_16-32-40_5000p" / '0' / '2019-07-24_16-32-40_0_RESULT.erfh5'
+
+
+def get_regular_sampled_data_paths():
+    data_paths = [
+        data_root_every_step / "2020-10-30_16-43-42_1000p",
+        data_root_every_step / "2020-11-13_13-23-45_5000p",
+    ]
+    return data_paths
