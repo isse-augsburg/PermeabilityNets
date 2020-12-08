@@ -10,11 +10,11 @@ from Trainer.ModelTrainer import ModelTrainer
 if __name__ == "__main__":
     args = read_cmd_params()
 
-    batch_size = 2
-    dataset_paths = r.get_data_paths_debug()
-    num_workers = 4
-    num_val = 1
-    num_test = 1
+    batch_size = 64
+    dataset_paths = r.get_data_paths()
+    num_workers = 70
+    num_val = 100
+    num_test = 100
 
     dl = DataloaderImageSequences()
     m = ModelTrainer(
