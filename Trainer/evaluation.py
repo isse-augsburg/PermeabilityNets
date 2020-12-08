@@ -121,8 +121,8 @@ class SensorToFlowfrontEvaluator(Evaluator):
             if not self.ignore_inp:
                 c = inputs[sample].numpy()
                 c = np.squeeze(c)
-                c = c.reshape(self.sensors_shape[0], self.sensors_shape[1])
-                plt.imsave(self.im_save_path / Path(str(self.num) + "inp.jpg"), c)
+              
+                plt.imsave(self.im_save_path / Path(str(self.num) + "inp.jpg"), c[50,:,:])
 
             self.num += 1
         pass

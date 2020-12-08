@@ -30,7 +30,10 @@ if __name__ == "__main__":
         data_processing_function=dl.get_flowfront_to_perm_map,
         data_gather_function=get_filelist_within_folder_blacklisted,
         loss_criterion=torch.nn.MSELoss(),
-        classification_evaluator_function=lambda: None,
+        classification_evaluator_function=lambda: SensorToFlowfrontEvaluator(skip_images=False, ignore_inp=False,sensors_shape=(143,111),
+                                                                             save_path=Path(
+                                                                                 "/cfs/home/s/c/schroeni/Images"
+                                                                                 "/FlowFrontToFiber/")),
         dummy_epoch=False
     )
 
