@@ -11,10 +11,10 @@ if __name__ == "__main__":
     args = read_cmd_params()
 
     batch_size = 64
-    dataset_paths = r.get_data_paths()
+    dataset_paths = r.get_regular_sampled_data_paths()
     num_workers = 70
     num_val = 100
-    num_test = 100
+    num_test = 400
 
     dl = DataloaderImageSequences()
     m = ModelTrainer(
@@ -30,7 +30,8 @@ if __name__ == "__main__":
         data_processing_function=dl.get_flowfront_to_perm_map,
         data_gather_function=get_filelist_within_folder_blacklisted,
         loss_criterion=torch.nn.MSELoss(),
-        classification_evaluator_function=lambda: SensorToFlowfrontEvaluator(skip_images=False, ignore_inp=False,sensors_shape=(143,111),
+        data_root=r.data_root_every_step,
+        classification_evaluator_function=lambda: SensorToFlowfrontEvaluator(skip_images=False, ignore_inp=False, sensors_shape=(143, 111),
                                                                              save_path=Path(
                                                                                  "/cfs/home/s/c/schroeni/Images"
                                                                                  "/FlowFrontToFiber/")),

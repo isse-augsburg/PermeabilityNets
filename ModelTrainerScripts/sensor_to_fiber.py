@@ -31,6 +31,7 @@ if __name__ == "__main__":
         num_workers=num_workers,
         num_validation_samples=num_val,
         num_test_samples=num_test,
+        data_root=r.data_root_every_step,
         data_processing_function=dl.get_sensor_to_perm_map,
         data_gather_function=get_filelist_within_folder_blacklisted,
         loss_criterion=torch.nn.MSELoss(),
