@@ -4,7 +4,7 @@ from torch.autograd import Variable
 
 
 class ConvLSTMCell(nn.Module):
-    def __init__(self, input_channels, hidden_channels, kernel_size):
+    def __init__(self, input_channels, hidden_channels, kernel_size, dilation):
         super(ConvLSTMCell, self).__init__()
 
         assert hidden_channels % 2 == 0
@@ -14,24 +14,24 @@ class ConvLSTMCell(nn.Module):
         self.kernel_size = kernel_size
         self.num_features = 4
 
-        self.padding = int((kernel_size - 1) / 2)
+        self.padding = int((kernel_size - 1) / 2) + (dilation-1)
 
         self.Wxi = nn.Conv2d(self.input_channels, self.hidden_channels,
-                             self.kernel_size, 1, self.padding, bias=True)
+                             self.kernel_size, 1, self.padding, bias=True, dilation=dilation)
         self.Whi = nn.Conv2d(self.hidden_channels, self.hidden_channels,
-                             self.kernel_size, 1, self.padding, bias=False)
+                             self.kernel_size, 1, self.padding, bias=False, dilation=dilation)
         self.Wxf = nn.Conv2d(self.input_channels, self.hidden_channels,
-                             self.kernel_size, 1, self.padding, bias=True)
+                             self.kernel_size, 1, self.padding, bias=True, dilation=dilation)
         self.Whf = nn.Conv2d(self.hidden_channels, self.hidden_channels,
-                             self.kernel_size, 1, self.padding, bias=False)
+                             self.kernel_size, 1, self.padding, bias=False, dilation=dilation)
         self.Wxc = nn.Conv2d(self.input_channels, self.hidden_channels,
-                             self.kernel_size, 1, self.padding, bias=True)
+                             self.kernel_size, 1, self.padding, bias=True, dilation=dilation)
         self.Whc = nn.Conv2d(self.hidden_channels, self.hidden_channels,
-                             self.kernel_size, 1, self.padding, bias=False)
+                             self.kernel_size, 1, self.padding, bias=False, dilation=dilation)
         self.Wxo = nn.Conv2d(self.input_channels, self.hidden_channels,
-                             self.kernel_size, 1, self.padding, bias=True)
+                             self.kernel_size, 1, self.padding, bias=True, dilation=dilation)
         self.Who = nn.Conv2d(self.hidden_channels, self.hidden_channels,
-                             self.kernel_size, 1, self.padding, bias=False)
+                             self.kernel_size, 1, self.padding, bias=False, dilation=dilation)
 
         self.Wci = None
         self.Wcf = None
@@ -63,7 +63,7 @@ class ConvLSTMCell(nn.Module):
 class ConvLSTM(nn.Module):
     # input_channels corresponds to the first input feature map
     # hidden state is a list of succeeding lstm layers.
-    def __init__(self, input_channels, hidden_channels, kernel_size, step=1, effective_step=[1]):
+    def __init__(self, input_channels, hidden_channels, kernel_size, step=1, effective_step=[1],dilation=1):
         super(ConvLSTM, self).__init__()
         self.input_channels = [input_channels] + hidden_channels
         self.hidden_channels = hidden_channels
@@ -75,7 +75,7 @@ class ConvLSTM(nn.Module):
         for i in range(self.num_layers):
             name = 'cell{}'.format(i)
             cell = ConvLSTMCell(
-                self.input_channels[i], self.hidden_channels[i], self.kernel_size)
+                self.input_channels[i], self.hidden_channels[i], self.kernel_size, dilation)
             setattr(self, name, cell)
             self._all_layers.append(cell)
 
@@ -107,7 +107,7 @@ class ConvLSTM(nn.Module):
 if __name__ == '__main__':
     # gradient check
     convlstm = ConvLSTM(input_channels=1, hidden_channels=[128, 32], kernel_size=3, step=100,
-                        effective_step=[9, 19, 29, 39, 49, 59, 69, 79, 89, 99]).cuda()
+                        effective_step=[9, 19, 29, 39, 49, 59, 69, 79, 89, 99], dilation=3).cuda()
     loss_fn = torch.nn.MSELoss()
 
     input = torch.randn(100, 1, 1, 64, 32).cuda()
