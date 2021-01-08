@@ -123,7 +123,7 @@ class SensorToFlowfrontEvaluator(Evaluator):
                 c = inputs[sample].numpy()
                 c = np.squeeze(c)
                 # quick and dirty, lol.
-                plt.imsave(self.im_save_path / Path(str(self.num) + "inp.jpg"), c[50,:,:])
+                plt.imsave(self.im_save_path / Path(str(self.num) + "inp.jpg"), c[50, :, :])
 
             self.num += 1
         pass

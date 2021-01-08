@@ -12,7 +12,7 @@ if __name__ == "__main__":
 
     batch_size = 128
     dataset_paths = r.get_regular_sampled_data_paths()
-    num_workers = 40
+    num_workers = 38
     num_val = 100
     num_test = 400
 

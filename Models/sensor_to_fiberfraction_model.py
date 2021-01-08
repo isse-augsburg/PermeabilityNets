@@ -46,7 +46,7 @@ class FFTFF(nn.Module):
         super(FFTFF, self).__init__()
 
         self.convlstm = ConvLSTM(input_channels=1, hidden_channels=[
-                                 32, 8], kernel_size=13, step=100, effective_step=[99])
+                                 32, 8], kernel_size=7, step=100, effective_step=[99], dilation=2)
         self.transpose = nn.ConvTranspose2d(8, 8, 13, stride=2, padding=0)
         self.conv1 = nn.Conv2d(8, 8, 13, stride=2, padding=0)
         self.conv2 = nn.Conv2d(8, 1, 5, stride=1, padding=0)
