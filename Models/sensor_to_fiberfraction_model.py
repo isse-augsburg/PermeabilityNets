@@ -40,22 +40,22 @@ class STFF_v2(nn.Module):
         out = self.adaptive_pool(out)
         return out
 
+
 class FFTFF(nn.Module):
     def __init__(self):
         super(FFTFF, self).__init__()
-        
 
         self.convlstm = ConvLSTM(input_channels=1, hidden_channels=[
-                                 32, 8], kernel_size=5, step=100, effective_step=[99])
-        self.transpose = nn.ConvTranspose2d(8, 8, 5, stride=2, padding=0)
-        self.conv1 = nn.Conv2d(8, 8, 5, stride=2, padding=0)
+                                 32, 8], kernel_size=13, step=100, effective_step=[99])
+        self.transpose = nn.ConvTranspose2d(8, 8, 13, stride=2, padding=0)
+        self.conv1 = nn.Conv2d(8, 8, 13, stride=2, padding=0)
         self.conv2 = nn.Conv2d(8, 1, 5, stride=1, padding=0)
         self.adaptive_pool = nn.AdaptiveAvgPool2d((135, 103))
 
     def forward(self, x: torch.Tensor):
         # sequence, batch, dim, x,y
         x = x.permute(1, 0, 2, 3).unsqueeze(2)
-        
+
         out, _ = self.convlstm(x)
         out = out[0]
         out = F.relu(self.transpose(out))
@@ -64,6 +64,7 @@ class FFTFF(nn.Module):
         out = torch.squeeze(out, dim=1)
         out = self.adaptive_pool(out)
         return out
+
 
 class STFF(nn.Module):
     def __init__(self):
@@ -86,7 +87,7 @@ class STFF(nn.Module):
 
 
 if __name__ == "__main__":
-    model_inpt = torch.randn(2, 100, 143,111).cuda()
+    model_inpt = torch.randn(2, 100, 143, 111).cuda()
     model_target = torch.randn(2, 135, 103).cuda()
 
     model = FFTFF().cuda()

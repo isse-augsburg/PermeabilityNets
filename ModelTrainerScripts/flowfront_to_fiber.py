@@ -12,7 +12,7 @@ if __name__ == "__main__":
 
     batch_size = 128
     dataset_paths = r.get_regular_sampled_data_paths()
-    num_workers = 70
+    num_workers = 40
     num_val = 100
     num_test = 400
 
@@ -31,7 +31,8 @@ if __name__ == "__main__":
         data_gather_function=get_filelist_within_folder_blacklisted,
         loss_criterion=torch.nn.MSELoss(),
         data_root=r.data_root_every_step,
-        classification_evaluator_function=lambda: SensorToFlowfrontEvaluator(skip_images=False, ignore_inp=False, sensors_shape=(143, 111),
+        classification_evaluator_function=lambda: SensorToFlowfrontEvaluator(skip_images=False, ignore_inp=False,
+                                                                             sensors_shape=(143, 111),
                                                                              save_path=Path(
                                                                                  "/cfs/home/s/c/schroeni/Images"
                                                                                  "/FlowFrontToFiber/")),
