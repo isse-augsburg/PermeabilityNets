@@ -14,7 +14,7 @@ class ConvLSTMCell(nn.Module):
         self.kernel_size = kernel_size
         self.num_features = 4
 
-        self.padding = int((kernel_size - 1) / 2) + (dilation-1)
+        self.padding = int((kernel_size - 1) / 2) + kernel_size//2
 
         self.Wxi = nn.Conv2d(self.input_channels, self.hidden_channels,
                              self.kernel_size, 1, self.padding, bias=True, dilation=dilation)
