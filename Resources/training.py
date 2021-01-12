@@ -186,5 +186,6 @@ def get_regular_sampled_data_paths():
         data_root_every_step / "2020-10-30_16-43-42_1000p",
         data_root_every_step / "2020-11-13_13-23-45_5000p",
         data_root_every_step / "2020-12-02_14-56-37_5000p",
+        data_root_every_step / "2020-12-21_10-06-17_5000p",
     ]
     return data_paths

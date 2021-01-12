@@ -103,7 +103,7 @@ class DataloaderImages:
 
         # Fiber fraction map creation with tripcolor
         fvc_old = f["/post/constant/entityresults/SHELL/FIBER_FRACTION/ZONE1_set1/erfblock/res"][()].flatten()
-        fvc = f["/post/constant/entityresults/SHELL/PERMEABILITY1/ZONE1_set1/erfblock/res"][()][:,0]
+        fvc = f["/post/constant/entityresults/SHELL/PERMEABILITY1/ZONE1_set1/erfblock/res"][()][:, 0]
 
         fig = plt.figure()
         ax = fig.add_subplot(111)

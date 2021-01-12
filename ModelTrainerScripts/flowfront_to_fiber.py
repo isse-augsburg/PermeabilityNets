@@ -10,9 +10,9 @@ from Trainer.ModelTrainer import ModelTrainer
 if __name__ == "__main__":
     args = read_cmd_params()
 
-    batch_size = 128
+    batch_size = 64
     dataset_paths = r.get_regular_sampled_data_paths()
-    num_workers = 38
+    num_workers = 75
     num_val = 100
     num_test = 400
 
