@@ -103,11 +103,13 @@ class DataloaderImages:
 
         # Fiber fraction map creation with tripcolor
         fvc_old = f["/post/constant/entityresults/SHELL/FIBER_FRACTION/ZONE1_set1/erfblock/res"][()].flatten()
-        fvc = f["/post/constant/entityresults/SHELL/PERMEABILITY1/ZONE1_set1/erfblock/res"][()][:, 0]
+        fvc = f["/post/constant/entityresults/SHELL/PERMEABILITY1/ZONE1_set1/erfblock/res"][()][:, 0] * 100000
 
+        
+        
         fig = plt.figure()
         ax = fig.add_subplot(111)
-        ax.tripcolor(self.fftriang, fvc, cmap="gray")
+        ax.tripcolor(self.fftriang, fvc, cmap="gray",vmin=0, vmax=10)
 
         ax.set(xlim=(0, 375), ylim=(0, 300))
         ax.axis("off")
@@ -116,9 +118,10 @@ class DataloaderImages:
         extent = ax.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
         for im in ax.get_images():
             im.set_clim(0, 1)
-
+            
         perm_bytes = io.BytesIO()
         fig.savefig(perm_bytes, bbox_inches=extent, format="png")
+        #fig.savefig("/home/schroeni/imgs/out.png", bbox_inches=extent, format="png")
         plt.close(fig)
         perm_bytes.seek(0)
 
@@ -514,7 +517,7 @@ class DataloaderImageSequences(DataloaderImages):
 if __name__ == "__main__":
     dl = DataloaderImageSequences()
     root = tr_resources.data_root / "2019-11-29_16-56-17_10000p"
-    for num in range(10):
+    for num in range(100):
 
         p = Path(root / f"{num}/2019-11-29_16-56-17_{num}_RESULT.erfh5")
 
