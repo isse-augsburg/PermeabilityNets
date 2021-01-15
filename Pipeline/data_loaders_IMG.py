@@ -1,3 +1,7 @@
+from collections import OrderedDict
+import socket
+import torch
+from Models.sensor_to_fiberfraction_model import FFTFF
 import io
 import logging
 import re
@@ -516,6 +520,28 @@ class DataloaderImageSequences(DataloaderImages):
 
 if __name__ == "__main__":
     dl = DataloaderImageSequences()
+
+    model = FFTFF()
+    path = r"/cfs/share/cache/output_schroeni/2021-01-14_17-02-09/checkpoint.pth"
+    if torch.cuda.is_available():
+        checkpoint = torch.load(path)
+    else:
+        checkpoint = torch.load(path, map_location="cpu")
+
+    new_model_state_dict = OrderedDict()
+    model_state_dict = checkpoint["model_state_dict"]
+    if "swt-dgx" not in socket.gethostname():
+        for k, v in model_state_dict.items():
+            if k.startswith("module"):
+                k = k[7:]  # remove `module.`
+            new_model_state_dict[k] = v
+        model.load_state_dict(new_model_state_dict)
+    else:
+        model.load_state_dict(model_state_dict)
+   
+
+   
+
     root = tr_resources.data_root / "2019-11-29_16-56-17_10000p"
     for num in range(100):
 
