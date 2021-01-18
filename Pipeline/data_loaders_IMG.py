@@ -522,6 +522,7 @@ if __name__ == "__main__":
     dl = DataloaderImageSequences()
 
     model = FFTFF()
+    model = model.cuda()
     path = r"/cfs/share/cache/output_schroeni/2021-01-14_17-02-09/checkpoint.pth"
     if torch.cuda.is_available():
         checkpoint = torch.load(path)
@@ -541,11 +542,11 @@ if __name__ == "__main__":
    
 
    
-
-    root = tr_resources.data_root / "2019-11-29_16-56-17_10000p"
+    root = tr_resources.data_root_every_step / "2020-12-21_10-06-17_5000p"
+   
     for num in range(100):
 
-        p = Path(root / f"{num}/2019-11-29_16-56-17_{num}_RESULT.erfh5")
+        p = Path(root / f"{num}/2020-12-21_10-06-17_{num}_RESULT.erfh5")
 
         ret = dl.get_flowfront_to_perm_map(p)
         # dl.plot_times(p, num, save_to_file=False)

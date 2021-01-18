@@ -95,6 +95,10 @@ class SensorToFlowfrontEvaluator(Evaluator):
                  ignore_inp=False):
         super().__init__()
         self.num = 0
+        self.IOU = []
+        self.Acc = []
+        self.normErr = []
+
         self.ignore_inp = ignore_inp
         self.save_path = save_path
         self.skip_images = skip_images
@@ -125,14 +129,57 @@ class SensorToFlowfrontEvaluator(Evaluator):
                 # quick and dirty, lol.
                 plt.imsave(self.im_save_path / Path(str(self.num) + "inp.jpg"), c[50, :, :])
 
+            #Accuracy
+            diff = np.abs(b - a)
+            diff[diff < 0.03] = 0
+            acc = (diff.size - np.count_nonzero(diff)) / diff.size
+            self.Acc.append(acc)
+
+            # average error
+            b[(b > 0.64) & (b < 0.71)] = -1
+            b[b != -1] = 1
+            b[b != 1] = 0
+            a[(a > 0.62) & (a < 0.71)] = -1
+            a[a != -1] = 1
+            a[a != 1] = 0
+            out_b = np.array(a, dtype=np.bool)
+            label_b = np.array(b, dtype=np.bool)
+            union = out_b + label_b
+            intersect = out_b * label_b
+            
+            self.IOU.append(intersect.sum()/float(union.sum()))
+
+
+            # Error per normalised by perm Area
+
+            err = np.sum(diff) / np.count_nonzero(b)
+            self.normErr.append(err) 
+
             self.num += 1
         pass
 
     def print_metrics(self, step_count):
-        pass
+        logger = logging.getLogger(__name__)
+
+        avgIOU = np.mean(self.IOU)
+        avgACC = np.mean(self.Acc)
+        avgNormErr = np.mean(self.normErr)
+        logger.info(f"Avg IOU: {avgIOU}, Avg ACC: {avgACC}, AvgNormError: {avgNormErr}, ")
+
+
+
+         # MLflow
+        log_metric("Validation/Accuracy", avgACC, step_count)
+        log_metric("Validation/Normalised_Error", avgNormErr, step_count)
+        log_metric("Validation/Intersection_Over_Union", avgIOU, step_count)
+        
 
     def reset(self):
         self.num = 0
+        self.IOU = []
+        self.Acc = []
+        self.normErr = []
+        
         pass
 
 
