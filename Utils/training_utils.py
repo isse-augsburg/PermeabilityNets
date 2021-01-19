@@ -92,3 +92,35 @@ def read_cmd_params():
         sys.exit()
 
     return args
+
+
+def read_cmd_params_attention():
+    parser = argparse.ArgumentParser(description="Run training or test. Rerun experiments from paper with data from"
+                                                 "https://figshare.com/s/6d8ebc90e0e820b7f08f")
+    parser.add_argument("--eval", type=str, default=None, help="Run a test. Full directory to output "
+                                                               "trained model (to test).")
+    parser.add_argument("--demo", type=str, default=None, help="Run experiments from FlowFrontNet paper. "
+                                                               "Add the full directory path to dataset")
+    parser.add_argument("--checkpoint_path", type=str, default=None, help="Full directory path to a checkpoint")
+
+    parser.add_argument("--AttMethod", type=str, default="b", help="Attention method, choose from a b c d")
+
+    args = parser.parse_args()
+    if args.eval is None:
+        args.run_eval = False
+    else:
+        args.run_eval = True
+    eval_path = args.eval
+    checkpoint_path = args.checkpoint_path
+
+    if args.run_eval and (eval_path is None or checkpoint_path is None):
+        logger = logging.getLogger(__name__)
+        logger.error(
+            "No eval_path or checkpoint_path given. You should specify the --eval_path / --checkpoint_path argument if"
+            "you would like to run a test."
+        )
+        logger.error(parser.format_help())
+        logging.shutdown()
+        sys.exit()
+
+    return args
