@@ -118,11 +118,42 @@ class AttentionFFTFF(nn.Module):
         return out
 
 
+class ThreeDAttentionFFTFF(nn.Module):
+    def __init__(self, method="b"):
+        super(ThreeDAttentionFFTFF, self).__init__()
+
+       
+        self.conv3d = nn.Conv3d(1, 16, 5)
+
+        self.convlstm = AttenConvLSTM(input_channels=16, hidden_channels=[32, 32], kernel_size=5, step = 96, init_method = 'xavier_normal_', AttenMethod = method, expand_x=139, expand_y=107)
+
+
+        
+        self.transpose = nn.ConvTranspose2d(32, 8, 5, stride=2, padding=0)
+        self.conv1 = nn.Conv2d(8, 8, 13, stride=2, padding=0)
+        self.conv2 = nn.Conv2d(8, 1, 5, stride=1, padding=0)
+        self.adaptive_pool = nn.AdaptiveAvgPool2d((135, 103))
+
+    def forward(self, x: torch.Tensor):
+        # sequence, batch, dim, x,y
+        x = x.unsqueeze(1)
+        out = F.relu(self.conv3d(x))
+
+        out, _ = self.convlstm(out)
+        out = out[:,:,-1,:,:].squeeze(2)
+        out = F.relu(self.transpose(out))
+        out = F.relu(self.conv1(out))
+        out = F.relu(self.conv2(out))
+        out = torch.squeeze(out, dim=1)
+        out = self.adaptive_pool(out)
+        return out
+
+
 if __name__ == "__main__":
     model_inpt = torch.randn(2, 100, 143, 111).cuda()
     model_target = torch.randn(2, 135, 103).cuda()
 
-    model = AttentionFFTFF('a').cuda()
+    model = ThreeDAttentionFFTFF('a').cuda()
     t = model(model_inpt)
     loss = torch.nn.MSELoss()
     lo = loss(t, model_target)
