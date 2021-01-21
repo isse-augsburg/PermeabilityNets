@@ -1,3 +1,4 @@
+from Models.flowfront2PermTransformer import OptimusPrime
 from pathlib import Path
 import socket
 import torch
@@ -31,7 +32,7 @@ if __name__ == "__main__":
 
     dl = DataloaderImageSequences()
     m = ModelTrainer(
-        lambda: AttentionFFTFF(args.AttMethod),
+        lambda: OptimusPrime(batch_size),
         dataset_paths,
         r.save_path,
         cache_path=r.cache_path,
