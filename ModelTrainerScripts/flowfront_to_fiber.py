@@ -1,9 +1,10 @@
+from Models.flowfront2PermTransformer import OptimusPrime
 from pathlib import Path
 import socket
 import torch
 import numpy as np
 import Resources.training as r
-from Models.sensor_to_fiberfraction_model import AttentionFFTFF, FFTFF, ThreeDAttentionFFTFF
+# from Models.sensor_to_fiberfraction_model import AttentionFFTFF, FFTFF, ThreeDAttentionFFTFF
 from Pipeline.data_gather import get_filelist_within_folder_blacklisted
 from Pipeline.data_loaders_IMG import DataloaderImageSequences
 from Trainer.evaluation import SensorToFlowfrontEvaluator
@@ -31,7 +32,7 @@ if __name__ == "__main__":
 
     dl = DataloaderImageSequences()
     m = ModelTrainer(
-        lambda: ThreeDAttentionFFTFF(args.AttMethod),
+        lambda: OptimusPrime(batch_size),
         dataset_paths,
         r.save_path,
         cache_path=r.cache_path,
