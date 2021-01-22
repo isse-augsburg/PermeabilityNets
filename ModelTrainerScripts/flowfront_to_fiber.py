@@ -3,7 +3,7 @@ import socket
 import torch
 import numpy as np
 import Resources.training as r
-from Models.sensor_to_fiberfraction_model import AttentionFFTFF, FFTFF
+from Models.sensor_to_fiberfraction_model import AttentionFFTFF, FFTFF, ThreeDAttentionFFTFF
 from Pipeline.data_gather import get_filelist_within_folder_blacklisted
 from Pipeline.data_loaders_IMG import DataloaderImageSequences
 from Trainer.evaluation import SensorToFlowfrontEvaluator
@@ -15,9 +15,9 @@ if __name__ == "__main__":
     np.random.seed(0)
 
     if "swt-dgx" in socket.gethostname():
-        batch_size = 64
+        batch_size = 32
         dataset_paths = r.get_regular_sampled_data_paths()
-        num_workers = 75
+        num_workers = 35
         num_val = 100
         num_test = 400
         data_root = r.data_root_every_step
@@ -31,7 +31,7 @@ if __name__ == "__main__":
 
     dl = DataloaderImageSequences()
     m = ModelTrainer(
-        lambda: AttentionFFTFF(args.AttMethod),
+        lambda: ThreeDAttentionFFTFF(args.AttMethod),
         dataset_paths,
         r.save_path,
         cache_path=r.cache_path,
