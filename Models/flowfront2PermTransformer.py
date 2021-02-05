@@ -1,7 +1,25 @@
 import torch
 from torch import nn
 import torch.nn.functional as F
+import math
 
+class PositionalEncoding(nn.Module):
+
+    def __init__(self, d_model, dropout=0.1, max_len=5000):
+        super(PositionalEncoding, self).__init__()
+        self.dropout = nn.Dropout(p=dropout)
+
+        pe = torch.zeros(max_len, d_model)
+        position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)
+        div_term = torch.exp(torch.arange(0, d_model, 2).float() * (-math.log(10000.0) / d_model))
+        pe[:, 0::2] = torch.sin(position * div_term)
+        pe[:, 1::2] = torch.cos(position * div_term)
+        pe = pe.unsqueeze(0).transpose(0, 1)
+        self.register_buffer('pe', pe)
+
+    def forward(self, x):
+        x = x + self.pe[:x.size(0), :]
+        return self.dropout(x)
 
 class OptimusPrime(nn.Module):
     def __init__(self, batch_size=32):
@@ -15,6 +33,7 @@ class OptimusPrime(nn.Module):
         self.conv5 = nn.Conv2d(256, 512, kernel_size=3, stride=1, padding=(0, 1))
 
         self.pool = nn.MaxPool2d(2, 2)
+        self.pos_encode = PositionalEncoding(512,max_len=100)
         self.transformer = nn.Transformer(512, 4, 2, 2, 1024)
 
         self.deconv1 = nn.ConvTranspose2d(
@@ -46,7 +65,7 @@ class OptimusPrime(nn.Module):
         out = F.relu(self.pool(self.conv5(out))).squeeze(-1).squeeze(-1)
         out = out.view(inpt_batch_size, -1, 512)
         out = out.permute(1, 0, 2)
-
+        out = self.pos_encode(out)
         transformed = self.transformer(out, trg)
         out = transformed.permute(1, 0, 2).squeeze(1).unsqueeze(-1).unsqueeze(-1)
 
