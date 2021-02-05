@@ -480,7 +480,7 @@ class DataloaderImageSequences(DataloaderImages):
             coords = self.get_coords(filename)
             for i, sample in enumerate(percentage_of_all_sensors):
                 if sample >= current:
-                    sequence[int(current * 100), :, :] = create_np_image((143,111), coords, fillings[i, :])
+                    sequence[int(round(current * 100)), :, :] = create_np_image((143,111), coords, fillings[i, :])
                     current += per_step
             return [(sequence, np.array(perm_map))]
         except Exception as e:

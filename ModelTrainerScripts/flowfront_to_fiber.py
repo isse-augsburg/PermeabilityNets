@@ -1,10 +1,11 @@
+from Models.flowfrontPermBaseline import FF2Perm_Baseline
 from Models.flowfront2PermTransformer import OptimusPrime
 from pathlib import Path
 import socket
 import torch
 import numpy as np
 import Resources.training as r
-# from Models.sensor_to_fiberfraction_model import AttentionFFTFF, FFTFF, ThreeDAttentionFFTFF
+from Models.sensor_to_fiberfraction_model import AttentionFFTFF, FFTFF, ThreeDAttentionFFTFF
 from Pipeline.data_gather import get_filelist_within_folder_blacklisted
 from Pipeline.data_loaders_IMG import DataloaderImageSequences
 from Trainer.evaluation import SensorToFlowfrontEvaluator
@@ -12,8 +13,7 @@ from Utils.training_utils import read_cmd_params_attention
 from Trainer.ModelTrainer import ModelTrainer
 if __name__ == "__main__":
     args = read_cmd_params_attention()
-    torch.manual_seed(0)
-    np.random.seed(0)
+    
 
     if "swt-dgx" in socket.gethostname():
         batch_size = 32
@@ -32,12 +32,12 @@ if __name__ == "__main__":
 
     dl = DataloaderImageSequences()
     m = ModelTrainer(
-        lambda: OptimusPrime(batch_size),
+        lambda: FFTFF(),
         dataset_paths,
         r.save_path,
         cache_path=r.cache_path,
         batch_size=batch_size,
-        epochs=50,
+        epochs=150,
         num_workers=num_workers,
         num_validation_samples=num_val,
         num_test_samples=num_test,
