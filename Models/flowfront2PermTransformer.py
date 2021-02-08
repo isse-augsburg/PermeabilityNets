@@ -55,8 +55,22 @@ class OptimusPrime(nn.Module):
         inpt_batch_size = x.shape[0]
         if inpt_batch_size != self.batch_size:
             trg = torch.ones((1, x.shape[0], 512)).cuda()
+            
         else:
             trg = self.trg
+        
+        # create mask for zeros at the end of frame
+        padding = torch.zeros((x.shape[0], 100), dtype=torch.bool).cuda()    
+        for j, sample in enumerate(x):
+            for i in range(99,0, -1):
+                step = sample[i]
+                n_zero = torch.nonzero(step)
+                if len(n_zero) > 0:
+                    break
+                padding[j,i] = True
+            pass
+        
+        np_pad = padding.cpu().numpy()
         out = x.view(-1, 1, x.shape[2], x.shape[3])
         out = F.relu(self.pool(self.conv1(out)))
         out = F.relu(self.pool(self.conv2(out)))
@@ -66,7 +80,7 @@ class OptimusPrime(nn.Module):
         out = out.view(inpt_batch_size, -1, 512)
         out = out.permute(1, 0, 2)
         out = self.pos_encode(out)
-        transformed = self.transformer(out, trg)
+        transformed = self.transformer(out, trg,src_key_padding_mask=padding)
         out = transformed.permute(1, 0, 2).squeeze(1).unsqueeze(-1).unsqueeze(-1)
 
         out = F.relu(self.deconv1(out))
@@ -81,6 +95,8 @@ class OptimusPrime(nn.Module):
 if __name__ == "__main__":
     model_inpt = torch.randn(2, 100, 143, 111).cuda()
     model_target = torch.randn(2, 135, 103).cuda()
+
+    model_inpt[1,95:,:,:] = 0
 
     model = OptimusPrime(batch_size=2).cuda()
     pytorch_total_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
