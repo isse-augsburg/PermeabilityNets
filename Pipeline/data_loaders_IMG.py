@@ -109,8 +109,7 @@ class DataloaderImages:
         fvc_old = f["/post/constant/entityresults/SHELL/FIBER_FRACTION/ZONE1_set1/erfblock/res"][()].flatten()
         fvc = f["/post/constant/entityresults/SHELL/PERMEABILITY1/ZONE1_set1/erfblock/res"][()][:, 0] * 100000
 
-        
-        
+
         fig = plt.figure()
         ax = fig.add_subplot(111)
         ax.tripcolor(self.fftriang, fvc, cmap="gray",vmin=0, vmax=10)
@@ -483,6 +482,44 @@ class DataloaderImageSequences(DataloaderImages):
                     sequence[int(round(current * 100)), :, :] = create_np_image((143,111), coords, fillings[i, :])
                     current += per_step
             return [(sequence, np.array(perm_map))]
+        except Exception as e:
+            return None
+
+    def get_flowfront_to_flowfront(self, filename):
+        try:
+            per_step = 0.01
+            # logger = logging.getLogger(__name__)
+            # logger.debug(
+            #     "Loading flow front and premeability maps from {}".format(
+            #         filename)
+            # )
+            f = h5py.File(filename, "r")
+
+
+            states = list(f["post"]["singlestate"])
+
+            fillings = []
+            for state in states:
+                try:
+                    fillings.append(
+                        f["post"]["singlestate"][state]["entityresults"]["NODE"][
+                            "FILLING_FACTOR"
+                        ]["ZONE1_set1"]["erfblock"]["res"][()]
+                    )
+                except KeyError as e:
+                    return None
+            fillings = np.stack(fillings).squeeze()
+            activated_pixels = np.count_nonzero(fillings, axis=1)
+            percentage_of_all_sensors = activated_pixels / 28464  # Number individual points
+            returns = []
+            current = 0
+            coords = self.get_coords(filename)
+            for i, sample in enumerate(percentage_of_all_sensors):
+                if sample >= current:
+                    img = create_np_image((143, 111), coords, fillings[i, :])
+                    returns.append((img,img))
+                    current += per_step
+            return returns
         except Exception as e:
             return None
 

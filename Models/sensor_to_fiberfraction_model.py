@@ -5,6 +5,7 @@ import torch.nn.functional as F
 from torch import nn
 
 from Models.OurModules import ConvLSTM
+from Models.utils.decorators import augumented_forward_ff_sequence
 
 
 class STFF_v2(nn.Module):
@@ -70,6 +71,7 @@ class FFTFF(nn.Module):
         self.conv2 = nn.Conv2d(8, 1, 5, stride=1, padding=0)
         self.adaptive_pool = nn.AdaptiveAvgPool2d((135, 103))
 
+    @augumented_forward_ff_sequence
     def forward(self, x: torch.Tensor):
         # sequence, batch, dim, x,y
         x = x.permute(1, 0, 2, 3).unsqueeze(2)

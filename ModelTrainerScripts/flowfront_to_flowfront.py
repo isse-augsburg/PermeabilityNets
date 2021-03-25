@@ -1,5 +1,5 @@
-from Models.flowfrontPermBaseline import FF2Perm_Baseline, FF2Perm_3DConv
-from Models.flowfront2PermTransformer import OptimusPrime, OptimusPrime2
+from Models.flowfrontPermBaseline import FF2Perm_Baseline
+from Models.flowfront2PermTransformer import OptimusPrime, Bumblebee, Bumblebee2
 from pathlib import Path
 import socket
 import torch
@@ -16,27 +16,25 @@ if __name__ == "__main__":
     
 
     if "swt-dgx" in socket.gethostname():
-        batch_size = 32
+        batch_size = 512
         dataset_paths = r.get_regular_sampled_data_paths()
         num_workers = 35
         num_val = 100
         num_test = 400
         data_root = r.data_root_every_step
-        img_save_path = Path("/cfs/home/s/c/schroeni/Images/FlowFrontToFiber/TransPretrained")
-        chpkt = r"/cfs/share/cache/output_schroeni/2021-02-17_14-54-44/checkpoint.pth"
+
     else:
-        batch_size = 8
-        dataset_paths = r.get_data_paths_debug()
-        num_workers = 20
-        num_val = 2
-        num_test = 1
-        data_root = r.data_root
-        img_save_path = Path(r"C:\Users\schroeni\CACHE\Saved_Imgs\FFtoPerm")
-        chpkt = r"X:\cache\output_schroeni\2021-02-17_14-54-44\checkpoint.pth"
+        batch_size = 256
+        dataset_paths = r.get_regular_sampled_data_paths()
+        num_workers = 16
+        num_val = 100
+        num_test = 100
+        data_root = r.data_root_every_step
+
 
     dl = DataloaderImageSequences()
     m = ModelTrainer(
-        lambda: OptimusPrime2(batch_size),
+        lambda: Bumblebee2(),
         dataset_paths,
         r.save_path,
         cache_path=r.cache_path,
@@ -45,13 +43,11 @@ if __name__ == "__main__":
         num_workers=num_workers,
         num_validation_samples=num_val,
         num_test_samples=num_test,
-        data_processing_function=dl.get_flowfront_to_perm_map,
+        data_processing_function=dl.get_flowfront_to_flowfront,
         data_gather_function=get_filelist_within_folder_blacklisted,
         loss_criterion=torch.nn.MSELoss(),
         data_root=data_root,
-        classification_evaluator_function=lambda: SensorToFlowfrontEvaluator(skip_images=False, ignore_inp=False,
-                                                                             sensors_shape=(143, 111),
-                                                                             save_path=img_save_path),
+        classification_evaluator_function=lambda: None,
         dummy_epoch=False
     )
 

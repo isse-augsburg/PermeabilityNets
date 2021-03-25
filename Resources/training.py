@@ -14,6 +14,13 @@ elif socket.gethostname() == "swtse130":
     save_path = Path(r"C:\Users\stiebesi\CACHE\train_out")
     _share_path = Path(r"Y:/")
 
+#config Niklas
+elif socket.gethostname() == "swtse121n":
+    _home = Path(r"Y:/")
+    cache_path = None
+    save_path = Path(r"C:\Users\schroeni\CACHE\train_out")
+    _share_path = Path(r"X:/")
+
 else:
     save_path = Path(f'/cfs/share/cache/output_{getpass.getuser()}/Local')
     # cache_path = Path('/cfs/share/cache')
