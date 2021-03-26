@@ -9,36 +9,26 @@ from Models.sensor_to_fiberfraction_model import AttentionFFTFF, FFTFF, ThreeDAt
 from Pipeline.data_gather import get_filelist_within_folder_blacklisted
 from Pipeline.data_loaders_IMG import DataloaderImageSequences
 from Trainer.evaluation import SensorToFlowfrontEvaluator
-from Utils.training_utils import read_cmd_params_attention
+from Utils.training_utils import read_cmd_params_attention, read_cmd_params
 from Trainer.ModelTrainer import ModelTrainer
+from Utils import custom_mlflow
 if __name__ == "__main__":
-    args = read_cmd_params_attention()
-    
-
-    if "swt-dgx" in socket.gethostname():
-        batch_size = 32
-        dataset_paths = r.get_regular_sampled_data_paths()
-        num_workers = 35
-        num_val = 100
-        num_test = 400
-        data_root = r.data_root_every_step
-        img_save_path = Path("/cfs/home/s/c/schroeni/Images/FlowFrontToFiber/TransPretrained")
-        chpkt = r"/cfs/share/cache/output_schroeni/2021-02-17_14-54-44/checkpoint.pth"
-    else:
-        batch_size = 8
-        dataset_paths = r.get_data_paths_debug()
-        num_workers = 20
-        num_val = 2
-        num_test = 1
-        data_root = r.data_root
-        img_save_path = Path(r"C:\Users\schroeni\CACHE\Saved_Imgs\FFtoPerm")
-        chpkt = r"X:\cache\output_schroeni\2021-02-17_14-54-44\checkpoint.pth"
+    args = read_cmd_params()
+    custom_mlflow.logging = False
+    batch_size = 8
+    dataset_paths = []
+    num_workers = 20
+    num_val = 2
+    num_test = 1
+    data_root = Path("")
+    save_path = Path(r"C:\Users\schroeni\Documents\Projekte\COSIMO\DATA\OUT")
+    demo_path = Path(r"C:\Users\schroeni\Documents\Projekte\COSIMO\DATA\FlowfrontToPermeability")
 
     dl = DataloaderImageSequences()
     m = ModelTrainer(
         lambda: OptimusPrime2(batch_size),
         dataset_paths,
-        r.save_path,
+        save_path,
         cache_path=r.cache_path,
         batch_size=batch_size,
         epochs=150,
@@ -49,9 +39,10 @@ if __name__ == "__main__":
         data_gather_function=get_filelist_within_folder_blacklisted,
         loss_criterion=torch.nn.MSELoss(),
         data_root=data_root,
+        demo_path=demo_path,
         classification_evaluator_function=lambda: SensorToFlowfrontEvaluator(skip_images=False, ignore_inp=False,
                                                                              sensors_shape=(143, 111),
-                                                                             save_path=img_save_path),
+                                                                             save_path=save_path),
         dummy_epoch=False
     )
 
