@@ -19,7 +19,7 @@ use the environment.yml with anaconda.
     Run your configuration.
 
 #### A Translation for the Code:
-* ConvLSTM is called `FFTFF` in Models.flowfront_to_fiber_fraction_model.py
+* ConvLSTM is called `FFTFF` in Models.sensor_to_fiber_fraction_model.py
 * Transformer is called `OptimusPrime` in Models.flowfront2PermTransformer.py
 * Conv2D is called `FF2Perm_Baseline` in Models.flowfront2PermBaseline.py
 * Conv3D is called `FF2Perm_3DConv` in Models.flowfront2PermBaseline.py
