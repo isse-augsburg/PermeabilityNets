@@ -6,8 +6,14 @@ use the environment.yml with anaconda.
 
 1.  Download the data and checkpoints from here:
 TODO
-You can find our pickeled dataset there. It is split into a Training Validation and Testing set. Note that at least 128gb of RAM and a capable graphics card is required to run the full training!
+ It is split into a Training Validation and Testing set. Note that at least 128gb of RAM and a capable graphics card is required to run the full training!
+    The evaluation should run on 16gb RAM and a GPU with at least 8gb of vRAM. 
     
+2. Open ModelTrainerScripts/flowfront_to_fiber_STANDALONE.py. This is a version of our training script that is modified to work as a demo script. Only very little setup is needed:
+   1. save_path should be a _Path()_ that specifies the output folder. Training and Eval results will be saved there.
+   2. data_folder should be a _Path()_ that points to the folder containing the three data splits downloaded in step 1.
+   3. model_chkpts should be a _Path()_ that points to the folder containing the four model checkpoints (from step 1.). Do not rename the checkpoints, since it will break the demo script!
+   4. mode: choose between Conv2D, Conv3D, Transformer, or ConvLSTM. 
 2. Start Trainings:
     TODO
 

@@ -4,7 +4,6 @@ from pathlib import Path
 import socket
 import torch
 import numpy as np
-import Resources.training as r
 from Models.sensor_to_fiberfraction_model import AttentionFFTFF, FFTFF, ThreeDAttentionFFTFF
 from Pipeline.data_gather import get_filelist_within_folder_blacklisted
 from Pipeline.data_loaders_IMG import DataloaderImageSequences
@@ -21,15 +20,26 @@ if __name__ == "__main__":
     num_val = 2
     num_test = 1
     data_root = Path("")
+
+    #### CONFIGURATION ####
+
+    # Folder where output will be saved
     save_path = Path(r"C:\Users\schroeni\Documents\Projekte\COSIMO\DATA\OUT")
-    demo_path = Path(r"C:\Users\schroeni\Documents\Projekte\COSIMO\DATA\FlowfrontToPermeability")
+    # Folder containing the three sets .pt
+    data_folder = Path(r"C:\Users\schroeni\Documents\Projekte\COSIMO\DATA\FlowfrontToPermeability")
+    # Folder containing the model checkpoints
+    model_chkpts = Path(r"C:\Users\schroeni\Documents\Projekte\COSIMO\DATA\Checkpoints")
+    # choose between Conv2D, Conv3D, Transformer, or ConvLSTM. It will run ConvLSTM when something wrong is specified
+    mode = 'Transformer'
+    # set Eval to False if you want to run the training
+    eval = True
 
     dl = DataloaderImageSequences()
     m = ModelTrainer(
-        lambda: OptimusPrime2(batch_size),
+        lambda: OptimusPrime(batch_size) if mode == "Transformer" else (FFTFF() if mode == "ConvLSTM" else (FF2Perm_Baseline() if mode == "Conv2D" else (FF2Perm_3DConv() if mode == "Conv3D" else FFTFF()))),
         dataset_paths,
         save_path,
-        cache_path=r.cache_path,
+        cache_path=None,
         batch_size=batch_size,
         epochs=150,
         num_workers=num_workers,
@@ -39,20 +49,20 @@ if __name__ == "__main__":
         data_gather_function=get_filelist_within_folder_blacklisted,
         loss_criterion=torch.nn.MSELoss(),
         data_root=data_root,
-        demo_path=demo_path,
+        demo_path=data_folder,
         classification_evaluator_function=lambda: SensorToFlowfrontEvaluator(skip_images=False, ignore_inp=False,
                                                                              sensors_shape=(143, 111),
                                                                              save_path=save_path),
         dummy_epoch=False
     )
 
-    if not args.eval:
+    if not eval:
         m.start_training()
     else:
         m.inference_on_test_set(
-            Path(args.eval),
-            Path(args.checkpoint_path),
-            lambda summary_writer: SensorToFlowfrontEvaluator(save_path=Path(args.eval) / "eval_on_test_set",
+            Path(save_path) / Path(mode),
+            Path(model_chkpts) / ("checkpoint" + mode + ".pth"),
+            lambda: SensorToFlowfrontEvaluator(save_path=Path(save_path) / Path(mode) / "eval_on_test_set",
                                                               skip_images=False,
                                                               ignore_inp=True,
                                                               sensors_shape=(143, 111)),
