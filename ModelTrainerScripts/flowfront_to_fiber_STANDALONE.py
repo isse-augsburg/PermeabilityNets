@@ -1,5 +1,5 @@
 from Models.flowfrontPermBaseline import FF2Perm_Baseline, FF2Perm_3DConv
-from Models.flowfront2PermTransformer import OptimusPrime, OptimusPrime2
+from Models.flowfront2PermTransformer import OptimusPrime, OptimusPrime2, OptimusPrime_c2D
 from pathlib import Path
 import socket
 import torch
@@ -36,7 +36,7 @@ if __name__ == "__main__":
 
     dl = DataloaderImageSequences()
     m = ModelTrainer(
-        lambda: OptimusPrime(batch_size) if mode == "Transformer" else (FFTFF() if mode == "ConvLSTM" else (FF2Perm_Baseline() if mode == "Conv2D" else (FF2Perm_3DConv() if mode == "Conv3D" else FFTFF()))),
+        lambda: OptimusPrime_c2D(batch_size) if mode == "Transformer" else (FFTFF() if mode == "ConvLSTM" else (FF2Perm_Baseline() if mode == "Conv2D" else (FF2Perm_3DConv() if mode == "Conv3D" else FFTFF()))),
         dataset_paths,
         save_path,
         cache_path=None,
